@@ -11,6 +11,7 @@ install_requires = [
     "tinyhtml",
     "coloredlogs",
     "json2table",
+    "openai"
 ]
 
 setup(
