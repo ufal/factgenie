@@ -1,5 +1,5 @@
 // var url_prefix = window.location.href.split(/[?#]/)[0];
-var url_prefix = "";
+var url_prefix = window.url_prefix;
 var example_idx = 0;
 var total_examples = 1;
 var datasets = window.datasets;

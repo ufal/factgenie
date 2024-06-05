@@ -14,7 +14,7 @@
 
 <body>
   <nav class="navbar navbar-light bg-annotate justify-content-center">
-    <a class="navbar-brand" href="/">
+    <a class="navbar-brand" href="{{ host_prefix }}/">
       <img src="{{ host_prefix }}/static/img/genie.png" width="25px">
       <span style="margin-left: 5px; font-weight: bold;">factgenie</span>
     </a>
@@ -27,7 +27,7 @@
     <div class="col-md-4" {% if not allow_browse %}style="display: none;" {% endif %}>
       <div class="card text-center mt-3" style="min-width: 100%;">
         <div class="card-body">
-          <a href="/browse">
+          <a href="{{ host_prefix }}/browse">
             <img src="{{ host_prefix }}/static/img/book.png" class="intro-img">
             <h5 class="card-title">Browse</h5>
           </a>
@@ -38,7 +38,7 @@
     <div class="col-md-4" {% if not allow_annotate %}style="display: none;" {% endif %}>
       <div class="card text-center mt-3">
         <div class="card-body">
-          <a href="/llm_eval">
+          <a href="{{ host_prefix }}/llm_eval">
             <img src="{{ host_prefix }}/static/img/llm.png" class="intro-img">
             <h5 class="card-title">Annotate with LLMs</h5>
           </a>
@@ -49,7 +49,7 @@
     <div class="col-md-4" {% if not allow_annotate %}style="display: none;" {% endif %}>
       <div class="card text-center mt-3">
         <div class="card-body">
-          <a href="/crowdsourcing">
+          <a href="{{ host_prefix }}/crowdsourcing">
             <img src="{{ host_prefix }}/static/img/pencil.png" class="intro-img">
             <h5 class="card-title">Crowdsource annotations</h5>
           </a>
@@ -60,7 +60,7 @@
     <div class="col-md-4" {% if not allow_browse %}style="display: none;" {% endif %}>
       <div class="card text-center mt-3">
         <div class="card-body">
-          <a href="/datasets">
+          <a href="{{ host_prefix }}/datasets">
             <img src="{{ host_prefix }}/static/img/datasets.png" class="intro-img">
             <h5 class="card-title">Datasets</h5>
           </a>
@@ -71,7 +71,7 @@
     <div class="col-md-4" {% if not allow_browse %}style="display: none;" {% endif %}>
       <div class="card text-center mt-3">
         <div class="card-body">
-          <a href="/datasets">
+          <a href="{{ host_prefix }}/datasets">
             <img src="{{ host_prefix }}/static/img/output.png" class="intro-img">
             <h5 class="card-title">Annotations</h5>
           </a>
@@ -82,7 +82,7 @@
     <div class="col-md-4">
       <div class="card text-center mt-3">
         <div class="card-body">
-          <a href="/about">
+          <a href="{{ host_prefix }}/about">
             <img src="{{ host_prefix }}/static/img/info.png" class="intro-img">
             <h5 class="card-title">About</h5>
           </a>

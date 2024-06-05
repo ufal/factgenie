@@ -14,7 +14,7 @@
 
 <body>
   <nav class="navbar navbar-light bg-annotate justify-content-center">
-    <a class="navbar-brand" href="/">
+    <a class="navbar-brand" href="{{ host_prefix }}/">
       <img src="{{ host_prefix }}/static/img/genie.png" width="25px">
       <span style="margin-left: 5px; font-weight: bold;">factgenie</span>
     </a>
@@ -25,7 +25,7 @@
   <!-- <div class="text-center mt-5" style="font-size: 20px; font-weight: bold;">
     Visualize data-to-text generation datasets + annotate LLM outputs.
   </div> -->
-  <a href="/" class="btn btn-outline-secondary mt-5">← Main page</a>
+  <a href="{{ host_prefix }}/" class="btn btn-outline-secondary mt-5">← Main page</a>
 
   <div class="row">
     {% for name, dataset in datasets.items() %}
@@ -33,7 +33,7 @@
       <div class="card text-center mt-5">
         <div class="card-body">
           <img src="{{ host_prefix }}/static/img/datatypes/{{ dataset.type }}.png" class="intro-img">
-          <a href="/browse?dataset={{ name }}&split={{ dataset.splits[0] }}&example_idx=0">
+          <a href="{{ host_prefix }}/browse?dataset={{ name }}&split={{ dataset.splits[0] }}&example_idx=0">
             <h5 class="card-title">{{ name }}</h5>
           </a>
           <p class="card-text">{{ dataset.description | safe }}</p>
