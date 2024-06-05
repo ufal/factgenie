@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>factgenie</title>
+  <link rel="stylesheet" media="screen" href="{{ host_prefix }}/static/css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="{{ host_prefix }}/static/css/custom.css">
+  <link rel="shortcut icon" href="{{ host_prefix }}/static/img/favicon.ico">
+  <meta name="viewport" content="width=1024">
+  <script src="{{ host_prefix }}/static/js/jquery.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/popper.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/bootstrap.min.js"></script>
+</head>
+
+<body>
+  <nav class="navbar navbar-light bg-annotate justify-content-center">
+    <a class="navbar-brand" href="/">
+      <img src="{{ host_prefix }}/static/img/genie.png" width="25px">
+      <span style="margin-left: 5px; font-weight: bold;">factgenie</span>
+    </a>
+  </nav>
+</body>
+
+<div class="container">
+  <div class="row mt-5">
+    <!-- <b>Actions</b> -->
+    <div class="col-md-4" {% if not allow_browse %}style="display: none;" {% endif %}>
+      <div class="card text-center mt-3" style="min-width: 100%;">
+        <div class="card-body">
+          <a href="/browse">
+            <img src="{{ host_prefix }}/static/img/book.png" class="intro-img">
+            <h5 class="card-title">Browse</h5>
+          </a>
+          <p class="card-text">View data and annotations.</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4" {% if not allow_annotate %}style="display: none;" {% endif %}>
+      <div class="card text-center mt-3">
+        <div class="card-body">
+          <a href="/llm_eval">
+            <img src="{{ host_prefix }}/static/img/llm.png" class="intro-img">
+            <h5 class="card-title">Annotate with LLMs</h5>
+          </a>
+          <p class="card-text">Collect model annotations.</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4" {% if not allow_annotate %}style="display: none;" {% endif %}>
+      <div class="card text-center mt-3">
+        <div class="card-body">
+          <a href="/crowdsourcing">
+            <img src="{{ host_prefix }}/static/img/pencil.png" class="intro-img">
+            <h5 class="card-title">Crowdsource annotations</h5>
+          </a>
+          <p class="card-text">Collect human annotations.</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4" {% if not allow_browse %}style="display: none;" {% endif %}>
+      <div class="card text-center mt-3">
+        <div class="card-body">
+          <a href="/datasets">
+            <img src="{{ host_prefix }}/static/img/datasets.png" class="intro-img">
+            <h5 class="card-title">Datasets</h5>
+          </a>
+          <p class="card-text">Manage datasets and model outputs.</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4" {% if not allow_browse %}style="display: none;" {% endif %}>
+      <div class="card text-center mt-3">
+        <div class="card-body">
+          <a href="/datasets">
+            <img src="{{ host_prefix }}/static/img/output.png" class="intro-img">
+            <h5 class="card-title">Annotations</h5>
+          </a>
+          <p class="card-text">Manage output annotations.</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card text-center mt-3">
+        <div class="card-body">
+          <a href="/about">
+            <img src="{{ host_prefix }}/static/img/info.png" class="intro-img">
+            <h5 class="card-title">About</h5>
+          </a>
+          <p class="card-text">More details.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+    // variable to be used in factgenie.js
+    window.url_prefix = "{{ host_prefix }}";
+  </script>

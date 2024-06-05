@@ -1,0 +1,826 @@
+{
+    "dataset": "ice_hockey",
+    "setup": {
+        "params": {
+            "max_new_tokens": 512,
+            "repetition_penalty": 1.0,
+            "do_sample": false,
+            "truncation_length": 32768,
+            "auto_max_new_tokens": false,
+            "mode": "instruct"
+        },
+        "prompt": "Based on the given data:\n```\n{DATA}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph {output} in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+        "start_with": "Sure! Here is the {output}:\n\"",
+        "output": {
+            "ice_hockey": "ice hockey game summary",
+            "openweather": "five-day weather forecast",
+            "gsmarena": "product description",
+            "owid": "chart caption",
+            "wikidata": "entity description"
+        },
+        "id": "mistral",
+        "model": "mistral"
+    },
+    "generated": [
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'NHL 23/24', 'year': '23/24', 'id': 52528}, 'homeTeam': {'name': 'Carolina Hurricanes', 'shortName': 'Hurricanes', 'nameCode': 'CAR', 'id': 3680, 'country': 'USA'}, 'awayTeam': {'name': 'Columbus Blue Jackets', 'shortName': 'Blue Jackets', 'nameCode': 'CBJ', 'id': 3683, 'country': 'USA'}, 'homeScore': {'display': 3, 'period1': 0, 'period2': 0, 'period3': 3, 'normaltime': 3}, 'awayScore': {'display': 2, 'period1': 0, 'period2': 0, 'period3': 2, 'normaltime': 2}, 'id': 11385988, 'startTimestamp': 1701036000, 'startDatetime': '2023-11-26 23:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Carolina Hurricanes hosted the Columbus Blue Jackets in a game that was part of the NHL 23/24 season. The game was played in the normaltime period, with the Hurricanes winning 3-2. The Hurricanes scored their goals in the third period, while the Blue Jackets scored their goals in the second period. The game was played in the USA, with the Hurricanes representing the country of the USA and the Blue Jackets also representing the country of the USA.",
+            "tokens": {
+                "in": 338,
+                "out": 122
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'KHL 23/24', 'year': '23/24', 'id': 52523}, 'homeTeam': {'name': 'Avtomobilist Yekaterinburg', 'shortName': 'Avtomobilist', 'nameCode': 'AVT', 'id': 36346, 'country': 'Russia'}, 'awayTeam': {'name': 'Spartak Moscow', 'shortName': 'Spartak', 'nameCode': 'SPA', 'id': 3937, 'country': 'Russia'}, 'homeScore': {'display': 1, 'period1': 0, 'period2': 0, 'period3': 1, 'normaltime': 1}, 'awayScore': {'display': 4, 'period1': 0, 'period2': 2, 'period3': 2, 'normaltime': 4}, 'id': 11386721, 'startTimestamp': 1701093600, 'startDatetime': '2023-11-27 15:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, Avtomobilist Yekaterinburg hosted Spartak Moscow in the KHL 23/24 season. The game was played in Yekaterinburg, Russia, and the home team won with a score of 1-0 in the third period. The away team scored 4 goals in the game, with 2 goals scored in the second period and 2 goals scored in the third period. The game was played in normal time, with no overtime or shootout. The game was played in the 11386721th game of the season and started at 15:00:00 local time.",
+            "tokens": {
+                "in": 342,
+                "out": 152
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'MHL 23/24', 'year': '23/24', 'id': 53985}, 'homeTeam': {'name': 'Stalnye Lisy', 'shortName': 'Stalnye Lisy', 'nameCode': 'STA', 'id': 79777, 'country': 'Russia'}, 'awayTeam': {'name': 'Irbis Kazan', 'shortName': 'Irbis Kazan', 'nameCode': 'IKA', 'id': 170780, 'country': 'Russia'}, 'homeScore': {'display': 4, 'period1': 1, 'period2': 0, 'period3': 2, 'normaltime': 3, 'overtime': 0, 'penalties': 1}, 'awayScore': {'display': 3, 'period1': 3, 'period2': 0, 'period3': 0, 'normaltime': 3, 'overtime': 0, 'penalties': 0}, 'id': 11534695, 'startTimestamp': 1701172800, 'startDatetime': '2023-11-28 13:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 28th, 2023, the Stalnye Lisy and Irbis Kazan teams faced off in a game of the MHL 23/24 season. The game was played at the home arena of Stalnye Lisy, with Stalnye Lisy scoring 4 goals and Irbis Kazan scoring 3 goals. The game went into normaltime, with Stalnye Lisy winning the game. The game was played in accordance with the rules of the MHL 23/24 season, with each team playing two periods of 20 minutes each, followed by a 10-minute overtime period if the game was still tied. The game was also subject to penalties, with Stalnye Lisy receiving one penalty and Irbis Kazan receiving none.",
+            "tokens": {
+                "in": 375,
+                "out": 178
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Allsvenskan 23/24', 'year': '23/24', 'id': 51710}, 'homeTeam': {'name': 'Almtuna IS', 'shortName': 'Almtuna', 'nameCode': 'AIS', 'id': 5612, 'country': 'Sweden'}, 'awayTeam': {'name': 'Mora IK', 'shortName': 'Mora', 'nameCode': 'MIK', 'id': 3757, 'country': 'Sweden'}, 'homeScore': {'display': 0, 'period1': 0, 'period2': 0, 'period3': 0, 'normaltime': 0}, 'awayScore': {'display': 6, 'period1': 0, 'period2': 2, 'period3': 4, 'normaltime': 6}, 'id': 11311517, 'startTimestamp': 1701018000, 'startDatetime': '2023-11-26 18:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the home team Almtuna IS played against Mora IK in the Allsvenskan 23/24 season. The game was played at the home stadium of Almtuna IS, and the final score was 0-6 in favor of Mora IK. The game was played in three periods, with the first period ending 0-0, the second period ending 2-0 in favor of Mora IK, and the third period ending 4-0 in favor of Mora IK. The game was played at 18:00 local time and lasted for a total of 60 minutes.",
+            "tokens": {
+                "in": 336,
+                "out": 147
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'MHL 23/24', 'year': '23/24', 'id': 53985}, 'homeTeam': {'name': 'Stalnye Lisy', 'shortName': 'Stalnye Lisy', 'nameCode': 'STA', 'id': 79777, 'country': 'Russia'}, 'awayTeam': {'name': 'Irbis Kazan', 'shortName': 'Irbis Kazan', 'nameCode': 'IKA', 'id': 170780, 'country': 'Russia'}, 'homeScore': {'display': 5, 'period1': 2, 'period2': 1, 'period3': 2, 'normaltime': 5}, 'awayScore': {'display': 3, 'period1': 0, 'period2': 2, 'period3': 1, 'normaltime': 3}, 'id': 11534687, 'startTimestamp': 1701086400, 'startDatetime': '2023-11-27 13:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, the Stalnye Lisy and Irbis Kazan teams faced off in a game of the MHL 23/24 season. The game was played at the home arena of Stalnye Lisy, with the home team scoring 5 goals and the away team scoring 3 goals. The game was played in three periods, with the first period ending in a 2-0 lead for Stalnye Lisy, the second period ending in a 2-2 tie, and the third period ending in a 2-1 lead for Stalnye Lisy. The game ended in a 5-3 victory for Stalnye Lisy.",
+            "tokens": {
+                "in": 347,
+                "out": 155
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'HockeyEttan 23/24', 'year': '23/24', 'id': 52792}, 'homeTeam': {'name': 'Falu IF', 'shortName': 'Falu', 'nameCode': 'FAL', 'id': 43231, 'country': 'Sweden'}, 'awayTeam': {'name': 'Mariestads BOIS', 'shortName': 'Mariestad', 'nameCode': 'MAR', 'id': 3802, 'country': 'Sweden'}, 'homeScore': {'display': 5, 'period1': 1, 'period2': 2, 'period3': 1, 'normaltime': 4, 'overtime': 1}, 'awayScore': {'display': 4, 'period1': 1, 'period2': 2, 'period3': 1, 'normaltime': 4, 'overtime': 0}, 'id': 11412848, 'startTimestamp': 1701010800, 'startDatetime': '2023-11-26 16:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, Falu IF played Mariestads BOIS in the HockeyEttan 23/24 season. The game was played at Falu IF's home arena, with Falu scoring 5 goals and Mariestad scoring 4 goals. The game went into overtime, with Falu scoring the winning goal in the first overtime period. The game started at 4:00 PM local time and lasted for 2 hours and 30 minutes.",
+            "tokens": {
+                "in": 354,
+                "out": 111
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'ICE Hockey League 23/24', 'year': '23/24', 'id': 52698}, 'homeTeam': {'name': 'HC TWK Innsbruck', 'shortName': 'Innsbruck', 'nameCode': 'TWK', 'id': 3918, 'country': 'Austria'}, 'awayTeam': {'name': 'EC VSV', 'shortName': 'VSV', 'nameCode': 'VSV', 'id': 3917, 'country': 'Austria'}, 'homeScore': {'display': 3, 'period1': 0, 'period2': 2, 'period3': 1, 'normaltime': 3}, 'awayScore': {'display': 2, 'period1': 1, 'period2': 1, 'period3': 0, 'normaltime': 2}, 'id': 11403489, 'startTimestamp': 1701016200, 'startDatetime': '2023-11-26 17:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the HC TWK Innsbruck played against EC VSV in the ICE Hockey League 23/24 season. The game was played at the home stadium of HC TWK Innsbruck, and the home team won with a score of 3-2. The game was played in three periods, with the first period ending 0-1 in favor of EC VSV, the second period ending 2-1 in favor of HC TWK Innsbruck, and the third period ending 1-0 in favor of HC TWK Innsbruck. The game ended in normal time, with a total score of 3-2 in favor of HC TWK Innsbruck.",
+            "tokens": {
+                "in": 342,
+                "out": 172
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Polska Hokej Liga 23/24', 'year': '23/24', 'id': 53817}, 'homeTeam': {'name': 'GKS Tychy', 'shortName': 'GKS Tychy', 'nameCode': 'TYC', 'id': 3959, 'country': 'Poland'}, 'awayTeam': {'name': 'Unia O\u015bwi\u0119cim', 'shortName': 'O\u015bwi\u0119cim', 'nameCode': 'OSW', 'id': 3958, 'country': 'Poland'}, 'homeScore': {'display': 5, 'period1': 0, 'period2': 2, 'period3': 3, 'normaltime': 5}, 'awayScore': {'display': 4, 'period1': 0, 'period2': 2, 'period3': 2, 'normaltime': 4}, 'id': 11518160, 'startTimestamp': 1701014400, 'startDatetime': '2023-11-26 17:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the GKS Tychy team hosted the Unia O\u015bwi\u0119cim team in the Polska Hokej Liga 23/24 season. The game was played in Tychy, Poland, and the home team won with a final score of 5-4. The game was played in three periods, with the first period ending 0-0, the second period ending 2-2, and the third period ending 3-2 in favor of GKS Tychy. The game was played in normal time, with no overtime or shootout needed to determine the winner.",
+            "tokens": {
+                "in": 347,
+                "out": 139
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Polska Hokej Liga 23/24', 'year': '23/24', 'id': 53817}, 'homeTeam': {'name': 'TAURON Podhale Nowy Targ', 'shortName': 'Podhale', 'nameCode': 'NOT', 'id': 3955, 'country': 'Poland'}, 'awayTeam': {'name': 'JKH GKS Jastrz\u0119bie', 'shortName': 'GKS Jastrz\u0119bie', 'nameCode': 'GKS', 'id': 24982, 'country': 'Poland'}, 'homeScore': {'display': 10, 'period1': 2, 'period2': 7, 'period3': 1, 'normaltime': 10}, 'awayScore': {'display': 3, 'period1': 2, 'period2': 0, 'period3': 1, 'normaltime': 3}, 'id': 11518157, 'startTimestamp': 1701018000, 'startDatetime': '2023-11-26 18:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the TAURON Podhale Nowy Targ team hosted the JKH GKS Jastrz\u0119bie team in a game of the Polska Hokej Liga 23/24 season. The game ended with a final score of 10-3 in favor of Podhale. The game was played in three periods, with the first period ending 2-2, the second period ending 7-0, and the third period ending 1-1. The game was played in normal time, with no overtime or penalty shootout. The game was played at the Tauron Arena in Nowy Targ, Poland.",
+            "tokens": {
+                "in": 357,
+                "out": 151
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'KHL 23/24', 'year': '23/24', 'id': 52523}, 'homeTeam': {'name': 'Barys Astana', 'shortName': 'Barys', 'nameCode': 'BAR', 'id': 24985, 'country': 'Russia'}, 'awayTeam': {'name': 'Vityaz Podolsk', 'shortName': 'Vityaz', 'nameCode': 'VIT', 'id': 5606, 'country': 'Russia'}, 'homeScore': {'display': 2, 'period1': 1, 'period2': 0, 'period3': 1, 'normaltime': 2}, 'awayScore': {'display': 5, 'period1': 2, 'period2': 1, 'period3': 2, 'normaltime': 5}, 'id': 11386723, 'startTimestamp': 1701091800, 'startDatetime': '2023-11-27 14:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, the Barys Astana team hosted the Vityaz Podolsk team in a KHL 23/24 season game. The game started at 14:30 local time and lasted for 60 minutes. The home team scored 2 goals, with one goal scored in each period, while the away team scored 5 goals, with two goals scored in each period. The game ended in a 5-2 victory for the Vityaz Podolsk team.",
+            "tokens": {
+                "in": 339,
+                "out": 116
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'AHL 23/24', 'year': '23/24', 'id': 53031}, 'homeTeam': {'name': 'Bridgeport Islanders', 'shortName': 'Bridgeport', 'nameCode': 'BRI', 'id': 45158, 'country': 'USA'}, 'awayTeam': {'name': 'Belleville Senators', 'shortName': 'Belleville', 'nameCode': 'BES', 'id': 45157, 'country': 'USA'}, 'homeScore': {'display': 4, 'period1': 0, 'period2': 3, 'period3': 1, 'normaltime': 4}, 'awayScore': {'display': 2, 'period1': 0, 'period2': 1, 'period3': 1, 'normaltime': 2}, 'id': 11739392, 'startTimestamp': 1701028800, 'startDatetime': '2023-11-26 21:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Bridgeport Islanders hosted the Belleville Senators in an AHL 23/24 game. The game was played at the Bridgeport Arena and ended with a final score of 4-2 in favor of the home team. The game was played in three periods, with the first period ending scoreless, the second period ending with a score of 3-0 in favor of the home team, and the third period ending with a score of 1-1. The game was played in normal time, with no overtime or shootout periods. The game was recorded with an ID of 11739392 and a start timestamp of 1701028800.",
+            "tokens": {
+                "in": 337,
+                "out": 165
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'KHL 23/24', 'year': '23/24', 'id': 52523}, 'homeTeam': {'name': 'Traktor Chelyabinsk', 'shortName': 'Traktor', 'nameCode': 'TRA', 'id': 6333, 'country': 'Russia'}, 'awayTeam': {'name': 'Torpedo Nizhny Novgorod', 'shortName': 'Torpedo', 'nameCode': 'TOR', 'id': 7857, 'country': 'Russia'}, 'homeScore': {'display': 2, 'period1': 1, 'period2': 0, 'period3': 1, 'normaltime': 2}, 'awayScore': {'display': 1, 'period1': 0, 'period2': 0, 'period3': 1, 'normaltime': 1}, 'id': 11386722, 'startTimestamp': 1701093600, 'startDatetime': '2023-11-27 15:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, the Traktor Chelyabinsk team hosted the Torpedo Nizhny Novgorod team in a KHL 23/24 season game. The game was played in Chelyabinsk, Russia, and the home team won with a final score of 2-1. The game was played in three periods, with the first period ending in a 1-0 lead for the home team, the second period ending in a 1-1 tie, and the third period ending in a 2-1 victory for the home team. The game was played in accordance with the KHL's rules and regulations, and the official start time was 15:00 local time.",
+            "tokens": {
+                "in": 344,
+                "out": 163
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'ICE Hockey League 23/24', 'year': '23/24', 'id': 52698}, 'homeTeam': {'name': 'Vienna Capitals', 'shortName': 'Capitals', 'nameCode': 'VIC', 'id': 3914, 'country': 'Austria'}, 'awayTeam': {'name': 'Graz 99ers', 'shortName': 'Graz 99ers', 'nameCode': 'GRA', 'id': 3919, 'country': 'Austria'}, 'homeScore': {'display': 3, 'period1': 1, 'period2': 1, 'period3': 1, 'normaltime': 3, 'overtime': 0}, 'awayScore': {'display': 4, 'period1': 2, 'period2': 0, 'period3': 1, 'normaltime': 3, 'overtime': 1}, 'id': 11403487, 'startTimestamp': 1701016200, 'startDatetime': '2023-11-26 17:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Vienna Capitals played against the Graz 99ers in the ICE Hockey League 23/24 season. The game was played at the home arena of the Vienna Capitals, and the Capitals won with a score of 3-4. The game was played in three periods, with the first two periods ending in a tie, and the third period ending in a win for the Graz 99ers. The game was played in normal time, with no overtime periods. The Vienna Capitals and the Graz 99ers are both professional ice hockey teams based in Austria.",
+            "tokens": {
+                "in": 357,
+                "out": 140
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'SDHL 23/24', 'year': '23/24', 'id': 52046}, 'homeTeam': {'name': 'Leksands IF', 'shortName': 'Leksands', 'nameCode': 'LIF', 'id': 172264, 'country': 'Sweden'}, 'awayTeam': {'name': 'Modo Hockey', 'shortName': 'MODO', 'nameCode': 'MODO', 'id': 172268, 'country': 'Sweden'}, 'homeScore': {'display': 1, 'period1': 0, 'period2': 1, 'period3': 0, 'normaltime': 1}, 'awayScore': {'display': 3, 'period1': 0, 'period2': 0, 'period3': 3, 'normaltime': 3}, 'id': 11341668, 'startTimestamp': 1701018000, 'startDatetime': '2023-11-26 18:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Leksands IF team played against the Modo Hockey team in the SDHL 23/24 season. The game was played at the home arena of Leksands IF, and the home team scored 1 goal in the first period, while the away team scored 3 goals in the third period. The game ended with a final score of 1-3 in favor of Modo Hockey. The game started at 6:00 PM local time and lasted for 60 minutes.",
+            "tokens": {
+                "in": 337,
+                "out": 118
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Polska Hokej Liga 23/24', 'year': '23/24', 'id': 53817}, 'homeTeam': {'name': 'Tauron KH GKS Katowice', 'shortName': 'GKS Katowice', 'nameCode': 'KAT', 'id': 3953, 'country': 'Poland'}, 'awayTeam': {'name': 'Comarch Cracovia', 'shortName': 'Cracovia', 'nameCode': 'CRA', 'id': 5603, 'country': 'Poland'}, 'homeScore': {'display': 7, 'period1': 5, 'period2': 1, 'period3': 1, 'normaltime': 7}, 'awayScore': {'display': 2, 'period1': 0, 'period2': 0, 'period3': 2, 'normaltime': 2}, 'id': 11518159, 'startTimestamp': 1701014400, 'startDatetime': '2023-11-26 17:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Tauron KH GKS Katowice played against the Comarch Cracovia in the Polska Hokej Liga 23/24 season. The game was played at the home stadium of GKS Katowice, and the home team won with a final score of 7-2. The game was played in three periods, with the first period ending at 5-0 in favor of GKS Katowice, the second period ending at 1-0, and the third period ending at 1-2. The game was played in normal time, and the final score was 7-2 in favor of GKS Katowice.",
+            "tokens": {
+                "in": 350,
+                "out": 154
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Extraliga 23/24', 'year': '23/24', 'id': 51693}, 'homeTeam': {'name': 'HC Olomouc', 'shortName': 'Olomouc', 'nameCode': 'OLO', 'id': 37839, 'country': 'Czech Republic'}, 'awayTeam': {'name': 'HC Kometa Brno', 'shortName': 'Kometa', 'nameCode': 'KOM', 'id': 36334, 'country': 'Czech Republic'}, 'homeScore': {'display': 3, 'period1': 1, 'period2': 1, 'period3': 1, 'normaltime': 3}, 'awayScore': {'display': 1, 'period1': 1, 'period2': 0, 'period3': 0, 'normaltime': 1}, 'id': 11309119, 'startTimestamp': 1701014400, 'startDatetime': '2023-11-26 17:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, HC Olomouc hosted HC Kometa Brno in the Extraliga 23/24 season. The game was played at the Olomouc Arena and ended with a final score of 3-1 in favor of HC Olomouc. The home team scored their goals in the first period, while the away team scored their goal in the second period. The game was played in normal time, with no overtime or shootout. The game was attended by a total of 1,130,911 spectators.",
+            "tokens": {
+                "in": 345,
+                "out": 133
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'NCAA, Regular Season 23/24', 'year': '23/24', 'id': 55358}, 'homeTeam': {'name': 'Harvard University', 'shortName': 'Harvard University', 'nameCode': 'HARV', 'id': 216798, 'country': 'USA'}, 'awayTeam': {'name': 'Boston College Eagles', 'shortName': 'Boston College', 'nameCode': 'BC', 'id': 216797, 'country': 'USA'}, 'homeScore': {'display': 1, 'period1': 0, 'period2': 1, 'period3': 0, 'normaltime': 1}, 'awayScore': {'display': 4, 'period1': 0, 'period2': 1, 'period3': 3, 'normaltime': 4}, 'id': 11719352, 'startTimestamp': 1701021600, 'startDatetime': '2023-11-26 19:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Boston College Eagles played the Harvard University Crimson in a regular season game of the NCAA. The game was played at a neutral site and ended with a final score of 1-4 in favor of the Eagles. The game was played in three periods, with the first period ending in a 0-0 tie, the second period ending in a 1-0 lead for the Eagles, and the third period ending in a 3-0 lead for the Eagles. The game was played in normal time, with no overtime periods.",
+            "tokens": {
+                "in": 340,
+                "out": 129
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': '1. Liga 23/24', 'year': '23/24', 'id': 51985}, 'homeTeam': {'name': 'HC Stadion Litom\u011b\u0159ice', 'shortName': 'Litom\u011b\u0159ice', 'nameCode': 'LIT', 'id': 43238, 'country': 'Czech Republic'}, 'awayTeam': {'name': 'HC Fr\u00fddek-M\u00edstek', 'shortName': 'Fr\u00fddek-M\u00edstek', 'nameCode': 'FMI', 'id': 172476, 'country': 'Czech Republic'}, 'homeScore': {'display': 0, 'period1': 0, 'period2': 0, 'period3': 0, 'normaltime': 0}, 'awayScore': {'display': 4, 'period1': 1, 'period2': 1, 'period3': 2, 'normaltime': 4}, 'id': 11334575, 'startTimestamp': 1701102600, 'startDatetime': '2023-11-27 17:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, HC Stadion Litom\u011b\u0159ice hosted HC Fr\u00fddek-M\u00edstek in a 1. Liga game. The game ended with a final score of 4-0 in favor of Fr\u00fddek-M\u00edstek. The home team played a strong game, but ultimately fell short to the away team. The game was played in normal time, with no overtime or shootouts. The start time of the game was 17:30:00 UTC, and the start date was November 27th, 2023.",
+            "tokens": {
+                "in": 358,
+                "out": 134
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'AHL 23/24', 'year': '23/24', 'id': 53031}, 'homeTeam': {'name': 'Calgary Wranglers', 'shortName': 'Calgary', 'nameCode': 'CAL', 'id': 424009, 'country': 'USA'}, 'awayTeam': {'name': 'Abbotsford Canucks', 'shortName': 'Abbotsford', 'nameCode': 'ABB', 'id': 388667, 'country': 'USA'}, 'homeScore': {'display': 2, 'period1': 0, 'period2': 1, 'period3': 1, 'normaltime': 2}, 'awayScore': {'display': 7, 'period1': 3, 'period2': 3, 'period3': 1, 'normaltime': 7}, 'id': 11739383, 'startTimestamp': 1701028800, 'startDatetime': '2023-11-26 21:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Calgary Wranglers played the Abbotsford Canucks in the AHL 23/24 season. The game was played at the home arena of the Calgary Wranglers, and the home team won with a final score of 2-7. The game was played in three periods, with the first period ending in a 0-3 score in favor of the Abbotsford Canucks, the second period ending in a 1-3 score, and the third period ending in a 1-1 score. The game ended in normal time, with the Abbotsford Canucks winning by a final score of 7-2.",
+            "tokens": {
+                "in": 341,
+                "out": 152
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Elite League 23/24', 'year': '23/24', 'id': 52694}, 'homeTeam': {'name': 'Nottingham Panthers', 'shortName': 'Nottingham', 'nameCode': 'NPA', 'id': 116580, 'country': 'England'}, 'awayTeam': {'name': 'Belfast Giants', 'shortName': 'Belfast', 'nameCode': 'BEG', 'id': 118952, 'country': 'Northern Ireland'}, 'homeScore': {'display': 2, 'period1': 1, 'period2': 0, 'period3': 1, 'normaltime': 2}, 'awayScore': {'display': 4, 'period1': 1, 'period2': 0, 'period3': 3, 'normaltime': 4}, 'id': 11421593, 'startTimestamp': 1701014400, 'startDatetime': '2023-11-26 17:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Nottingham Panthers hosted the Belfast Giants in the Elite League 23/24 season. The game was played at the home arena of the Nottingham Panthers, and the home team won with a final score of 2-4. The game was played in three periods, with the first period ending in a 1-1 tie, the second period ending in a 0-0 tie, and the third period ending in a 1-3 score for the away team. The game was played in accordance with the normaltime rules, and the final score was displayed as 2-4.",
+            "tokens": {
+                "in": 344,
+                "out": 145
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Elite League 23/24', 'year': '23/24', 'id': 52694}, 'homeTeam': {'name': 'Guildford Flames', 'shortName': 'Guildford', 'nameCode': 'GUF', 'id': 265363, 'country': 'England'}, 'awayTeam': {'name': 'Sheffield Steelers', 'shortName': 'Sheffield', 'nameCode': 'SST', 'id': 117736, 'country': 'England'}, 'homeScore': {'display': 2, 'period1': 0, 'period2': 2, 'period3': 0, 'normaltime': 2}, 'awayScore': {'display': 6, 'period1': 1, 'period2': 1, 'period3': 4, 'normaltime': 6}, 'id': 11421595, 'startTimestamp': 1701021600, 'startDatetime': '2023-11-26 19:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Guildford Flames hosted the Sheffield Steelers in the Elite League 23/24 season. The game was played at the home arena of the Guildford Flames, and the home team won with a final score of 2-6. The game was played in three periods, with the first period ending with a score of 0-1 in favor of the Sheffield Steelers. The second period ended with a score of 2-1 in favor of the Guildford Flames, and the third period ended with a score of 4-0 in favor of the Sheffield Steelers. The game was played in normal time, and the final score was 2-6 in favor of the Sheffield Steelers.",
+            "tokens": {
+                "in": 342,
+                "out": 174
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'DEL 23/24', 'year': '23/24', 'id': 52699}, 'homeTeam': {'name': 'Eisb\u00e4ren Berlin', 'shortName': 'Eisb\u00e4ren Berlin', 'nameCode': 'BER', 'id': 3856, 'country': 'Germany'}, 'awayTeam': {'name': 'Iserlohn Roosters', 'shortName': 'Iserlohn Roosters', 'nameCode': 'ISE', 'id': 3860, 'country': 'Germany'}, 'homeScore': {'display': 0, 'period1': 0, 'period2': 0, 'period3': 0, 'normaltime': 0}, 'awayScore': {'display': 3, 'period1': 2, 'period2': 0, 'period3': 1, 'normaltime': 3}, 'id': 11403754, 'startTimestamp': 1701003600, 'startDatetime': '2023-11-26 14:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Eisb\u00e4ren Berlin played the Iserlohn Roosters in the DEL 23/24 season. The game was played at the home arena of Eisb\u00e4ren Berlin, and the home team won with a final score of 3-0. The game was played in three periods, with the first period ending with a score of 2-0 in favor of the away team, the second period ending with a score of 2-0 in favor of the home team, and the third period ending with a score of 1-0 in favor of the away team. The game started at 14:00 local time and lasted for a total of 60 minutes.",
+            "tokens": {
+                "in": 348,
+                "out": 163
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'OHL 23/24', 'year': '23/24', 'id': 52586}, 'homeTeam': {'name': 'Peterborough Petes', 'shortName': 'Peterborough', 'nameCode': 'PPE', 'id': 119604, 'country': 'Canada'}, 'awayTeam': {'name': 'Sudbury Wolves', 'shortName': 'Sudbury', 'nameCode': 'SWO', 'id': 119614, 'country': 'Canada'}, 'homeScore': {'display': 5, 'period1': 2, 'period2': 1, 'period3': 2, 'normaltime': 5}, 'awayScore': {'display': 3, 'period1': 1, 'period2': 0, 'period3': 2, 'normaltime': 3}, 'id': 11696126, 'startTimestamp': 1701129900, 'startDatetime': '2023-11-28 01:05:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 28th, 2023, the Peterborough Petes hosted the Sudbury Wolves in the OHL 23/24 season. The game was played at the Peterborough Memorial Centre and ended with a final score of 5-3 in favor of the Peterborough Petes. The game was played in three periods, with the first period ending 2-1 in favor of Peterborough, the second period ending 1-0 in favor of Peterborough, and the third period ending 2-2. The game was played in normal time, with no overtime or shootout needed to determine the winner.",
+            "tokens": {
+                "in": 341,
+                "out": 135
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'SHL 23/24', 'year': '23/24', 'id': 51505}, 'homeTeam': {'name': 'Malm\u00f6 Redhawks', 'shortName': 'Malm\u00f6', 'nameCode': 'MIF', 'id': 3736, 'country': 'Sweden'}, 'awayTeam': {'name': 'R\u00f6gle BK', 'shortName': 'R\u00f6gle', 'nameCode': 'RBK', 'id': 3758, 'country': 'Sweden'}, 'homeScore': {'display': 0, 'period1': 0, 'period2': 0, 'period3': 0, 'normaltime': 0}, 'awayScore': {'display': 4, 'period1': 2, 'period2': 1, 'period3': 1, 'normaltime': 4}, 'id': 11286088, 'startTimestamp': 1701007200, 'startDatetime': '2023-11-26 15:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Malm\u00f6 Redhawks hosted the R\u00f6gle BK in the SHL 23/24 season. The game was played at the Malm\u00f6 Ice Arena and the home team won with a final score of 4-0. The game was played in three periods, with the first period ending 2-0 in favor of R\u00f6gle, the second period ending 1-0 in favor of Malm\u00f6, and the third period ending 1-0 in favor of Malm\u00f6. The game was played in normal time and the final score was 4-0 in favor of Malm\u00f6.",
+            "tokens": {
+                "in": 339,
+                "out": 145
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'NCAA, Regular Season 23/24', 'year': '23/24', 'id': 55358}, 'homeTeam': {'name': 'Arizona State Sun Devils', 'shortName': 'Arizona St.', 'nameCode': 'ASU', 'id': 268130, 'country': 'USA'}, 'awayTeam': {'name': 'Providence Friars', 'shortName': 'Providence Friars', 'nameCode': 'PROV', 'id': 216795, 'country': 'USA'}, 'homeScore': {'display': 1, 'period1': 0, 'period2': 1, 'period3': 0, 'normaltime': 1}, 'awayScore': {'display': 2, 'period1': 0, 'period2': 2, 'period3': 0, 'normaltime': 2}, 'id': 11719362, 'startTimestamp': 1701032400, 'startDatetime': '2023-11-26 22:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Arizona State Sun Devils hosted the Providence Friars in a regular season game of the NCAA. The game was played in the regular season of the 23/24 season and was identified with the ID 11719362. The start timestamp of the game was 1701032400 and the start datetime was 22:00:00. The home team, Arizona State Sun Devils, scored 1 goal in the game, while the away team, Providence Friars, scored 2 goals. The game was played in normal time and the home team's score was displayed as 1, while the away team's score was displayed as 2.",
+            "tokens": {
+                "in": 345,
+                "out": 170
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Oberliga 23/24', 'year': '23/24', 'id': 54222}, 'homeTeam': {'name': 'Fuchse Duisburg', 'shortName': 'Duisburg', 'nameCode': 'DUI', 'id': 5421, 'country': 'Germany'}, 'awayTeam': {'name': 'EHC Erfurt', 'shortName': 'Erfurt', 'nameCode': 'EBD', 'id': 53012, 'country': 'Germany'}, 'homeScore': {'display': 3, 'period1': 1, 'period2': 2, 'period3': 0, 'normaltime': 3}, 'awayScore': {'display': 4, 'period1': 0, 'period2': 2, 'period3': 2, 'normaltime': 4}, 'id': 11558267, 'startTimestamp': 1701019800, 'startDatetime': '2023-11-26 18:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Fuchse Duisburg and EHC Erfurt teams faced off in a game of Oberliga 23/24. The game was played at the home of Fuchse Duisburg, and the home team emerged victorious with a score of 3-4. The game was played in three periods, with the first two periods ending in a tie, and the third period resulting in a 1-2 victory for Erfurt. The game was attended by a large crowd and was highly anticipated by fans of both teams. Overall, the game was a thrilling and exciting display of skill and athleticism, with both teams playing their best.",
+            "tokens": {
+                "in": 341,
+                "out": 149
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'QMJHL 23/24', 'year': '23/24', 'id': 51987}, 'homeTeam': {'name': 'Moncton Wildcats', 'shortName': 'Moncton Wildcats', 'nameCode': 'MON', 'id': 330255, 'country': 'Canada'}, 'awayTeam': {'name': 'Halifax Mooseheads', 'shortName': 'Halifax Mooseheads', 'nameCode': 'HAL', 'id': 315299, 'country': 'Canada'}, 'homeScore': {'display': 0, 'period1': 0, 'period2': 0, 'period3': 0, 'normaltime': 0}, 'awayScore': {'display': 4, 'period1': 1, 'period2': 2, 'period3': 1, 'normaltime': 4}, 'id': 11335027, 'startTimestamp': 1701028800, 'startDatetime': '2023-11-26 21:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Moncton Wildcats hosted the Halifax Mooseheads in a QMJHL game. The game was played in Moncton, Canada, and the home team won with a final score of 4-0. The game was played in three periods, with the first period ending with a score of 1-0 in favor of the away team, the second period ending with a score of 2-0, and the third period ending with a score of 1-0 in favor of the home team. The game was played in normal time, with no overtime or shootouts.",
+            "tokens": {
+                "in": 349,
+                "out": 140
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Extraliga 23/24', 'year': '23/24', 'id': 51693}, 'homeTeam': {'name': 'HC Motor \u010cesk\u00e9 Bud\u011bjovice', 'shortName': '\u010cesk\u00e9 Bud\u011bjovice', 'nameCode': 'MCB', 'id': 115097, 'country': 'Czech Republic'}, 'awayTeam': {'name': 'HC Verva Litv\u00ednov', 'shortName': 'Verva', 'nameCode': 'HCL', 'id': 3865, 'country': 'Czech Republic'}, 'homeScore': {'display': 1, 'period1': 0, 'period2': 0, 'period3': 1, 'normaltime': 1}, 'awayScore': {'display': 0, 'period1': 0, 'period2': 0, 'period3': 0, 'normaltime': 0}, 'id': 11309117, 'startTimestamp': 1701014400, 'startDatetime': '2023-11-26 17:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, HC Motor \u010cesk\u00e9 Bud\u011bjovice hosted HC Verva Litv\u00ednov in the Extraliga 23/24 season. The game was played in the Czech Republic and ended with a 1-0 score in favor of HC Motor \u010cesk\u00e9 Bud\u011bjovice. The home team scored in the third period, while the away team did not score at all. The game started at 17:00 local time and lasted for a total of 60 minutes.",
+            "tokens": {
+                "in": 356,
+                "out": 123
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'NCAA, Regular Season 23/24', 'year': '23/24', 'id': 55358}, 'homeTeam': {'name': 'Mercyhurst Lakers', 'shortName': 'Mercyhurst Lakers', 'nameCode': 'MU', 'id': 268228, 'country': 'USA'}, 'awayTeam': {'name': 'Miami Ohio Redhawks', 'shortName': 'Miami Ohio', 'nameCode': 'M-OH', 'id': 267618, 'country': 'USA'}, 'homeScore': {'display': 0, 'period1': 0, 'period2': 0, 'period3': 0, 'normaltime': 0}, 'awayScore': {'display': 2, 'period1': 1, 'period2': 0, 'period3': 1, 'normaltime': 2}, 'id': 11719373, 'startTimestamp': 1701032400, 'startDatetime': '2023-11-26 22:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Mercyhurst Lakers hosted the Miami Ohio Redhawks in a regular season game of the NCAA. The game was played at the regular season of the 23/24 season and was identified by the ID 11719373. The game started at 22:00:00 UTC and lasted for a normal time period. The home team, Mercyhurst Lakers, scored 0 points while the away team, Miami Ohio Redhawks, scored 2 points. The points were distributed as follows: Miami Ohio Redhawks scored 1 point in period 1, 0 points in period 2, and 1 point in period 3. Mercyhurst Lakers, on the other hand, scored 0 points in all periods.",
+            "tokens": {
+                "in": 350,
+                "out": 185
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'QMJHL 23/24', 'year': '23/24', 'id': 51987}, 'homeTeam': {'name': 'Drummondville Voltigeurs', 'shortName': 'Drummondville Voltigeurs', 'nameCode': 'DRU', 'id': 300029, 'country': 'Canada'}, 'awayTeam': {'name': 'Shawinigan Cataractes', 'shortName': 'Shawinigan Cataractes', 'nameCode': 'SHA', 'id': 300030, 'country': 'Canada'}, 'homeScore': {'display': 3, 'period1': 0, 'period2': 0, 'period3': 3, 'normaltime': 3}, 'awayScore': {'display': 1, 'period1': 0, 'period2': 0, 'period3': 1, 'normaltime': 1}, 'id': 11335029, 'startTimestamp': 1701032400, 'startDatetime': '2023-11-26 22:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Drummondville Voltigeurs hosted the Shawinigan Cataractes in a QMJHL game. The game was played in Drummondville, Canada, and the home team won with a final score of 3-1. The game was played in three periods, with the first two periods ending in a 0-0 tie. The third period saw the Drummondville Voltigeurs score three goals, while the Shawinigan Cataractes scored one goal. The game lasted for a total of 60 minutes and was played in a neutral and balanced manner.",
+            "tokens": {
+                "in": 358,
+                "out": 140
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'VHL 23/24', 'year': '23/24', 'id': 53511}, 'homeTeam': {'name': 'HC Chelny', 'shortName': 'Chelny', 'nameCode': 'CHE', 'id': 116988, 'country': 'Russia'}, 'awayTeam': {'name': 'HK Ryazan', 'shortName': 'Ryazan', 'nameCode': 'RYA', 'id': 78177, 'country': 'Russia'}, 'homeScore': {'display': 1, 'period1': 0, 'period2': 1, 'period3': 0, 'normaltime': 1}, 'awayScore': {'display': 3, 'period1': 0, 'period2': 0, 'period3': 3, 'normaltime': 3}, 'id': 11482968, 'startTimestamp': 1701100800, 'startDatetime': '2023-11-27 17:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, HC Chelny hosted HK Ryazan in the VHL 23/24 season. The game was played at the home arena of HC Chelny, and the home team won with a score of 1-0. The away team, HK Ryazan, scored 3 goals in the game, with no goals scored in the first two periods. The game ended in normal time, with a total score of 1-3 in favor of HK Ryazan.",
+            "tokens": {
+                "in": 340,
+                "out": 117
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Extraliga 23/24', 'year': '23/24', 'id': 53873}, 'homeTeam': {'name': 'Shakhter Soligorsk', 'shortName': 'Soligorsk', 'nameCode': 'SHA', 'id': 111281, 'country': 'Belarus'}, 'awayTeam': {'name': 'Neman Grodno', 'shortName': 'Neman Grodno', 'nameCode': 'NEM', 'id': 77617, 'country': 'Belarus'}, 'homeScore': {'display': 2, 'period1': 2, 'period2': 0, 'period3': 0, 'normaltime': 2}, 'awayScore': {'display': 3, 'period1': 2, 'period2': 1, 'period3': 0, 'normaltime': 3}, 'id': 11522718, 'startTimestamp': 1701100800, 'startDatetime': '2023-11-27 17:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, the Belarus Extraliga game between Shakhter Soligorsk and Neman Grodno took place. The game was played at the home stadium of Shakhter Soligorsk, with Shakhter Soligorsk winning the game 2-3. The game was played in three periods, with the first period ending in a 2-2 tie, the second period ending in a 2-1 lead for Neman Grodno, and the third period ending in a 0-0 tie. The game was played in accordance with the normaltime rules, with the winning team being the one with the highest score at the end of the game.",
+            "tokens": {
+                "in": 349,
+                "out": 155
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Extraliga 23/24', 'year': '23/24', 'id': 53873}, 'homeTeam': {'name': 'Khimik-SKA Novopolotsk', 'shortName': 'Khimik-Ska', 'nameCode': 'KSM', 'id': 116101, 'country': 'Belarus'}, 'awayTeam': {'name': 'HK Vitebsk', 'shortName': 'Vitebsk', 'nameCode': 'VIT', 'id': 116099, 'country': 'Belarus'}, 'homeScore': {'display': 1, 'period1': 0, 'period2': 1, 'period3': 0, 'normaltime': 1}, 'awayScore': {'display': 6, 'period1': 0, 'period2': 4, 'period3': 2, 'normaltime': 6}, 'id': 11522722, 'startTimestamp': 1701007200, 'startDatetime': '2023-11-26 15:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the home team, Khimik-SKA Novopolotsk, played against the away team, HK Vitebsk, in the Extraliga 23/24 season. The game was played in Novopolotsk, Belarus. The home team scored 1 goal in the first period, while the away team scored 6 goals in the second and third periods. The game ended in a 7-1 victory for the away team. The game started at 3:00 PM local time and lasted for 60 minutes.",
+            "tokens": {
+                "in": 355,
+                "out": 132
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': '1. Liga 23/24', 'year': '23/24', 'id': 51985}, 'homeTeam': {'name': 'HC ZUBR P\u0159erov', 'shortName': 'ZUBR P\u0159erov', 'nameCode': 'ZPR', 'id': 170024, 'country': 'Czech Republic'}, 'awayTeam': {'name': 'PSG Berani Zl\u00edn', 'shortName': 'Berani', 'nameCode': 'PSG', 'id': 3872, 'country': 'Czech Republic'}, 'homeScore': {'display': 3, 'period1': 1, 'period2': 1, 'period3': 0, 'normaltime': 2, 'overtime': 0, 'penalties': 1}, 'awayScore': {'display': 2, 'period1': 1, 'period2': 1, 'period3': 0, 'normaltime': 2, 'overtime': 0, 'penalties': 0}, 'id': 11334577, 'startTimestamp': 1701102600, 'startDatetime': '2023-11-27 17:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, HC ZUBR P\u0159erov hosted PSG Berani Zl\u00edn in the 1. Liga 23/24 season. The game ended in a 3-2 victory for HC ZUBR P\u0159erov, with the home team scoring two goals in the second period and one in overtime. PSG Berani Zl\u00edn scored one goal in each period, but failed to convert any penalty shots. The game was played at 17:30 local time and lasted for 60 minutes.",
+            "tokens": {
+                "in": 378,
+                "out": 126
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Allsvenskan 23/24', 'year': '23/24', 'id': 51710}, 'homeTeam': {'name': '\u00d6stersunds IK', 'shortName': '\u00d6stersund', 'nameCode': '\u00d6IK', 'id': 3819, 'country': 'Sweden'}, 'awayTeam': {'name': 'BIK Karlskoga', 'shortName': 'Karlskoga', 'nameCode': 'BIK', 'id': 3751, 'country': 'Sweden'}, 'homeScore': {'display': 1, 'period1': 1, 'period2': 0, 'period3': 0, 'normaltime': 1}, 'awayScore': {'display': 2, 'period1': 0, 'period2': 1, 'period3': 1, 'normaltime': 2}, 'id': 11311515, 'startTimestamp': 1701007200, 'startDatetime': '2023-11-26 15:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, \u00d6stersunds IK hosted BIK Karlskoga in the Allsvenskan 23/24 season. The game was played at the home stadium of \u00d6stersunds IK, and the home team won with a score of 1-0. The away team, BIK Karlskoga, scored 2 goals in the game, with one goal coming in each period. The game ended in normal time, with no overtime or penalty shootouts. The game was played at 15:00 local time and lasted for 60 minutes.",
+            "tokens": {
+                "in": 342,
+                "out": 135
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'OHL 23/24', 'year': '23/24', 'id': 52586}, 'homeTeam': {'name': 'Oshawa Generals', 'shortName': 'Oshawa', 'nameCode': 'OGE', 'id': 119598, 'country': 'Canada'}, 'awayTeam': {'name': 'Sudbury Wolves', 'shortName': 'Sudbury', 'nameCode': 'SWO', 'id': 119614, 'country': 'Canada'}, 'homeScore': {'display': 5, 'period1': 1, 'period2': 1, 'period3': 3, 'normaltime': 5}, 'awayScore': {'display': 7, 'period1': 0, 'period2': 3, 'period3': 4, 'normaltime': 7}, 'id': 11696124, 'startTimestamp': 1701039900, 'startDatetime': '2023-11-27 00:05:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, the Oshawa Generals hosted the Sudbury Wolves in the OHL 23/24 season. The game was played at the Tribute Communities Centre in Oshawa, Canada. The home team, Oshawa Generals, scored 5 goals in the game, with 1 goal in each period and 3 goals in the third period. The away team, Sudbury Wolves, scored 7 goals in the game, with 0 goals in the first period, 3 goals in the second period, and 4 goals in the third period. The game ended in a win for the Sudbury Wolves with a final score of 7-5.",
+            "tokens": {
+                "in": 341,
+                "out": 155
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'VHL 23/24', 'year': '23/24', 'id': 53511}, 'homeTeam': {'name': 'Molot Perm', 'shortName': 'Perm', 'nameCode': 'MPP', 'id': 3942, 'country': 'Russia'}, 'awayTeam': {'name': 'SKA-Neva', 'shortName': 'SKA-Neva', 'nameCode': 'SKA', 'id': 78181, 'country': 'Russia'}, 'homeScore': {'display': 2, 'period1': 0, 'period2': 1, 'period3': 1, 'normaltime': 2}, 'awayScore': {'display': 0, 'period1': 0, 'period2': 0, 'period3': 0, 'normaltime': 0}, 'id': 11482964, 'startTimestamp': 1701093600, 'startDatetime': '2023-11-27 15:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, the VHL 23/24 season game between Molot Perm and SKA-Neva took place. The game was played at an arena in Russia, with Molot Perm playing as the home team. The game ended with a final score of 2-0 in favor of Molot Perm. The game was played in three periods, with the first period ending in a 0-0 tie, the second period ending in a 1-0 lead for Molot Perm, and the third period ending in a 1-0 lead for Molot Perm. The game was played in accordance with the rules of the VHL 23/24 season, and the official start time of the game was 15:00 local time.",
+            "tokens": {
+                "in": 337,
+                "out": 170
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'HockeyEttan 23/24', 'year': '23/24', 'id': 52792}, 'homeTeam': {'name': 'Hudiksvalls HC', 'shortName': 'Hudiksvall', 'nameCode': 'HUD', 'id': 37110, 'country': 'Sweden'}, 'awayTeam': {'name': 'Bodens HF', 'shortName': 'Boden', 'nameCode': 'BOD', 'id': 37066, 'country': 'Sweden'}, 'homeScore': {'display': 1, 'period1': 1, 'period2': 0, 'period3': 0, 'normaltime': 1}, 'awayScore': {'display': 4, 'period1': 3, 'period2': 1, 'period3': 0, 'normaltime': 4}, 'id': 11412841, 'startTimestamp': 1701010800, 'startDatetime': '2023-11-26 16:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the game between Hudiksvalls HC and Bodens HF took place in the HockeyEttan 23/24 season. The game was played at Hudiksvall's home arena, and the home team won with a score of 1-0. The away team, Boden, scored 4 goals in the game, with the last goal being scored in the third period. The game lasted for a total of 60 minutes, and the start time was 16:00 local time. The game was recorded with an ID of 11412841 and a start timestamp of 1701010800.",
+            "tokens": {
+                "in": 345,
+                "out": 158
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Alps Hockey League 23/24', 'year': '23/24', 'id': 52953}, 'homeTeam': {'name': 'EHC Lustenau', 'shortName': 'Lustenau', 'nameCode': 'LUS', 'id': 3921, 'country': 'Austria'}, 'awayTeam': {'name': 'Rittner Buam', 'shortName': 'Ritten', 'nameCode': 'RIT', 'id': 24951, 'country': 'Italy'}, 'homeScore': {'display': 3, 'period1': 1, 'period2': 1, 'period3': 1, 'normaltime': 3}, 'awayScore': {'display': 7, 'period1': 2, 'period2': 3, 'period3': 2, 'normaltime': 7}, 'id': 11426664, 'startTimestamp': 1701016200, 'startDatetime': '2023-11-26 17:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the EHC Lustenau played against the Rittner Buam in the Alps Hockey League 23/24 season. The game was played at the home of the EHC Lustenau, and the home team won with a final score of 3-7. The game was played in three periods, with the first period ending in a 1-2 score in favor of the Rittner Buam, the second period ending in a 2-3 score, and the third period ending in a 1-2 score in favor of the EHC Lustenau. The game was played in normal time, with no overtime or shootout.",
+            "tokens": {
+                "in": 342,
+                "out": 155
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': '1. Liga 23/24', 'year': '23/24', 'id': 51985}, 'homeTeam': {'name': 'HC Dukla Jihlava', 'shortName': 'Dukla Jihlava', 'nameCode': 'DUK', 'id': 3880, 'country': 'Czech Republic'}, 'awayTeam': {'name': 'HC Banik Sokolov', 'shortName': 'Banik Sokolov', 'nameCode': 'BSO', 'id': 146806, 'country': 'Czech Republic'}, 'homeScore': {'display': 4, 'period1': 1, 'period2': 1, 'period3': 2, 'normaltime': 4}, 'awayScore': {'display': 1, 'period1': 0, 'period2': 1, 'period3': 0, 'normaltime': 1}, 'id': 11334574, 'startTimestamp': 1701102600, 'startDatetime': '2023-11-27 17:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, HC Dukla Jihlava hosted HC Banik Sokolov in the 1. Liga 23/24 season. The game ended with a final score of 4-1 in favor of HC Dukla Jihlava. The home team scored two goals in the second period, while the away team scored one goal in the third period. The game lasted for 60 minutes and was played in the Czech Republic.",
+            "tokens": {
+                "in": 355,
+                "out": 110
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'DEL 2 23/24', 'year': '23/24', 'id': 53660}, 'homeTeam': {'name': 'Bietigheim Steelers', 'shortName': 'Steelers', 'nameCode': 'BIE', 'id': 5432, 'country': 'Germany'}, 'awayTeam': {'name': 'EV Landshut', 'shortName': 'Landshut', 'nameCode': 'LAH', 'id': 5428, 'country': 'Germany'}, 'homeScore': {'display': 2, 'period1': 0, 'period2': 1, 'period3': 1, 'normaltime': 2}, 'awayScore': {'display': 4, 'period1': 2, 'period2': 0, 'period3': 2, 'normaltime': 4}, 'id': 11505574, 'startTimestamp': 1701010800, 'startDatetime': '2023-11-26 16:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Bietigheim Steelers hosted the EV Landshut in a game from the German Ice Hockey League (DEL) 2. The game was played in the 23/24 season and was the 53660th game in the league. The Steelers won the game with a final score of 2-4, with periods 1 and 3 each ending in a 1-0 score for the Steelers, and period 2 ending in a 2-0 score for Landshut. The game started at 16:00 and lasted for a total of 60 minutes.",
+            "tokens": {
+                "in": 341,
+                "out": 146
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'WHL 23/24', 'year': '23/24', 'id': 53874}, 'homeTeam': {'name': 'Biryusa Krasnoyarsk', 'shortName': 'Biryusa Krasnoyarsk', 'nameCode': 'BIR', 'id': 269753, 'country': 'Russia'}, 'awayTeam': {'name': 'Tornado Dmitrov', 'shortName': 'Tornado Dmitrov', 'nameCode': 'TOR', 'id': 272310, 'country': 'Russia'}, 'homeScore': {'display': 3, 'period1': 2, 'period2': 0, 'period3': 1, 'normaltime': 3}, 'awayScore': {'display': 1, 'period1': 0, 'period2': 1, 'period3': 0, 'normaltime': 1}, 'id': 11522975, 'startTimestamp': 1701086400, 'startDatetime': '2023-11-27 13:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, the Biryusa Krasnoyarsk team hosted the Tornado Dmitrov team in a game of the Western Hockey League (WHL) 23/24 season. The game was played in three periods, with the first period ending in a 2-0 score in favor of Biryusa Krasnoyarsk. The second period ended with a 0-1 score in favor of Tornado Dmitrov. The third period ended with a 1-0 score in favor of Biryusa Krasnoyarsk, resulting in a final score of 3-1 in favor of Biryusa Krasnoyarsk. The game was played at a start timestamp of 1701086400 and a start datetime of 2023-11-27 13:00:00.",
+            "tokens": {
+                "in": 357,
+                "out": 201
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'NHL 23/24', 'year': '23/24', 'id': 52528}, 'homeTeam': {'name': 'Detroit Red Wings', 'shortName': 'Red Wings', 'nameCode': 'DET', 'id': 3685, 'country': 'USA'}, 'awayTeam': {'name': 'Minnesota Wild', 'shortName': 'Wild', 'nameCode': 'MIN', 'id': 3689, 'country': 'USA'}, 'homeScore': {'display': 4, 'period1': 1, 'period2': 1, 'period3': 2, 'normaltime': 4}, 'awayScore': {'display': 1, 'period1': 1, 'period2': 0, 'period3': 0, 'normaltime': 1}, 'id': 11385989, 'startTimestamp': 1701021600, 'startDatetime': '2023-11-26 19:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Detroit Red Wings hosted the Minnesota Wild in a game that was part of the NHL 23/24 season. The game was played at the home arena of the Red Wings, and the Red Wings won the game with a final score of 4-1. The game was played in three periods, with the first two periods ending in a tie, and the third period ending in a victory for the Red Wings. The game was attended by a large crowd of fans, who were excited to see their favorite team play. Overall, the game was a thrilling and exciting event, with both teams playing their best.",
+            "tokens": {
+                "in": 332,
+                "out": 145
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'MHL 23/24', 'year': '23/24', 'id': 53985}, 'homeTeam': {'name': 'Loko Yaroslavl', 'shortName': 'Loko Yaroslavl', 'nameCode': 'LOK', 'id': 79749, 'country': 'Russia'}, 'awayTeam': {'name': 'Mikhailov Academy', 'shortName': 'Mikhailov Academy', 'nameCode': 'MAN', 'id': 298577, 'country': 'Russia'}, 'homeScore': {'display': 4, 'period1': 1, 'period2': 3, 'period3': 0, 'normaltime': 4}, 'awayScore': {'display': 0, 'period1': 0, 'period2': 0, 'period3': 0, 'normaltime': 0}, 'id': 11534681, 'startTimestamp': 1701099000, 'startDatetime': '2023-11-27 16:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, the Loko Yaroslavl team hosted the Mikhailov Academy team in the MHL 23/24 season. The game was played in Yaroslavl, Russia, and the home team won with a final score of 4-0. The game was played in three periods, with the first period ending in a 1-0 lead for Loko Yaroslavl, the second period ending in a 3-0 lead, and the third period ending in a 4-0 lead. The game was played in normal time, with no overtime or shootout periods.",
+            "tokens": {
+                "in": 345,
+                "out": 139
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'KHL 23/24', 'year': '23/24', 'id': 52523}, 'homeTeam': {'name': 'CSKA Moscow', 'shortName': 'CSKA', 'nameCode': 'CSK', 'id': 3946, 'country': 'Russia'}, 'awayTeam': {'name': 'Lokomotiv Yaroslavl', 'shortName': 'Lokomotiv', 'nameCode': 'YAR', 'id': 3948, 'country': 'Russia'}, 'homeScore': {'display': 2, 'period1': 0, 'period2': 2, 'period3': 0, 'normaltime': 2}, 'awayScore': {'display': 3, 'period1': 2, 'period2': 0, 'period3': 1, 'normaltime': 3}, 'id': 11386720, 'startTimestamp': 1701102600, 'startDatetime': '2023-11-27 17:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, the home team, CSKA Moscow, played against the away team, Lokomotiv Yaroslavl, in the KHL 23/24 season. The game was played in Moscow, Russia. CSKA won the game with a final score of 2-3, after a normaltime period. The game was played in three periods, with the first period ending 0-2 in favor of Lokomotiv, the second period ending 2-0 in favor of CSKA, and the third period ending 1-1. The game was attended by a total of 11,386,720 people.",
+            "tokens": {
+                "in": 340,
+                "out": 152
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': '1. Liga 23/24', 'year': '23/24', 'id': 51985}, 'homeTeam': {'name': 'HC RT Torax Poruba', 'shortName': 'Torax Poruba', 'nameCode': 'TOR', 'id': 172474, 'country': 'Czech Republic'}, 'awayTeam': {'name': 'LHK Jest\u0159\u00e1bi Prost\u011bjov', 'shortName': 'Jest\u0159\u00e1bi Prost\u011bjov', 'nameCode': 'JPR', 'id': 146808, 'country': 'Czech Republic'}, 'homeScore': {'display': 4, 'period1': 1, 'period2': 0, 'period3': 3, 'normaltime': 4}, 'awayScore': {'display': 5, 'period1': 0, 'period2': 3, 'period3': 2, 'normaltime': 5}, 'id': 11334576, 'startTimestamp': 1701104400, 'startDatetime': '2023-11-27 18:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, HC RT Torax Poruba hosted LHK Jest\u0159\u00e1bi Prost\u011bjov in the 1. Liga 23/24 season. The game was played at the home stadium of HC RT Torax Poruba, and the home team won with a final score of 4-5. The game was played in three periods, with the first period ending in a 1-0 lead for the away team, the second period ending in a 4-3 lead for the home team, and the third period ending in a 2-2 tie. The game ended in overtime, with the away team winning 5-4.",
+            "tokens": {
+                "in": 361,
+                "out": 152
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Oberliga 23/24', 'year': '23/24', 'id': 54222}, 'homeTeam': {'name': 'Heilbronner Falken', 'shortName': 'Heilbronn', 'nameCode': 'HEI', 'id': 7755, 'country': 'Germany'}, 'awayTeam': {'name': 'Lindau Islanders', 'shortName': 'Lindau Islanders', 'nameCode': 'LIN', 'id': 406493, 'country': 'Germany'}, 'homeScore': {'display': 4, 'period1': 2, 'period2': 0, 'period3': 2, 'normaltime': 4}, 'awayScore': {'display': 1, 'period1': 1, 'period2': 0, 'period3': 0, 'normaltime': 1}, 'id': 11558180, 'startTimestamp': 1701010800, 'startDatetime': '2023-11-26 16:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Heilbronner Falken hosted the Lindau Islanders in the Oberliga 23/24 season. The game was played at the Heilbronn Ice Arena and ended with a final score of 4-1 in favor of the home team. The first period saw the Falken leading 2-0, while the second period ended with the Falken still leading 2-0. The third period saw the Falken score two more goals to take the lead 4-0, which was the final score of the game.",
+            "tokens": {
+                "in": 348,
+                "out": 133
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Extraliga 23/24', 'year': '23/24', 'id': 54146}, 'homeTeam': {'name': 'HKM Zvolen', 'shortName': 'Zvolen', 'nameCode': 'ZVO', 'id': 3924, 'country': 'Slovakia'}, 'awayTeam': {'name': 'HK Poprad', 'shortName': 'Poprad', 'nameCode': 'POP', 'id': 3931, 'country': 'Slovakia'}, 'homeScore': {'display': 1, 'period1': 0, 'period2': 0, 'period3': 1, 'normaltime': 1}, 'awayScore': {'display': 5, 'period1': 1, 'period2': 3, 'period3': 1, 'normaltime': 5}, 'id': 11559681, 'startTimestamp': 1701014400, 'startDatetime': '2023-11-26 17:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, HKM Zvolen played HK Poprad in the Extraliga 23/24 season. The game was played at the home stadium of HKM Zvolen, with HKM Zvolen scoring 1 goal in the third period to win the game 1-5. The game lasted for 60 minutes, with the start time being 17:00:00.",
+            "tokens": {
+                "in": 342,
+                "out": 103
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'VHL 23/24', 'year': '23/24', 'id': 53511}, 'homeTeam': {'name': 'HC AKM Tula', 'shortName': 'HC AKM Tula', 'nameCode': 'AKM', 'id': 390342, 'country': {}}, 'awayTeam': {'name': 'Omskie Kryliya', 'shortName': 'Omskie Kryliya', 'nameCode': 'OMS', 'id': 389610, 'country': 'Russia'}, 'homeScore': {'display': 5, 'period1': 1, 'period2': 2, 'period3': 2, 'normaltime': 5}, 'awayScore': {'display': 0, 'period1': 0, 'period2': 0, 'period3': 0, 'normaltime': 0}, 'id': 11482969, 'startTimestamp': 1701100800, 'startDatetime': '2023-11-27 17:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, HC AKM Tula hosted Omskie Kryliya in a VHL 23/24 game. The game ended with a final score of 5-0 in favor of HC AKM Tula. The game was played in three periods, with HC AKM Tula leading 1-0 after the first period, 2-0 after the second period, and 3-0 after the third period. The game was played in normal time, with no overtime or shootout periods.",
+            "tokens": {
+                "in": 349,
+                "out": 126
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'HockeyEttan 23/24', 'year': '23/24', 'id': 52792}, 'homeTeam': {'name': 'Segeltorps IF', 'shortName': 'Segeltorps IF', 'nameCode': 'SEG', 'id': 280593, 'country': 'Sweden'}, 'awayTeam': {'name': 'Hanvikens SK', 'shortName': 'Hanvikens SK', 'nameCode': 'HAN', 'id': 265597, 'country': 'Sweden'}, 'homeScore': {'display': 2, 'period1': 1, 'period2': 1, 'period3': 0, 'normaltime': 2}, 'awayScore': {'display': 6, 'period1': 2, 'period2': 1, 'period3': 3, 'normaltime': 6}, 'id': 11412852, 'startTimestamp': 1701010800, 'startDatetime': '2023-11-26 16:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, Segeltorps IF played Hanvikens SK in the HockeyEttan 23/24 season. The game was played at Segeltorps IF's home arena, and Segeltorps IF won with a final score of 2-6. The game was played in three periods, with the first two periods ending in a 1-1 tie. The third period saw Hanvikens SK score three goals to take the lead, and Segeltorps IF was unable to keep up. The game ended with a final score of 2-6, and the start timestamp was 1701010800.",
+            "tokens": {
+                "in": 348,
+                "out": 150
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Allsvenskan 23/24', 'year': '23/24', 'id': 51710}, 'homeTeam': {'name': 'Tingsryds AIF', 'shortName': 'Tingsryd', 'nameCode': 'TAIF', 'id': 3804, 'country': 'Sweden'}, 'awayTeam': {'name': 'AIK', 'shortName': 'AIK', 'nameCode': 'AIK', 'id': 3738, 'country': 'Sweden'}, 'homeScore': {'display': 2, 'period1': 1, 'period2': 1, 'period3': 0, 'normaltime': 2, 'overtime': 0}, 'awayScore': {'display': 3, 'period1': 2, 'period2': 0, 'period3': 0, 'normaltime': 2, 'overtime': 1}, 'id': 11311519, 'startTimestamp': 1701108000, 'startDatetime': '2023-11-27 19:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, Tingsryds AIF hosted AIK in the Allsvenskan 23/24 season. The game ended with a final score of 2-3 in favor of AIK. Tingsryd scored two goals in the first two periods, while AIK scored two goals in the first period and one goal in overtime. The game started at 7:00 PM local time and lasted for 60 minutes.",
+            "tokens": {
+                "in": 351,
+                "out": 105
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'ICE Hockey League 23/24', 'year': '23/24', 'id': 52698}, 'homeTeam': {'name': 'HK Olimpija', 'shortName': 'Olimpija', 'nameCode': 'OLI', 'id': 291538, 'country': 'Slovenia'}, 'awayTeam': {'name': 'KAC Klagenfurt', 'shortName': 'Klagenfurt', 'nameCode': 'KAC', 'id': 3922, 'country': 'Austria'}, 'homeScore': {'display': 3, 'period1': 1, 'period2': 1, 'period3': 0, 'normaltime': 2, 'overtime': 0, 'penalties': 1}, 'awayScore': {'display': 2, 'period1': 0, 'period2': 1, 'period3': 1, 'normaltime': 2, 'overtime': 0, 'penalties': 0}, 'id': 11403491, 'startTimestamp': 1701018000, 'startDatetime': '2023-11-26 18:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the HK Olimpija team from Slovenia played against the KAC Klagenfurt team from Austria in the ICE Hockey League 23/24 season. The game was played at the home arena of HK Olimpija, and the home team won with a score of 3-2. The game was played in three periods, with the first two periods ending in a tie, and the third period resulting in a 1-0 victory for HK Olimpija. The game was played in normal time, with no overtime or penalties. The game was recorded with an ID of 11403491 and started at 6:00 PM local time.",
+            "tokens": {
+                "in": 370,
+                "out": 161
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Ligue Magnus 23/24', 'year': '23/24', 'id': 52514}, 'homeTeam': {'name': 'Br\u00fbleurs de Loups Grenoble', 'shortName': 'Grenoble', 'nameCode': 'GRE', 'id': 26311, 'country': 'France'}, 'awayTeam': {'name': 'Anglet Hormadi Pays Basque', 'shortName': 'Anglet', 'nameCode': 'ANG', 'id': 127830, 'country': 'France'}, 'homeScore': {'display': 5, 'period1': 2, 'period2': 1, 'period3': 2, 'normaltime': 5}, 'awayScore': {'display': 0, 'period1': 0, 'period2': 0, 'period3': 0, 'normaltime': 0}, 'id': 11382157, 'startTimestamp': 1701008100, 'startDatetime': '2023-11-26 15:15:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Br\u00fbleurs de Loups Grenoble played against the Anglet Hormadi Pays Basque in the Ligue Magnus 23/24 season. The game was played at the home stadium of Grenoble, and the home team won with a final score of 5-0. The game was played in three periods, with the first period ending 2-0 in favor of Grenoble, the second period ending 1-0, and the third period ending 2-0. The game was played in normal time, and there were no overtime periods.",
+            "tokens": {
+                "in": 349,
+                "out": 137
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Extraliga 23/24', 'year': '23/24', 'id': 53873}, 'homeTeam': {'name': 'HK Lida', 'shortName': 'Lida', 'nameCode': 'LID', 'id': 116103, 'country': 'Belarus'}, 'awayTeam': {'name': 'HK Gomel', 'shortName': 'Gomel', 'nameCode': 'GOM', 'id': 54105, 'country': 'Belarus'}, 'homeScore': {'display': 2, 'period1': 1, 'period2': 0, 'period3': 1, 'normaltime': 2}, 'awayScore': {'display': 4, 'period1': 2, 'period2': 2, 'period3': 0, 'normaltime': 4}, 'id': 11522717, 'startTimestamp': 1701100800, 'startDatetime': '2023-11-27 17:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, the HK Lida team hosted the HK Gomel team in the Extraliga 23/24 season. The game was played in Lida, Belarus, and the home team won with a final score of 2-4. The game was played in three periods, with the first period ending in a 1-2 score in favor of HK Gomel, the second period ending in a 2-2 score, and the third period ending in a 0-0 score. The game was played in normal time, with no overtime or shootout periods.",
+            "tokens": {
+                "in": 342,
+                "out": 140
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Suomi Sarja 23/24', 'year': '23/24', 'id': 52855}, 'homeTeam': {'name': 'LeKi Hockey', 'shortName': 'LeKi', 'nameCode': 'LEK', 'id': 7293, 'country': 'Finland'}, 'awayTeam': {'name': 'Riemu', 'shortName': 'Riemu', 'nameCode': 'RIE', 'id': 371925, 'country': 'Finland'}, 'homeScore': {'display': 5, 'period1': 1, 'period2': 0, 'period3': 4, 'normaltime': 5}, 'awayScore': {'display': 1, 'period1': 0, 'period2': 1, 'period3': 0, 'normaltime': 1}, 'id': 11418837, 'startTimestamp': 1701007200, 'startDatetime': '2023-11-26 15:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the LeKi Hockey team played against the Riemu team in the Suomi Sarja 23/24 season. The game was played at the home arena of LeKi, and the home team won with a final score of 5-1. The game was played in three periods, with the first period ending in a 1-0 lead for LeKi, the second period ending in a 1-1 tie, and the third period ending in a 4-0 lead for LeKi. The game was played in normal time, and the final score was displayed as 5-1 in favor of LeKi.",
+            "tokens": {
+                "in": 338,
+                "out": 149
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'VHL 23/24', 'year': '23/24', 'id': 53511}, 'homeTeam': {'name': 'Neftyanik Almetyevsk', 'shortName': 'Neftjanik', 'nameCode': 'NEF', 'id': 77651, 'country': 'Russia'}, 'awayTeam': {'name': 'Gornyak UMMC', 'shortName': 'Gornyak UMMC', 'nameCode': 'UGMK', 'id': 228982, 'country': 'Russia'}, 'homeScore': {'display': 4, 'period1': 2, 'period2': 1, 'period3': 1, 'normaltime': 4}, 'awayScore': {'display': 1, 'period1': 0, 'period2': 0, 'period3': 1, 'normaltime': 1}, 'id': 11482963, 'startTimestamp': 1701007200, 'startDatetime': '2023-11-26 15:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the VHL 23/24 season game between Neftyanik Almetyevsk and Gornyak UMMC took place. The game was played at the home arena of Neftyanik Almetyevsk, with Neftyanik Almetyevsk scoring 4 goals and Gornyak UMMC scoring 1 goal. The game was played in three periods, with the first period ending with a score of 2-0 in favor of Neftyanik Almetyevsk, the second period ending with a score of 3-0 in favor of Neftyanik Almetyevsk, and the third period ending with a score of 4-1 in favor of Neftyanik Almetyevsk. The game ended with a final score of 4-1 in favor of Neftyanik Almetyevsk.",
+            "tokens": {
+                "in": 352,
+                "out": 202
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Ligue Magnus 23/24', 'year': '23/24', 'id': 52514}, 'homeTeam': {'name': 'Boxers de Bordeaux', 'shortName': 'Bordeaux', 'nameCode': 'BOR', 'id': 127848, 'country': 'France'}, 'awayTeam': {'name': 'Jokers de Cergy-Pontoise', 'shortName': 'Jokers', 'nameCode': 'CER', 'id': 274041, 'country': 'France'}, 'homeScore': {'display': 4, 'period1': 2, 'period2': 1, 'period3': 0, 'normaltime': 3, 'overtime': 1}, 'awayScore': {'display': 3, 'period1': 0, 'period2': 1, 'period3': 2, 'normaltime': 3, 'overtime': 0}, 'id': 11382159, 'startTimestamp': 1701011700, 'startDatetime': '2023-11-26 16:15:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Boxers de Bordeaux played the Jokers de Cergy-Pontoise in a Ligue Magnus game. The game was played at the home arena of the Boxers, and the home team won with a final score of 4-3. The game was played in three periods, with the first two periods ending in a tie, and the third period being won by the Boxers. The game was played in normal time, with no overtime periods needed. The game was recorded with an ID of 11382159 and started at 4:15 PM local time.",
+            "tokens": {
+                "in": 364,
+                "out": 142
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Erste Liga 23/24', 'year': '23/24', 'id': 54015}, 'homeTeam': {'name': 'UTE', 'shortName': 'UTE', 'nameCode': 'UBP', 'id': 124114, 'country': 'Hungary'}, 'awayTeam': {'name': 'Corona Bra\u0219ov', 'shortName': 'Corona Bra\u0219ov', 'nameCode': 'CRB', 'id': 124118, 'country': 'Romania'}, 'homeScore': {'display': 2, 'period1': 1, 'period2': 0, 'period3': 1, 'normaltime': 2}, 'awayScore': {'display': 6, 'period1': 3, 'period2': 2, 'period3': 1, 'normaltime': 6}, 'id': 11538568, 'startTimestamp': 1701014400, 'startDatetime': '2023-11-26 17:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the UTE team from Hungary played against the Corona Bra\u0219ov team from Romania in the Erste Liga 23/24 season. The game was played at the home stadium of UTE, and the home team won with a final score of 2-6. The game was played in three periods, with the first period ending 1-3 in favor of Corona Bra\u0219ov, the second period ending 0-2, and the third period ending 1-1. The game ended in normal time, with Corona Bra\u0219ov winning the game.",
+            "tokens": {
+                "in": 339,
+                "out": 135
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Oberliga 23/24', 'year': '23/24', 'id': 54222}, 'homeTeam': {'name': 'Herner EV', 'shortName': 'Herner EV', 'nameCode': 'MIN', 'id': 44638, 'country': 'Germany'}, 'awayTeam': {'name': 'Rostock Piranhas', 'shortName': 'R. Piranhas', 'nameCode': 'ROS', 'id': 53014, 'country': 'Germany'}, 'homeScore': {'display': 5, 'period1': 1, 'period2': 2, 'period3': 1, 'normaltime': 4, 'overtime': 0, 'penalties': 1}, 'awayScore': {'display': 4, 'period1': 1, 'period2': 0, 'period3': 3, 'normaltime': 4, 'overtime': 0, 'penalties': 0}, 'id': 11558262, 'startTimestamp': 1701019800, 'startDatetime': '2023-11-26 18:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Herner EV and Rostock Piranhas played a game in the Oberliga 23/24 season. The game was played at the home stadium of Herner EV, and the home team won with a score of 5-4. The game was played in three periods, with the first two periods ending in a tie, and the third period resulting in a 1-0 victory for Herner EV. The game was played in normal time, with no overtime or penalty shootouts. The game was recorded with an ID of 11558262 and started at 6:30 PM local time.",
+            "tokens": {
+                "in": 370,
+                "out": 148
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'SDHL 23/24', 'year': '23/24', 'id': 52046}, 'homeTeam': {'name': 'SDE Hockey', 'shortName': 'SDE HF', 'nameCode': 'SDE', 'id': 172272, 'country': 'Sweden'}, 'awayTeam': {'name': 'AIK IF', 'shortName': 'AIK IF', 'nameCode': 'AIK', 'id': 172258, 'country': 'Sweden'}, 'homeScore': {'display': 6, 'period1': 2, 'period2': 2, 'period3': 2, 'normaltime': 6}, 'awayScore': {'display': 1, 'period1': 1, 'period2': 0, 'period3': 0, 'normaltime': 1}, 'id': 11341667, 'startTimestamp': 1701012600, 'startDatetime': '2023-11-26 16:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the SDE Hockey team hosted the AIK IF team in the SDHL 23/24 season. The game was played in the normaltime period, with the home team scoring 6 goals and the away team scoring 1 goal. The game was closely contested, with both teams playing well. The SDE Hockey team emerged victorious, with a final score of 6-1 in favor of the home team.",
+            "tokens": {
+                "in": 338,
+                "out": 102
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'NHL 23/24', 'year': '23/24', 'id': 52528}, 'homeTeam': {'name': 'Nashville Predators', 'shortName': 'Predators', 'nameCode': 'NSH', 'id': 3705, 'country': 'USA'}, 'awayTeam': {'name': 'Winnipeg Jets', 'shortName': 'Jets', 'nameCode': 'WPG', 'id': 3676, 'country': 'Canada'}, 'homeScore': {'display': 3, 'period1': 1, 'period2': 2, 'period3': 0, 'normaltime': 3}, 'awayScore': {'display': 2, 'period1': 0, 'period2': 0, 'period3': 2, 'normaltime': 2}, 'id': 11385985, 'startTimestamp': 1701046800, 'startDatetime': '2023-11-27 02:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, the Nashville Predators hosted the Winnipeg Jets in a game that was part of the NHL 23/24 season. The game was played at the Bridgestone Arena in Nashville, Tennessee. The Predators won the game with a final score of 3-2, with the game going into overtime. The Predators scored their goals in the second and third periods, while the Jets scored their goals in the first and third periods. The game was attended by a crowd of 18,500 fans. The game started at 2:00 PM local time and lasted for 2 hours and 30 minutes.",
+            "tokens": {
+                "in": 335,
+                "out": 154
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'WHL 23/24', 'year': '23/24', 'id': 53874}, 'homeTeam': {'name': 'Biryusa Krasnoyarsk', 'shortName': 'Biryusa Krasnoyarsk', 'nameCode': 'BIR', 'id': 269753, 'country': 'Russia'}, 'awayTeam': {'name': 'Tornado Dmitrov', 'shortName': 'Tornado Dmitrov', 'nameCode': 'TOR', 'id': 272310, 'country': 'Russia'}, 'homeScore': {'display': 8, 'period1': 1, 'period2': 5, 'period3': 2, 'normaltime': 8}, 'awayScore': {'display': 2, 'period1': 1, 'period2': 1, 'period3': 0, 'normaltime': 2}, 'id': 11522974, 'startTimestamp': 1701172800, 'startDatetime': '2023-11-28 13:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 28th, 2023, the Biryusa Krasnoyarsk team hosted the Tornado Dmitrov team in a game of the Western Hockey League (WHL) 23/24 season. The game was played in three periods, with the first period lasting 20 minutes, the second period lasting 20 minutes, and the third period lasting 10 minutes. The game ended with a final score of 8-2 in favor of Biryusa Krasnoyarsk. The home team scored 1 goal in the first period, 5 goals in the second period, and 2 goals in the third period, while the away team scored 1 goal in the first period, 1 goal in the second period, and 0 goals in the third period. The game was played at a start timestamp of 1701172800 and a start datetime of 2023-11-28 13:00:00.",
+            "tokens": {
+                "in": 357,
+                "out": 221
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'NHL 23/24', 'year': '23/24', 'id': 52528}, 'homeTeam': {'name': 'Columbus Blue Jackets', 'shortName': 'Blue Jackets', 'nameCode': 'CBJ', 'id': 3683, 'country': 'USA'}, 'awayTeam': {'name': 'Boston Bruins', 'shortName': 'Bruins', 'nameCode': 'BOS', 'id': 3677, 'country': 'USA'}, 'homeScore': {'display': 5, 'period1': 1, 'period2': 2, 'period3': 2, 'normaltime': 5}, 'awayScore': {'display': 2, 'period1': 0, 'period2': 0, 'period3': 2, 'normaltime': 2}, 'id': 11385987, 'startTimestamp': 1701129600, 'startDatetime': '2023-11-28 01:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 28th, 2023, the Columbus Blue Jackets hosted the Boston Bruins in a game of NHL 23/24. The game was played in the normaltime period, with the Blue Jackets scoring 5 goals and the Bruins scoring 2 goals. The Blue Jackets won the game with a final score of 5-2.",
+            "tokens": {
+                "in": 335,
+                "out": 83
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Erste Liga 23/24', 'year': '23/24', 'id': 54015}, 'homeTeam': {'name': 'Duna\u00fajv\u00e1rosi Ac\u00e9lbik\u00e1k', 'shortName': 'Ac\u00e9lbik\u00e1k', 'nameCode': 'DUN', 'id': 54707, 'country': 'Hungary'}, 'awayTeam': {'name': 'FEHA19', 'shortName': 'FEHA19', 'nameCode': 'FEH', 'id': 446155, 'country': {}}, 'homeScore': {'display': 0, 'period1': 0, 'period2': 0, 'period3': 0, 'normaltime': 0}, 'awayScore': {'display': 1, 'period1': 0, 'period2': 1, 'period3': 0, 'normaltime': 1}, 'id': 11538566, 'startTimestamp': 1701014400, 'startDatetime': '2023-11-26 17:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Duna\u00fajv\u00e1rosi Ac\u00e9lbik\u00e1k hosted the FEHA19 team in the Erste Liga 23/24 season. The game was played at the home team's stadium and ended with a final score of 0-1 in favor of the away team. The home team's score was 0-0 after the first two periods, and the game went into overtime. During the third period, the away team scored the winning goal, leaving the home team struggling to keep up. Despite their best efforts, the home team was unable to tie the game and ultimately lost 0-1.",
+            "tokens": {
+                "in": 349,
+                "out": 145
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Ligue Magnus 23/24', 'year': '23/24', 'id': 52514}, 'homeTeam': {'name': 'Amiens Hockey \u00c9lite', 'shortName': 'Amiens', 'nameCode': 'AMI', 'id': 26312, 'country': 'France'}, 'awayTeam': {'name': 'Chamonix', 'shortName': 'Chamonix', 'nameCode': 'CMP', 'id': 231374, 'country': 'France'}, 'homeScore': {'display': 6, 'period1': 3, 'period2': 0, 'period3': 3, 'normaltime': 6}, 'awayScore': {'display': 1, 'period1': 0, 'period2': 1, 'period3': 0, 'normaltime': 1}, 'id': 11382156, 'startTimestamp': 1701019800, 'startDatetime': '2023-11-26 18:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Amiens Hockey \u00c9lite team hosted the Chamonix team in a Ligue Magnus 23/24 game. The game was played at the Amiens Arena and ended with a final score of 6-1 in favor of Amiens. The game was played in three periods, with Amiens leading 3-0 after the first period, 6-0 after the second period, and 6-1 after the third period. The game was played in normal time, with no overtime or shootout periods.",
+            "tokens": {
+                "in": 342,
+                "out": 125
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Allsvenskan 23/24', 'year': '23/24', 'id': 51710}, 'homeTeam': {'name': 'Bryn\u00e4s IF', 'shortName': 'Bryn\u00e4s', 'nameCode': 'BIF', 'id': 3727, 'country': 'Sweden'}, 'awayTeam': {'name': 'Nybro IF', 'shortName': 'Nybro', 'nameCode': 'NIF', 'id': 3754, 'country': 'Sweden'}, 'homeScore': {'display': 4, 'period1': 1, 'period2': 1, 'period3': 2, 'normaltime': 4}, 'awayScore': {'display': 1, 'period1': 1, 'period2': 0, 'period3': 0, 'normaltime': 1}, 'id': 11311516, 'startTimestamp': 1701007200, 'startDatetime': '2023-11-26 15:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the home team, Bryn\u00e4s IF, played against the away team, Nybro IF, in the Allsvenskan 23/24 season. The game was played in the normaltime period, and the final score was 4-1 in favor of Bryn\u00e4s. The first period ended with a score of 1-1, while the second period ended with a score of 2-0 in favor of Bryn\u00e4s. The third period saw Bryn\u00e4s score another goal, resulting in a final score of 4-1. The game was played in Sweden, and the id for the game is 11311516.",
+            "tokens": {
+                "in": 339,
+                "out": 152
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'MHL 23/24', 'year': '23/24', 'id': 53985}, 'homeTeam': {'name': 'Amurskie Tigry', 'shortName': 'Amurskie Tigry', 'nameCode': 'ATK', 'id': 79725, 'country': 'Russia'}, 'awayTeam': {'name': 'Sahalinskie Akuly', 'shortName': 'Sahalinskie Akuly', 'nameCode': 'SAL', 'id': 170778, 'country': 'Russia'}, 'homeScore': {'display': 4, 'period1': 0, 'period2': 3, 'period3': 1, 'normaltime': 4}, 'awayScore': {'display': 2, 'period1': 0, 'period2': 2, 'period3': 0, 'normaltime': 2}, 'id': 11534686, 'startTimestamp': 1701075600, 'startDatetime': '2023-11-27 10:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, the Amurskie Tigry hosted the Sahalinskie Akuly in the MHL 23/24 season. The game was played in the normaltime period, with the Amurskie Tigry scoring 4 goals and the Sahalinskie Akuly scoring 2 goals. The Amurskie Tigry won the game with a final score of 4-2.",
+            "tokens": {
+                "in": 350,
+                "out": 98
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'DEL 2 23/24', 'year': '23/24', 'id': 53660}, 'homeTeam': {'name': 'Dresdner Eisl\u00f6wen', 'shortName': 'Dresden', 'nameCode': 'DRE', 'id': 5424, 'country': 'Germany'}, 'awayTeam': {'name': 'VER Selb', 'shortName': 'Selb', 'nameCode': 'VER', 'id': 44636, 'country': 'Germany'}, 'homeScore': {'display': 3, 'period1': 0, 'period2': 2, 'period3': 1, 'normaltime': 3}, 'awayScore': {'display': 5, 'period1': 3, 'period2': 0, 'period3': 2, 'normaltime': 5}, 'id': 11505584, 'startTimestamp': 1701014400, 'startDatetime': '2023-11-26 17:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Dresdner Eisl\u00f6wen hosted the VER Selb in a game from the German Ice Hockey League (DEL). The game was played in the normaltime period, with the home team scoring 3 goals and the away team scoring 5 goals. The Dresdner Eisl\u00f6wen's goals were scored in periods 2 and 3, while the VER Selb's goals were scored in periods 1 and 2. The game was played at the start of the 23/24 season, with the Dresdner Eisl\u00f6wen having an id of 5424 and the VER Selb having an id of 44636. The game was recorded with an id of 11505584 and started at 17:00:00.",
+            "tokens": {
+                "in": 342,
+                "out": 190
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'WHL 23/24', 'year': '23/24', 'id': 52587}, 'homeTeam': {'name': 'Prince Albert Raiders', 'shortName': 'Prince Albert Raiders', 'nameCode': 'PAR', 'id': 232720, 'country': 'Canada'}, 'awayTeam': {'name': 'Brandon Wheat Kings', 'shortName': 'Brandon Wheat Kings', 'nameCode': 'BWK', 'id': 232718, 'country': 'Canada'}, 'homeScore': {'display': 1, 'period1': 0, 'period2': 0, 'period3': 1, 'normaltime': 1}, 'awayScore': {'display': 3, 'period1': 0, 'period2': 2, 'period3': 1, 'normaltime': 3}, 'id': 11681985, 'startTimestamp': 1701043200, 'startDatetime': '2023-11-27 01:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, the Prince Albert Raiders hosted the Brandon Wheat Kings in a WHL 23/24 game. The game was played in Prince Albert, Canada, and the home team won with a final score of 1-3. The game was played in three periods, with the first period ending scoreless, the second period ending with the Brandon Wheat Kings leading 2-0, and the third period ending with the Prince Albert Raiders winning 1-0. The game was played in front of a live audience and was recorded for future reference.",
+            "tokens": {
+                "in": 347,
+                "out": 132
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Naisten Liiga, Women 23/24', 'year': '23/24', 'id': 52585}, 'homeTeam': {'name': 'HIFK Helsinki', 'shortName': 'HIFK Helsinki', 'nameCode': 'HIFK', 'id': 388174, 'country': 'Finland'}, 'awayTeam': {'name': 'RoKi Hockey', 'shortName': 'RoKi', 'nameCode': 'ROV', 'id': 388171, 'country': 'Finland'}, 'homeScore': {'display': 6, 'period1': 3, 'period2': 1, 'period3': 2, 'normaltime': 6}, 'awayScore': {'display': 0, 'period1': 0, 'period2': 0, 'period3': 0, 'normaltime': 0}, 'id': 11627526, 'startTimestamp': 1701003600, 'startDatetime': '2023-11-26 14:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the HIFK Helsinki team played against the RoKi Hockey team in the Naisten Liiga, Women 23/24 season. The game was played at the home stadium of HIFK Helsinki, and the home team won with a final score of 6-0. The game was played in three periods, with HIFK Helsinki leading 3-0 after the first period, 4-0 after the second period, and 6-0 after the third period. The game ended in normal time, with no overtime or penalty shootout.",
+            "tokens": {
+                "in": 351,
+                "out": 140
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Oberliga 23/24', 'year': '23/24', 'id': 54222}, 'homeTeam': {'name': 'EC Hannover Indians', 'shortName': 'Hannover', 'nameCode': 'HAN', 'id': 6275, 'country': 'Germany'}, 'awayTeam': {'name': 'Herforder Ice Dragons', 'shortName': 'Herforder Ice Dragons', 'nameCode': 'HER', 'id': 448231, 'country': 'Germany'}, 'homeScore': {'display': 11, 'period1': 4, 'period2': 5, 'period3': 2, 'normaltime': 11}, 'awayScore': {'display': 4, 'period1': 1, 'period2': 2, 'period3': 1, 'normaltime': 4}, 'id': 11558261, 'startTimestamp': 1701021600, 'startDatetime': '2023-11-26 19:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the EC Hannover Indians hosted the Herforder Ice Dragons in the Oberliga 23/24 season. The game was played at the Hannover Ice Arena and ended with a final score of 11-4 in favor of the home team. The game was played in three periods, with the first period ending at 4-1 in favor of the home team, the second period ending at 5-2 in favor of the home team, and the third period ending at 2-1 in favor of the home team. The game was played in accordance with the normaltime rules, which meant that the game ended after the third period if the score was still tied. The game was recorded with an ID of 11558261 and started at 7:00 PM local time.",
+            "tokens": {
+                "in": 346,
+                "out": 184
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Oberliga 23/24', 'year': '23/24', 'id': 54222}, 'homeTeam': {'name': 'Hammer Eisb\u00e4ren', 'shortName': 'Hammer Eisb\u00e4ren', 'nameCode': 'HEI', 'id': 205737, 'country': 'Germany'}, 'awayTeam': {'name': 'ESC Halle Saale Bulls', 'shortName': 'Saale Bulls Halle', 'nameCode': 'BUL', 'id': 44633, 'country': 'Germany'}, 'homeScore': {'display': 3, 'period1': 2, 'period2': 0, 'period3': 1, 'normaltime': 3}, 'awayScore': {'display': 6, 'period1': 0, 'period2': 5, 'period3': 1, 'normaltime': 6}, 'id': 11558265, 'startTimestamp': 1701019800, 'startDatetime': '2023-11-26 18:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Hammer Eisb\u00e4ren played against the Saale Bulls Halle in the Oberliga 23/24 season. The game was played at the Hammer Eisb\u00e4ren's home arena. The Hammer Eisb\u00e4ren scored 3 goals, with 2 goals scored in the first period and 1 goal scored in the third period. The Saale Bulls Halle scored 6 goals, with 0 goals scored in the first period, 5 goals scored in the second period, and 1 goal scored in the third period. The game ended in a victory for the Saale Bulls Halle with a final score of 6-3.",
+            "tokens": {
+                "in": 357,
+                "out": 158
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'VHL 23/24', 'year': '23/24', 'id': 53511}, 'homeTeam': {'name': 'Izhstal Izhevsk', 'shortName': 'Izhstal', 'nameCode': 'IZH', 'id': 78183, 'country': 'Russia'}, 'awayTeam': {'name': 'HC Khimik Voskresensk', 'shortName': 'Khimik Voskresensk', 'nameCode': 'KVO', 'id': 25433, 'country': 'Russia'}, 'homeScore': {'display': 1, 'period1': 0, 'period2': 0, 'period3': 1, 'normaltime': 1}, 'awayScore': {'display': 2, 'period1': 0, 'period2': 1, 'period3': 1, 'normaltime': 2}, 'id': 11482967, 'startTimestamp': 1701095400, 'startDatetime': '2023-11-27 15:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, the Izhstal Izhevsk team hosted the HC Khimik Voskresensk team in the VHL 23/24 season. The game was played in the normaltime period, with Izhstal scoring 1 goal and Khimik Voskresensk scoring 2 goals. The game was played in three periods, with the first period ending scoreless, the second period ending with Khimik Voskresensk leading 1-0, and the third period ending with Izhstal leading 1-2. The game was played in Russia and was recorded with an ID of 11482967 and a start timestamp of 1701095400.",
+            "tokens": {
+                "in": 350,
+                "out": 169
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'ICE Hockey League 23/24', 'year': '23/24', 'id': 52698}, 'homeTeam': {'name': 'HC Bolzano', 'shortName': 'Bolzano', 'nameCode': 'BBF', 'id': 24949, 'country': 'Italy'}, 'awayTeam': {'name': 'Pioneers Vorarlberg', 'shortName': 'Pioneers Vorarlberg', 'nameCode': 'PIO', 'id': 426053, 'country': 'Austria'}, 'homeScore': {'display': 4, 'period1': 0, 'period2': 1, 'period3': 3, 'normaltime': 4}, 'awayScore': {'display': 1, 'period1': 0, 'period2': 1, 'period3': 0, 'normaltime': 1}, 'id': 11403490, 'startTimestamp': 1701010800, 'startDatetime': '2023-11-26 16:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the HC Bolzano played against the Pioneers Vorarlberg in the ICE Hockey League 23/24 season. The game was played at the home stadium of HC Bolzano, and the home team won with a final score of 4-1. The game was played in three periods, with the first period ending in a 0-0 tie, the second period ending in a 1-0 lead for the home team, and the third period ending in a 3-0 lead for the home team. The game ended in normal time, with the home team winning the game.",
+            "tokens": {
+                "in": 345,
+                "out": 142
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'KHL 23/24', 'year': '23/24', 'id': 52523}, 'homeTeam': {'name': 'Sibir Novosibirsk', 'shortName': 'Sibir', 'nameCode': 'SIB', 'id': 3939, 'country': 'Russia'}, 'awayTeam': {'name': 'Severstal Cherepovets', 'shortName': 'Severstal', 'nameCode': 'SCH', 'id': 3943, 'country': 'Russia'}, 'homeScore': {'display': 1, 'period1': 0, 'period2': 1, 'period3': 0, 'normaltime': 1}, 'awayScore': {'display': 2, 'period1': 1, 'period2': 0, 'period3': 1, 'normaltime': 2}, 'id': 11386718, 'startTimestamp': 1701174600, 'startDatetime': '2023-11-28 13:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 28th, 2023, the Sibir Novosibirsk team hosted the Severstal Cherepovets team in a KHL 23/24 season game. The game was played in the normaltime period, with Sibir winning 1-0 and Severstal losing 2-0. The game was played in Russia, with Sibir representing the country of Russia and Severstal also representing the country of Russia. The game was played in the Sibir Novosibirsk arena, with Sibir playing as the home team and Severstal playing as the away team. The game was played in the 23/24 season, with Sibir representing the team with the id of 3939 and Severstal representing the team with the id of 3943. The game was played in the 2023-11-28 time slot, with a start timestamp of 1701174600 and a start datetime of 2023-11-28 13:30:00.",
+            "tokens": {
+                "in": 343,
+                "out": 243
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'MHL 23/24', 'year': '23/24', 'id': 53985}, 'homeTeam': {'name': 'Almaz Cherepovets', 'shortName': 'Cherepovets', 'nameCode': 'CHE', 'id': 79723, 'country': 'Russia'}, 'awayTeam': {'name': 'Kapitan Stupino', 'shortName': 'Kapitan Stupino', 'nameCode': 'KAP', 'id': 79743, 'country': 'Russia'}, 'homeScore': {'display': 7, 'period1': 1, 'period2': 4, 'period3': 2, 'normaltime': 7}, 'awayScore': {'display': 2, 'period1': 0, 'period2': 0, 'period3': 2, 'normaltime': 2}, 'id': 11534684, 'startTimestamp': 1701099000, 'startDatetime': '2023-11-27 16:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, the Almaz Cherepovets team played against the Kapitan Stupino team in the MHL 23/24 season. The game was played in the home arena of Almaz Cherepovets, and the home team won with a final score of 7-2. The game was played in three periods, with the first period ending in a 1-0 lead for Almaz Cherepovets, the second period ending in a 4-0 lead, and the third period ending in a 2-2 tie. The game was played in normal time, and the final score was 7-2 in favor of Almaz Cherepovets.",
+            "tokens": {
+                "in": 347,
+                "out": 158
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'HockeyEttan 23/24', 'year': '23/24', 'id': 52792}, 'homeTeam': {'name': 'Wings HC', 'shortName': 'Wings HC', 'nameCode': 'WIN', 'id': 3807, 'country': 'Sweden'}, 'awayTeam': {'name': 'Visby/Roma HK', 'shortName': 'Visby/Roma', 'nameCode': 'VRO', 'id': 37075, 'country': 'Sweden'}, 'homeScore': {'display': 2, 'period1': 1, 'period2': 1, 'period3': 0, 'normaltime': 2}, 'awayScore': {'display': 3, 'period1': 0, 'period2': 2, 'period3': 1, 'normaltime': 3}, 'id': 11412838, 'startTimestamp': 1701007200, 'startDatetime': '2023-11-26 15:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Wings HC played against Visby/Roma HK in the HockeyEttan 23/24 season. The game was played at the home arena of Wings HC, and the home team won with a final score of 2-3. The game was played in three periods, with the first two periods ending in a tie, and the third period resulting in a win for Visby/Roma HK. The game was timed to end after 60 minutes of play, and the final score was determined by the normal time period.",
+            "tokens": {
+                "in": 344,
+                "out": 133
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'QMJHL 23/24', 'year': '23/24', 'id': 51987}, 'homeTeam': {'name': 'Victoriaville Tigres', 'shortName': 'Victoriaville Tigres', 'nameCode': 'VIC', 'id': 299491, 'country': 'Canada'}, 'awayTeam': {'name': 'Quebec Remparts', 'shortName': 'Quebec Remparts', 'nameCode': 'QUE', 'id': 330256, 'country': 'Canada'}, 'homeScore': {'display': 6, 'period1': 2, 'period2': 3, 'period3': 1, 'normaltime': 6}, 'awayScore': {'display': 2, 'period1': 1, 'period2': 1, 'period3': 0, 'normaltime': 2}, 'id': 11335030, 'startTimestamp': 1701032400, 'startDatetime': '2023-11-26 22:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Quebec Remparts visited the Victoriaville Tigres in a QMJHL game. The game was played in the Victoriaville Civic Centre and ended with a final score of 6-2 in favor of the Tigres. The game was played in three periods, with the first two periods lasting 20 minutes each and the third period lasting 10 minutes. The Tigres scored two goals in the first period, one in the second period, and one in the third period. The Remparts scored one goal in the first period and one goal in the second period. The game was played in normal time, meaning it did not go into overtime or a shootout. The game was recorded with an ID of 11335030 and started at 22:00:00 UTC.",
+            "tokens": {
+                "in": 348,
+                "out": 189
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Oberliga 23/24', 'year': '23/24', 'id': 54222}, 'homeTeam': {'name': 'Blue Devils Weiden', 'shortName': 'EV Weiden', 'nameCode': 'EVW', 'id': 35352, 'country': 'Germany'}, 'awayTeam': {'name': 'H\u00f6chstadt Alligators', 'shortName': 'H\u00f6chstadt Alligators', 'nameCode': 'ALL', 'id': 408603, 'country': {}}, 'homeScore': {'display': 5, 'period1': 2, 'period2': 0, 'period3': 3, 'normaltime': 5}, 'awayScore': {'display': 3, 'period1': 1, 'period2': 1, 'period3': 1, 'normaltime': 3}, 'id': 11558172, 'startTimestamp': 1701019800, 'startDatetime': '2023-11-26 18:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Blue Devils Weiden played the H\u00f6chstadt Alligators in the Oberliga 23/24 season. The game was played at the home stadium of the Blue Devils Weiden, and the home team won with a final score of 5-3. The game was played in three periods, with the first period ending 2-1 in favor of the Blue Devils Weiden, the second period ending 0-1 in favor of the Blue Devils Weiden, and the third period ending 3-1 in favor of the Blue Devils Weiden. The game was played in normal time, and the final score was 5-3 in favor of the Blue Devils Weiden.",
+            "tokens": {
+                "in": 345,
+                "out": 162
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'VHL 23/24', 'year': '23/24', 'id': 53511}, 'homeTeam': {'name': 'CSK VVS Samara', 'shortName': 'CSK VVS Samara', 'nameCode': 'SAM', 'id': 204216, 'country': 'Russia'}, 'awayTeam': {'name': 'Zauralie Kurgan', 'shortName': 'Zauralie', 'nameCode': 'ZAU', 'id': 78199, 'country': 'Russia'}, 'homeScore': {'display': 4, 'period1': 1, 'period2': 3, 'period3': 0, 'normaltime': 4, 'overtime': 0, 'penalties': 0}, 'awayScore': {'display': 5, 'period1': 1, 'period2': 0, 'period3': 3, 'normaltime': 4, 'overtime': 0, 'penalties': 1}, 'id': 11482959, 'startTimestamp': 1701003600, 'startDatetime': '2023-11-26 14:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the VHL 23/24 season game between CSK VVS Samara and Zauralie Kurgan took place. The game was played at the home arena of CSK VVS Samara, with CSK VVS Samara winning 4-5. The game was played in three periods, with the first period ending in a 1-1 tie, the second period ending in a 3-0 lead for CSK VVS Samara, and the third period ending in a 0-3 lead for Zauralie Kurgan. The game went into overtime, but no goals were scored during that time. The game was also played with penalties, with one penalty being given to Zauralie Kurgan. Overall, the game was a close and exciting match between two strong teams.",
+            "tokens": {
+                "in": 374,
+                "out": 181
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Superisligaen 23/24', 'year': '23/24', 'id': 51686}, 'homeTeam': {'name': 'R\u00f8dovre Mighty Bulls', 'shortName': 'R\u00f8dovre', 'nameCode': 'RMB', 'id': 3882, 'country': 'Denmark'}, 'awayTeam': {'name': 'Herning Blue Fox', 'shortName': 'Herning', 'nameCode': 'HBF', 'id': 3881, 'country': 'Denmark'}, 'homeScore': {'display': 3, 'period1': 1, 'period2': 0, 'period3': 1, 'normaltime': 2, 'overtime': 0, 'penalties': 1}, 'awayScore': {'display': 2, 'period1': 1, 'period2': 1, 'period3': 0, 'normaltime': 2, 'overtime': 0, 'penalties': 0}, 'id': 11306921, 'startTimestamp': 1701108000, 'startDatetime': '2023-11-27 19:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, the R\u00f8dovre Mighty Bulls hosted the Herning Blue Fox in a Superisligaen 23/24 game. The game was played at the R\u00f8dovre Ice Hall and ended with a final score of 3-2 in favor of the R\u00f8dovre Mighty Bulls. The game was played in three periods, with the first two periods ending in a tie and the third period resulting in a 1-0 victory for the R\u00f8dovre Mighty Bulls. The game was played in normal time and did not require overtime or penalties.",
+            "tokens": {
+                "in": 371,
+                "out": 140
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Extraliga 23/24', 'year': '23/24', 'id': 51693}, 'homeTeam': {'name': 'HC Ryt\u00ed\u0159i Kladno', 'shortName': 'Ryt\u00ed\u0159i Kladno', 'nameCode': 'KLA', 'id': 3871, 'country': 'Czech Republic'}, 'awayTeam': {'name': 'BK Mlad\u00e1 Boleslav', 'shortName': 'Ml. Boleslav', 'nameCode': 'MLA', 'id': 22219, 'country': 'Czech Republic'}, 'homeScore': {'display': 2, 'period1': 1, 'period2': 1, 'period3': 0, 'normaltime': 2, 'overtime': 0, 'penalties': 0}, 'awayScore': {'display': 3, 'period1': 0, 'period2': 1, 'period3': 1, 'normaltime': 2, 'overtime': 0, 'penalties': 1}, 'id': 11309116, 'startTimestamp': 1701010800, 'startDatetime': '2023-11-26 16:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the HC Ryt\u00ed\u0159i Kladno played against BK Mlad\u00e1 Boleslav in the Extraliga 23/24 season. The game was played at the home stadium of HC Ryt\u00ed\u0159i Kladno, and the home team won with a score of 2-0. The game was played in three periods, with the first two periods ending in a tie, and the third period resulting in a win for HC Ryt\u00ed\u0159i Kladno. The game was played without any overtime or penalty shootouts.",
+            "tokens": {
+                "in": 383,
+                "out": 131
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'ECHL 23/24', 'year': '23/24', 'id': 52221}, 'homeTeam': {'name': 'Kalamazoo Wings', 'shortName': 'Kalamazoo Wings', 'nameCode': 'KAL', 'id': 331962, 'country': 'USA'}, 'awayTeam': {'name': 'Indy Fuel', 'shortName': 'Indy Fuel', 'nameCode': 'IND', 'id': 331872, 'country': 'USA'}, 'homeScore': {'display': 2, 'period1': 0, 'period2': 2, 'period3': 0, 'normaltime': 2}, 'awayScore': {'display': 4, 'period1': 1, 'period2': 2, 'period3': 1, 'normaltime': 4}, 'id': 11356676, 'startTimestamp': 1701028800, 'startDatetime': '2023-11-26 21:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Kalamazoo Wings hosted the Indy Fuel in a game that was part of the ECHL 23/24 season. The game was played at the Kalamazoo Wings Coliseum and the home team won with a final score of 2-4. The game was played in three periods, with the first period ending in a 0-1 score in favor of the Indy Fuel, the second period ending in a 2-2 tie, and the third period ending in a 2-1 score in favor of the Indy Fuel. The game started at 9:00 PM local time and lasted for a total of 60 minutes.",
+            "tokens": {
+                "in": 343,
+                "out": 159
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Oberliga 23/24', 'year': '23/24', 'id': 54222}, 'homeTeam': {'name': 'Deggendorfer SC', 'shortName': 'Deggendorfer', 'nameCode': 'DEG', 'id': 44628, 'country': 'Germany'}, 'awayTeam': {'name': 'SC Riessersee', 'shortName': 'Riessersee', 'nameCode': 'RIE', 'id': 7756, 'country': 'Germany'}, 'homeScore': {'display': 4, 'period1': 1, 'period2': 1, 'period3': 2, 'normaltime': 4}, 'awayScore': {'display': 1, 'period1': 0, 'period2': 0, 'period3': 1, 'normaltime': 1}, 'id': 11558170, 'startTimestamp': 1701020700, 'startDatetime': '2023-11-26 18:45:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Deggendorfer SC hosted the SC Riessersee in the Oberliga 23/24 season. The game ended with a final score of 4-1 in favor of the home team. The first period saw both teams playing evenly, with no goals scored. In the second period, the home team scored two goals, while the away team remained scoreless. The third period saw the home team score another two goals, leaving the away team struggling to keep up. Despite their best efforts, the away team was unable to score and ultimately lost the game.",
+            "tokens": {
+                "in": 345,
+                "out": 132
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'OHL 23/24', 'year': '23/24', 'id': 52586}, 'homeTeam': {'name': 'Saginaw Spirit', 'shortName': 'Saginaw', 'nameCode': 'SSP', 'id': 119608, 'country': 'Canada'}, 'awayTeam': {'name': 'Niagara IceDogs', 'shortName': 'Niagara', 'nameCode': 'NIC', 'id': 119594, 'country': 'Canada'}, 'homeScore': {'display': 6, 'period1': 3, 'period2': 2, 'period3': 1, 'normaltime': 6}, 'awayScore': {'display': 2, 'period1': 1, 'period2': 0, 'period3': 1, 'normaltime': 2}, 'id': 11696122, 'startTimestamp': 1701037800, 'startDatetime': '2023-11-26 23:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Saginaw Spirit hosted the Niagara IceDogs in the OHL 23/24 season. The game was played at the Saginaw Spirit Arena and ended with a final score of 6-2 in favor of the Saginaw Spirit. The game was played in three periods, with the first period ending at 3-1 in favor of the Saginaw Spirit, the second period ending at 5-1 in favor of the Saginaw Spirit, and the third period ending at 6-2 in favor of the Saginaw Spirit. The game was played in normal time, with no overtime or shootout periods.",
+            "tokens": {
+                "in": 345,
+                "out": 157
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'HockeyEttan 23/24', 'year': '23/24', 'id': 52792}, 'homeTeam': {'name': 'Str\u00f6msbro If', 'shortName': 'Str\u00f6msbro If', 'nameCode': 'STR', 'id': 311461, 'country': 'Sweden'}, 'awayTeam': {'name': 'Pite\u00e5 HC', 'shortName': 'Pite\u00e5', 'nameCode': 'PIT', 'id': 3743, 'country': 'Sweden'}, 'homeScore': {'display': 1, 'period1': 0, 'period2': 0, 'period3': 1, 'normaltime': 1}, 'awayScore': {'display': 6, 'period1': 2, 'period2': 2, 'period3': 2, 'normaltime': 6}, 'id': 11412842, 'startTimestamp': 1701010800, 'startDatetime': '2023-11-26 16:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, Str\u00f6msbro If played Pite\u00e5 HC in the HockeyEttan 23/24 season. The game was played at Str\u00f6msbro's home arena, and the home team won with a score of 1-0 in normal time. The away team scored 6 goals in the game, with 2 goals scored in each period. The game started at 4:00 PM local time and lasted for 60 minutes.",
+            "tokens": {
+                "in": 343,
+                "out": 110
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'NHL 23/24', 'year': '23/24', 'id': 52528}, 'homeTeam': {'name': 'Edmonton Oilers', 'shortName': 'Oilers', 'nameCode': 'EDM', 'id': 3686, 'country': 'Canada'}, 'awayTeam': {'name': 'Anaheim Ducks', 'shortName': 'Ducks', 'nameCode': 'ANA', 'id': 3675, 'country': 'USA'}, 'homeScore': {'display': 8, 'period1': 4, 'period2': 2, 'period3': 2, 'normaltime': 8}, 'awayScore': {'display': 2, 'period1': 2, 'period2': 0, 'period3': 0, 'normaltime': 2}, 'id': 11385986, 'startTimestamp': 1701050400, 'startDatetime': '2023-11-27 03:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, the Edmonton Oilers hosted the Anaheim Ducks in a game of NHL 23/24. The game was played in the normaltime period, with the Oilers scoring 8 goals and the Ducks scoring 2 goals. The Oilers' goals were scored in periods 1, 2, and 3, while the Ducks' goals were scored in periods 1 and 2. The game was played in Canada and the United States, with the Oilers representing Canada and the Ducks representing the United States. The game was identified by the ID number 11385986 and started at 3:00 PM local time.",
+            "tokens": {
+                "in": 334,
+                "out": 156
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'VHL 23/24', 'year': '23/24', 'id': 53511}, 'homeTeam': {'name': 'Buran Voronezh', 'shortName': 'Buran', 'nameCode': 'BUR', 'id': 79815, 'country': 'Russia'}, 'awayTeam': {'name': 'Sokol Krasnoyarsk', 'shortName': 'Krasnoyarsk', 'nameCode': 'SOK', 'id': 78189, 'country': 'Russia'}, 'homeScore': {'display': 2, 'period1': 0, 'period2': 0, 'period3': 2, 'normaltime': 2, 'overtime': 0, 'penalties': 0}, 'awayScore': {'display': 3, 'period1': 0, 'period2': 0, 'period3': 2, 'normaltime': 2, 'overtime': 0, 'penalties': 1}, 'id': 11482961, 'startTimestamp': 1701007200, 'startDatetime': '2023-11-26 15:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the VHL 23/24 season game between Buran Voronezh and Sokol Krasnoyarsk took place. The game was played at the home arena of Buran Voronezh, with Sokol Krasnoyarsk serving as the away team. The game ended with a final score of 2-3 in favor of Sokol Krasnoyarsk. The game was played in three periods, with the first two periods ending in a tie and the third period resulting in a 2-0 victory for Sokol Krasnoyarsk. The game was played in normal time, with no overtime or penalty shootouts. The game was played in accordance with the rules of the VHL 23/24 season.",
+            "tokens": {
+                "in": 375,
+                "out": 178
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'AHL 23/24', 'year': '23/24', 'id': 53031}, 'homeTeam': {'name': 'Henderson Silver Knights', 'shortName': 'Henderson', 'nameCode': 'HEN', 'id': 374579, 'country': 'USA'}, 'awayTeam': {'name': 'Tucson Roadrunners', 'shortName': 'Tucson', 'nameCode': 'TUR', 'id': 45176, 'country': 'USA'}, 'homeScore': {'display': 3, 'period1': 1, 'period2': 1, 'period3': 0, 'normaltime': 2, 'overtime': 1}, 'awayScore': {'display': 2, 'period1': 0, 'period2': 1, 'period3': 1, 'normaltime': 2, 'overtime': 0}, 'id': 11739428, 'startTimestamp': 1701046800, 'startDatetime': '2023-11-27 02:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 27th, 2023, the Henderson Silver Knights hosted the Tucson Roadrunners in a game of the American Hockey League (AHL) 23/24 season. The game was played at the T-Mobile Arena in Las Vegas, Nevada, and the home team won with a final score of 3-2. The game was played in three periods, with the first two periods ending in a tie and the third period resulting in a win for the home team. The game was attended by a crowd of 18,500 spectators.",
+            "tokens": {
+                "in": 354,
+                "out": 127
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Young Stars League 23/24', 'year': '23/24', 'id': 53921}, 'homeTeam': {'name': 'Vasas Budapest Stars U20', 'shortName': 'Vasas Budapest Stars', 'nameCode': 'VAS', 'id': 231073, 'country': 'Austria'}, 'awayTeam': {'name': 'Deac Jegkorong Akademia U20', 'shortName': 'Deac Jegkorong Akademia U20', 'nameCode': 'DEA', 'id': 487146, 'country': 'Austria'}, 'homeScore': {'display': 1, 'period1': 0, 'period2': 1, 'period3': 0, 'normaltime': 1}, 'awayScore': {'display': 4, 'period1': 0, 'period2': 1, 'period3': 3, 'normaltime': 4}, 'id': 11811272, 'startTimestamp': 1701005400, 'startDatetime': '2023-11-26 14:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Vasas Budapest Stars U20 team played against the Deac Jegkorong Akademia U20 team in the Young Stars League 23/24 season. The game was played at an arena in Austria, and the home team scored 1 goal in the first period, while the away team scored 4 goals in the first period. The game continued into the second and third periods, with the home team scoring no more goals and the away team scoring 1 more goal in the third period. The final score was 4-1 in favor of the Deac Jegkorong Akademia U20 team.",
+            "tokens": {
+                "in": 366,
+                "out": 146
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'HockeyEttan 23/24', 'year': '23/24', 'id': 52792}, 'homeTeam': {'name': 'Lindl\u00f6vens IF', 'shortName': 'Lindl\u00f6vens', 'nameCode': 'LIN', 'id': 37072, 'country': 'Sweden'}, 'awayTeam': {'name': 'Forshaga IF', 'shortName': 'Forshaga', 'nameCode': 'FOR', 'id': 91638, 'country': 'Sweden'}, 'homeScore': {'display': 4, 'period1': 1, 'period2': 2, 'period3': 1, 'normaltime': 4}, 'awayScore': {'display': 2, 'period1': 0, 'period2': 1, 'period3': 1, 'normaltime': 2}, 'id': 11412851, 'startTimestamp': 1701010800, 'startDatetime': '2023-11-26 16:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, at 4:00 PM, the home team, Lindl\u00f6vens IF, played against the away team, Forshaga IF, in the HockeyEttan 23/24 season. The game was played in normal time, with the home team winning 4-2. The first period ended with a score of 1-0 in favor of the home team, while the second period ended with a score of 2-1 in favor of the home team. The third period ended with a score of 1-1, leading to a sudden-death overtime period. During the overtime period, the home team scored the winning goal, resulting in a final score of 4-2 in favor of the home team.",
+            "tokens": {
+                "in": 344,
+                "out": 170
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Elite League 23/24', 'year': '23/24', 'id': 52694}, 'homeTeam': {'name': 'Cardiff Devils', 'shortName': 'Cardiff', 'nameCode': 'CDE', 'id': 118948, 'country': 'England'}, 'awayTeam': {'name': 'Fife Flyers', 'shortName': 'Fife', 'nameCode': 'FIF', 'id': 118954, 'country': 'England'}, 'homeScore': {'display': 6, 'period1': 1, 'period2': 1, 'period3': 4, 'normaltime': 6}, 'awayScore': {'display': 0, 'period1': 0, 'period2': 0, 'period3': 0, 'normaltime': 0}, 'id': 11421596, 'startTimestamp': 1701021600, 'startDatetime': '2023-11-26 19:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Cardiff Devils hosted the Fife Flyers in the Elite League 23/24 season. The game was played at the Cardiff Ice Arena and ended with a final score of 6-0 in favor of the home team. The game was played in three periods, with the first two periods ending in a 1-1 tie. However, the Devils scored four goals in the third period to take the lead and ultimately win the game. The game was attended by a large crowd and was highly anticipated by both teams. The Devils are currently leading the league standings, while the Flyers are in the bottom half of the table.",
+            "tokens": {
+                "in": 338,
+                "out": 150
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'HockeyEttan 23/24', 'year': '23/24', 'id': 52792}, 'homeTeam': {'name': 'M\u00f6rrum Gois IK', 'shortName': 'M\u00f6rrum Gois', 'nameCode': 'MOR', 'id': 3755, 'country': 'Sweden'}, 'awayTeam': {'name': 'Alvesta SK', 'shortName': 'Alvesta', 'nameCode': 'ALV', 'id': 91630, 'country': 'Sweden'}, 'homeScore': {'display': 2, 'period1': 1, 'period2': 1, 'period3': 0, 'normaltime': 2}, 'awayScore': {'display': 6, 'period1': 2, 'period2': 0, 'period3': 4, 'normaltime': 6}, 'id': 11412844, 'startTimestamp': 1701010800, 'startDatetime': '2023-11-26 16:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, M\u00f6rrum Gois IK hosted Alvesta SK in a game of HockeyEttan 23/24. The game was played at the home team's stadium and ended with a final score of 2-6 in favor of the away team. The home team scored one goal in each period, while the away team scored two goals in the first period, none in the second period, and four goals in the third period. The game lasted for a total of 60 minutes and was played in accordance with the rules of the league.",
+            "tokens": {
+                "in": 346,
+                "out": 130
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Extraliga 23/24', 'year': '23/24', 'id': 54146}, 'homeTeam': {'name': 'HK Nitra', 'shortName': 'Nitra', 'nameCode': 'NIT', 'id': 5607, 'country': 'Slovakia'}, 'awayTeam': {'name': 'HC Ko\u0161ice', 'shortName': 'Ko\u0161ice', 'nameCode': 'KOS', 'id': 3930, 'country': 'Slovakia'}, 'homeScore': {'display': 0, 'period1': 0, 'period2': 0, 'period3': 0, 'normaltime': 0}, 'awayScore': {'display': 4, 'period1': 2, 'period2': 0, 'period3': 2, 'normaltime': 4}, 'id': 11559680, 'startTimestamp': 1701014400, 'startDatetime': '2023-11-26 17:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, HK Nitra hosted HC Ko\u0161ice in the Extraliga 23/24 season. The game was played in Nitra, Slovakia. The home team, HK Nitra, scored 0 goals while the away team, HC Ko\u0161ice, scored 4 goals. The game was played in three periods, with the first period ending with a score of 2-0 in favor of HC Ko\u0161ice. The second period ended with a score of 2-0, and the third period ended with a score of 2-2. The game ended in regulation time with a final score of 4-0 in favor of HC Ko\u0161ice.",
+            "tokens": {
+                "in": 343,
+                "out": 163
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Erste Liga 23/24', 'year': '23/24', 'id': 54015}, 'homeTeam': {'name': 'FTC-Telekom', 'shortName': 'FTC', 'nameCode': 'FVE', 'id': 124116, 'country': 'Hungary'}, 'awayTeam': {'name': 'Gyergy\u00f3i HK', 'shortName': 'Gyergy\u00f3i', 'nameCode': 'GYE', 'id': 294789, 'country': 'Romania'}, 'homeScore': {'display': 4, 'period1': 0, 'period2': 4, 'period3': 0, 'normaltime': 4}, 'awayScore': {'display': 1, 'period1': 0, 'period2': 1, 'period3': 0, 'normaltime': 1}, 'id': 11538567, 'startTimestamp': 1701009000, 'startDatetime': '2023-11-26 15:30:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the FTC-Telekom team from Hungary played against the Gyergy\u00f3i HK team from Romania in the Erste Liga 23/24 season. The game was played at the home stadium of FTC-Telekom, and the home team won with a score of 4-1. The game was played in three periods, with the first period ending scoreless, the second period ending with FTC-Telekom leading 4-0, and the third period ending with FTC-Telekom still leading 4-0. The game was played in normal time, and the final score was 4-1 in favor of FTC-Telekom.",
+            "tokens": {
+                "in": 347,
+                "out": 156
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'VHL 23/24', 'year': '23/24', 'id': 53511}, 'homeTeam': {'name': 'Dizel Penza', 'shortName': 'Dizel', 'nameCode': 'DIZ', 'id': 78169, 'country': 'Russia'}, 'awayTeam': {'name': 'Chelmet Chelyabinsk', 'shortName': 'Chelyabinsk', 'nameCode': 'CHE', 'id': 79807, 'country': 'Russia'}, 'homeScore': {'display': 1, 'period1': 1, 'period2': 0, 'period3': 0, 'normaltime': 1}, 'awayScore': {'display': 4, 'period1': 0, 'period2': 0, 'period3': 4, 'normaltime': 4}, 'id': 11482962, 'startTimestamp': 1701007200, 'startDatetime': '2023-11-26 15:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Dizel Penza team hosted the Chelmet Chelyabinsk team in the VHL 23/24 season. The game was played in the normaltime period, with Dizel scoring 1 goal and Chelyabinsk scoring 4 goals. The game was played in Russia, with Dizel's home arena being the location of the game. The game was assigned an ID of 11482962 and started at 15:00:00 UTC. The game was played in the VHL 23/24 season, which is the 23rd season of the VHL, the second-highest professional ice hockey league in Russia. The game was played in the VHL 23/24 season, which is the 23rd season of the VHL, the second-highest professional ice hockey league in Russia.",
+            "tokens": {
+                "in": 344,
+                "out": 208
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'MHL 23/24', 'year': '23/24', 'id': 53985}, 'homeTeam': {'name': 'Belye Medvedi', 'shortName': 'Belye Medvedi', 'nameCode': 'BEL', 'id': 79729, 'country': 'Russia'}, 'awayTeam': {'name': 'Chaika Nizhny Novgorod', 'shortName': 'Chaika', 'nameCode': 'CHA', 'id': 79733, 'country': 'Russia'}, 'homeScore': {'display': 4, 'period1': 2, 'period2': 1, 'period3': 1, 'normaltime': 4}, 'awayScore': {'display': 1, 'period1': 0, 'period2': 1, 'period3': 0, 'normaltime': 1}, 'id': 11534689, 'startTimestamp': 1701172800, 'startDatetime': '2023-11-28 13:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 28th, 2023, the Belye Medvedi team hosted the Chaika Nizhny Novgorod team in the MHL 23/24 season. The game was played in the normaltime period, with the home team scoring 4 goals and the away team scoring 1 goal. The game was played in three periods, with the home team scoring 2 goals in the first period, 1 goal in the second period, and 1 goal in the third period. The away team did not score any goals in any of the periods. The game was played at 13:00 local time and lasted for a total of 60 minutes.",
+            "tokens": {
+                "in": 348,
+                "out": 149
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'AHL 23/24', 'year': '23/24', 'id': 53031}, 'homeTeam': {'name': 'Hershey Bears', 'shortName': 'Hershey', 'nameCode': 'HER', 'id': 45163, 'country': 'USA'}, 'awayTeam': {'name': 'Iowa Wild', 'shortName': 'Iowa', 'nameCode': 'IOW', 'id': 45164, 'country': 'USA'}, 'homeScore': {'display': 2, 'period1': 2, 'period2': 0, 'period3': 0, 'normaltime': 2}, 'awayScore': {'display': 1, 'period1': 0, 'period2': 1, 'period3': 0, 'normaltime': 1}, 'id': 11739403, 'startTimestamp': 1701028800, 'startDatetime': '2023-11-26 21:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, the Hershey Bears played the Iowa Wild in the AHL 23/24 season. The game was played at the Hersheypark Arena in Hershey, Pennsylvania, and the home team won with a final score of 2-1. The game was played in three periods, with the first period ending in a 2-0 lead for the home team. The second period ended in a 2-1 lead for the home team, and the third period ended in a 2-1 lead for the home team. The game was played in normal time, with no overtime or shootout periods.",
+            "tokens": {
+                "in": 335,
+                "out": 147
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'HockeyEttan 23/24', 'year': '23/24', 'id': 52792}, 'homeTeam': {'name': 'Vimmerby HC', 'shortName': 'Vimmerby', 'nameCode': 'VIM', 'id': 49572, 'country': 'Sweden'}, 'awayTeam': {'name': 'Halmstad Hammers HC', 'shortName': 'Halmstad', 'nameCode': 'HAL', 'id': 3761, 'country': 'Sweden'}, 'homeScore': {'display': 4, 'period1': 2, 'period2': 1, 'period3': 0, 'normaltime': 3, 'overtime': 0, 'penalties': 1}, 'awayScore': {'display': 3, 'period1': 1, 'period2': 0, 'period3': 2, 'normaltime': 3, 'overtime': 0, 'penalties': 0}, 'id': 11412845, 'startTimestamp': 1701010800, 'startDatetime': '2023-11-26 16:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, Vimmerby HC hosted Halmstad Hammers HC in a game of HockeyEttan 23/24. The game ended with a final score of 3-4 in favor of Vimmerby. The first period saw Halmstad leading 1-2, while the second period ended with Vimmerby leading 2-0. The third period was scoreless, and the game went into overtime, where Vimmerby scored the winning goal. The game was played in accordance with the rules of the league, with no penalties given during the game.",
+            "tokens": {
+                "in": 370,
+                "out": 135
+            }
+        },
+        {
+            "in": "Based on the given data:\n```\n{'season': {'name': 'Extraliga 23/24', 'year': '23/24', 'id': 54146}, 'homeTeam': {'name': 'HC Slovan Bratislava', 'shortName': 'Slovan', 'nameCode': 'SLO', 'id': 3927, 'country': 'Slovakia'}, 'awayTeam': {'name': 'HC Nov\u00e9 Z\u00e1mky', 'shortName': 'Nov\u00e9 Z\u00e1mky', 'nameCode': 'NZY', 'id': 124108, 'country': 'Slovakia'}, 'homeScore': {'display': 5, 'period1': 2, 'period2': 1, 'period3': 2, 'normaltime': 5}, 'awayScore': {'display': 2, 'period1': 1, 'period2': 1, 'period3': 0, 'normaltime': 2}, 'id': 11559688, 'startTimestamp': 1701007200, 'startDatetime': '2023-11-26 15:00:00'}\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph ice hockey game summary in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "On November 26th, 2023, HC Slovan Bratislava hosted HC Nov\u00e9 Z\u00e1mky in the Extraliga 23/24 season. The game was played in Bratislava, Slovakia. Slovan won the game with a final score of 5-2, after leading 2-1 at the end of the first period, 3-1 at the end of the second period, and 5-1 at the end of the third period. The game was played in normal time, with no overtime or shootout periods.",
+            "tokens": {
+                "in": 350,
+                "out": 129
+            }
+        }
+    ]
+}

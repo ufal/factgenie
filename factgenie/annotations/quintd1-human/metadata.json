@@ -1,0 +1,26 @@
+{
+    "id": "quintd1-human",
+    "prolific_code": "CK388WFU",
+    "idle_limit_minutes": 120,
+    "class": "QuintdCampaign",
+    "status": "finished",
+    "created": "2024-01-10 00:00:00",
+    "error_categories": [
+        {
+            "name": "Incorrect",
+            "color": "#ffbcbc"
+        },
+        {
+            "name": "Not checkable",
+            "color": "#e9d2ff"
+        },
+        {
+            "name": "Misleading",
+            "color": "#fff79f"
+        },
+        {
+            "name": "Other",
+            "color": "#bbbbbb"
+        }
+    ]
+}
