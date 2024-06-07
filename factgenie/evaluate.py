@@ -22,9 +22,37 @@ DIR_PATH = os.path.dirname(__file__)
 LLM_ANNOTATION_DIR = os.path.join(DIR_PATH, "annotations")
 
 
+class LLMMetricFactory:
+    @staticmethod
+    def get_metric(config):
+        metric_type = config["type"]
+        model = config["model"]
+
+        if metric_type == "openai":
+            return OpenAIMetric(config)
+        elif metric_type == "ollama":
+            # we implemented specific input postprocessing for Llama 3
+            if model.startswith("llama3"):
+                return Llama3Metric(config)
+            else:
+                return OllamaMetric(config)
+        else:
+            raise NotImplementedError(f"The metric type {metric_type} is not implemented")
+
+
 class LLMMetric:
-    def __init__(self, metric_name, load_args=None):
+    def __init__(self, metric_name, config):
         self.metric_name = metric_name
+
+        self.system_msg = config.get("system_msg", None)
+        if self.system_msg is None:
+            logger.warning("System message (`system_msg`) field not set, using an empty string")
+            self.system_msg = ""
+
+        self.metric_prompt_template = config.get("prompt_template", None)
+
+        if self.metric_prompt_template is None:
+            raise ValueError("Prompt template (`prompt_template`) field is missing in the config")
 
     def create_annotation(self, text, j, example_idx):
         annotation_list = []
@@ -49,87 +77,19 @@ class LLMMetric:
 
         return annotation_list
 
-    # def run(self, data):
-    #     annotations = []
 
-    #     for i, (data_input, model_out) in enumerate(data):
-    #         try:
-    #             # logger.info(f"{self.dataset_name} | {self.setup_name} | {self.model_name} | {i+1}/{len(data)}")
-    #             logger.info(f"{i+1}/{len(data)}")
-    #             j = self.annotate_example(data=data_input, text=model_out)
-    #             annotation = self.create_annotation(model_out, j, example_idx=i)
-    #             annotations.append(annotation)
-
-    #             logger.info("=" * 80)
-    #         except Exception as e:
-    #             logger.error(f"Error while annotating example: {e}")
-    #             logger.error(f"Example: {model_out}")
-    #             logger.error(f"Data: {data_input}")
-
-    #     return annotations
-
-
-class Llama3Metric(LLMMetric):
-    def __init__(self, load_args=None):
-        super().__init__("llama3", load_args)
-
-        self.API_KEY = os.getenv("TG_WEBUI_API_KEY")
-        self.API_URL = f"http://quest.ms.mff.cuni.cz/nlg/text-generation-api/v1/chat/completions"
-
-        base_path = os.path.dirname(os.path.realpath(__file__))
-        with open(f"{base_path}/llm-eval/llama3_metric.yaml") as f:
-            config = yaml.safe_load(f)
-
-        self.system_msg = config["system_msg"]
-        self.metric_prompt_template = config["prompt_template"]
-        self.model_args = config["model_args"]
-
-    def annotate_example(self, data, text):
-        prompt = self.metric_prompt_template.format(data=data, text=text)
-
-        messages = [{"role": "user", "content": prompt}]
-        data = {"mode": "instruct", "messages": messages, **self.model_args}
-
-        response = requests.post(
-            self.API_URL,
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.API_KEY}",
-            },
-            json=data,
-            verify=False,
-        )
-        try:
-            output_text = response.json()["choices"][0]["message"]["content"]
-
-            # TODO: remove
-            # extract JSON by finding the first '{' and last '}'
-            output_text = output_text[output_text.find("{") : output_text.rfind("}") + 1]
-            j = json.loads(output_text)
-            logger.info(j)
-            return j
-        except:
-            print(f"API error message: {response}")
-
-
-class GPT4Metric(LLMMetric):
-    def __init__(self, load_args=None):
-        # super().__init__("gpt-3.5-turbo-1106", load_args)
-        super().__init__("gpt-4-1106-preview", load_args)
+class OpenAIMetric(LLMMetric):
+    def __init__(self, config):
+        super().__init__(metric_name="llm-openai-" + config["model"], config=config)
         self.client = OpenAI()
-
-        with open("evaluation/gpt4_metric.yaml") as f:
-            config = yaml.safe_load(f)
-
-        self.system_msg = config["system_msg"]
-        self.metric_prompt_template = config["prompt_template"]
+        self.model = config["model"]
 
     def annotate_example(self, data, text):
         try:
             prompt = self.metric_prompt_template.format(data=data, text=text)
 
             response = self.client.chat.completions.create(
-                model=self.metric_name,
+                model=self.model,
                 response_format={"type": "json_object"},
                 messages=[
                     {"role": "system", "content": self.system_msg},
@@ -144,3 +104,56 @@ class GPT4Metric(LLMMetric):
         except Exception as e:
             logger.error(e)
             return {"errors": []}
+
+
+class OllamaMetric(LLMMetric):
+    def __init__(self, config):
+        super().__init__("llm-ollama-" + config["model"], config)
+        self.API_URL = config.get("api_url", None)
+
+        if self.API_URL is None:
+            raise ValueError("API URL (`api_url`) field is missing in the config")
+
+        self.model_args = config["model_args"]
+        self.model = config["model"]
+        self.seed = self.model_args.get("seed", None)
+
+    def postprocess_output(self, output):
+        output = output.strip()
+        j = json.loads(output)
+        return j
+
+    def annotate_example(self, data, text):
+        try:
+            prompt = self.metric_prompt_template.format(data=data, text=text)
+
+            response = requests.post(
+                self.API_URL,
+                json={
+                    "model": self.model,
+                    "prompt": prompt,
+                    "format": "json",
+                    "stream": False,
+                    "options": {"seed": self.seed, "temperature": 0},
+                },
+            )
+            annotation_str = response.json()["response"]
+
+            j = self.postprocess_output(annotation_str)
+            logger.info(j)
+            return j
+        except Exception as e:
+            logger.error(e)
+            return {"errors": []}
+
+
+class Llama3Metric(OllamaMetric):
+    def postprocess_output(self, output):
+        output = output.strip()
+        j = json.loads(output)
+
+        # the model often tends to produce a nested list
+        if type(j["errors"][0]) == list:
+            j["errors"] = j["errors"][0]
+
+        return j

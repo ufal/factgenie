@@ -580,17 +580,19 @@ function gatherCampaignData() {
 }
 
 
-function runModelEval() {
+function createLLMEval() {
     const campaignId = $('#campaignId').val();
     const sortOrder = $('#sortOrder').val();
+    const llmConfig = $('#llmConfig').val();
     var campaignData = gatherCampaignData();
 
     $.post({
-        url: `${url_prefix}/run_llm_eval`,
+        url: `${url_prefix}/llm_eval/new`,
         contentType: 'application/json', // Specify JSON content type
         data: JSON.stringify({
             campaignId: campaignId,
             campaignData: campaignData,
+            llmConfig: llmConfig,
             sortOrder: sortOrder,
         }),
         success: function (response) {
@@ -626,7 +628,7 @@ function startCampaign() {
     );
 
     $.post({
-        url: `${url_prefix}/start_campaign`,
+        url: `${url_prefix}/crowdsourcing/new`,
         contentType: 'application/json', // Specify JSON content type
         data: JSON.stringify({
             campaignId: campaignId,
@@ -652,9 +654,22 @@ function startCampaign() {
     });
 }
 
-function deleteCampaign(campaign_id) {
+function runLlmEval(campaignId) {
+    $.post({
+        url: `${url_prefix}/llm_eval/run`,
+        contentType: 'application/json', // Specify JSON content type
+        data: JSON.stringify({
+            campaignId: campaignId
+        }),
+        success: function (response) {
+            console.log(response);
+        }
+    });
+}
+
+function deleteCampaign(campaignId, source) {
     // ask for confirmation
-    if (!confirm(`Are you sure you want to delete the campaign ${campaign_id}?`)) {
+    if (!confirm(`Are you sure you want to delete the campaign ${campaign_id}? All the data will be lost!`)) {
         return;
     }
 
@@ -662,7 +677,8 @@ function deleteCampaign(campaign_id) {
         url: `${url_prefix}/delete_campaign`,
         contentType: 'application/json', // Specify JSON content type
         data: JSON.stringify({
-            campaign_id: campaign_id,
+            campaignId: campaignId,
+            source: source
         }),
         success: function (response) {
             console.log(response);

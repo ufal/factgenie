@@ -42,7 +42,7 @@ xdg-open http://127.0.0.1:8890
 ```
 
 ## Step-by-step guide
-Each project is unique. That is why this **framework is partially DYI**: we assume that it will be customized for a particular use-case.
+Each project is unique. That is why this **framework is partially DIY**: we assume that it will be customized for a particular use-case.
 
 ### 1) Gather your inputs and outputs
 

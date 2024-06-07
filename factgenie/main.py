@@ -1,31 +1,29 @@
 #!/usr/bin/env python3
 import os
 import json
-import glob
 import time
 import logging
 import pandas as pd
-import random
 import time
 import coloredlogs
 import threading
 import traceback
 import shutil
 import datetime
-import urllib.parse
-from flask import Flask, render_template, jsonify, request, session
+from flask import Flask, render_template, jsonify, request
 from collections import defaultdict
 from pathlib import Path
+import urllib.parse
 
-from factgenie.campaigns import get_campaigns, Campaign
+from factgenie.campaigns import Campaign, ModelCampaign, HumanCampaign
 from factgenie.loaders import DATASET_CLASSES
 from factgenie.evaluate import LLMMetric, Llama3Metric
+import factgenie.utils as utils
 
 DIR_PATH = os.path.dirname(__file__)
 TEMPLATES_DIR = os.path.join(DIR_PATH, "templates")
 STATIC_DIR = os.path.join(DIR_PATH, "static")
 ANNOTATIONS_DIR = os.path.join(DIR_PATH, "annotations")
-
 
 app = Flask("factgenie", template_folder=TEMPLATES_DIR, static_folder=STATIC_DIR)
 app.config.update(SECRET_KEY=os.urandom(24))
@@ -46,11 +44,9 @@ logger = logging.getLogger(__name__)
 coloredlogs.install(level="INFO", logger=logger, fmt="%(asctime)s %(levelname)s %(message)s")
 
 
-def success():
-    resp = jsonify(success=True)
-    return resp
-
-
+# -----------------
+# Jinja filters
+# -----------------
 @app.template_filter("ctime")
 def timectime(timestamp):
     try:
@@ -78,211 +74,9 @@ def annotate_url(current_url):
     return f"{base_url}annotate"
 
 
-def get_dataset(dataset_name):
-    return app.db["datasets_obj"].get(dataset_name)
-
-
-def generate_campaign_index(source):
-    app.db["campaign_index"] = get_campaigns(source=source)
-
-
-def generate_annotation_index():
-    # contains annotations for each generated output
-    annotations = defaultdict(list)
-
-    # for all subdirectories in ANNOTATIONS_DIR, load content of all the jsonl files
-    for subdir in os.listdir(ANNOTATIONS_DIR):
-
-        try:
-            # find metadata for the campaign
-            metadata_path = os.path.join(ANNOTATIONS_DIR, subdir, "metadata.json")
-            if not os.path.exists(metadata_path):
-                continue
-
-            with open(metadata_path) as f:
-                metadata = json.load(f)
-
-            jsonl_files = glob.glob(os.path.join(ANNOTATIONS_DIR, subdir, "files/*.jsonl"))
-
-            for jsonl_file in jsonl_files:
-                with open(jsonl_file) as f:
-                    for line in f:
-                        annotation = json.loads(line)
-                        annotation["metadata"] = metadata
-
-                        key = (
-                            annotation["dataset"],
-                            annotation["split"],
-                            annotation["example_idx"],
-                            annotation["setup"]["id"],
-                        )
-                        annotations[key].append(annotation)
-        except:
-            if app.config["debug"]:
-                traceback.print_exc()
-                logger.error(f"Error while loading annotations for {subdir}")
-                raise
-
-    app.db["annotation_index"] = annotations
-
-    return annotations
-
-
-def get_annotations(dataset_name, split, example_idx, setup_id):
-    annotation_index = app.db["annotation_index"]
-    key = (dataset_name, split, example_idx, setup_id)
-
-    return annotation_index.get(key, [])
-
-
-def get_example_data(dataset_name, split, example_idx):
-    dataset = get_dataset(dataset_name=dataset_name)
-
-    example = dataset.get_example(split=split, example_idx=example_idx)
-    html = dataset.render(example=example)
-    generated_outputs = dataset.get_generated_outputs(split=split, output_idx=example_idx)
-
-    for output in generated_outputs:
-        setup_id = output["setup"]["id"]
-        annotations = get_annotations(dataset_name, split, example_idx, setup_id)
-
-        output["annotations"] = annotations
-
-    dataset_info = dataset.get_info()
-
-    return {
-        "html": html,
-        "raw_data": example,
-        "total_examples": dataset.get_example_count(split),
-        "dataset_info": dataset_info,
-        "generated_outputs": generated_outputs,
-    }
-
-
-def free_idle_examples(db):
-    start = int(time.time())
-
-    # check if there are annotations which are idle for more than 2 hours: set them to free
-    idle_examples = db[(db["status"] == "assigned") & (db["start"] < start - 2 * 60 * 60)]
-    for i in idle_examples.index:
-        db.loc[i, "status"] = "free"
-        db.loc[i, "start"] = ""
-        db.loc[i, "annotator_id"] = ""
-
-    return db
-
-
-def select_batch_idx(db, seed):
-    free_examples = db[db["status"] == "free"]
-
-    # if no free examples, take the oldest assigned example
-    if len(free_examples) == 0:
-        free_examples = db[db["status"] == "assigned"]
-        free_examples = free_examples.sort_values(by=["start"])
-        free_examples = free_examples.head(1)
-
-        logger.info(f"Annotating extra example {free_examples.index[0]}")
-
-    example = free_examples.sample(random_state=seed)
-    batch_idx = int(example.batch_idx.values[0])
-    logger.info(f"Selecting batch {batch_idx}")
-
-    return batch_idx
-
-
-def get_annotator_batch(campaign, db, prolific_pid, session_id, study_id):
-    # simple locking over the CSV file to prevent double writes
-    with app.db["lock"]:
-        logging.info(f"Acquiring lock for {prolific_pid}")
-        start = int(time.time())
-
-        seed = random.seed(str(start) + prolific_pid + session_id + study_id)
-
-        batch_idx = select_batch_idx(db, seed)
-        if prolific_pid != "test":
-            db = free_idle_examples(db)
-
-            # update the CSV
-            db.loc[batch_idx, "status"] = "assigned"
-            db.loc[batch_idx, "start"] = start
-            db.loc[batch_idx, "annotator_id"] = prolific_pid
-
-            campaign.update_db(db)
-
-        annotator_batch = campaign.get_examples_for_batch(batch_idx)
-
-        for example in annotator_batch:
-            example.update(
-                {
-                    "campaign_id": campaign.campaign_id,
-                    "batch_idx": batch_idx,
-                    "annotator_id": prolific_pid,
-                    "session_id": session_id,
-                    "study_id": study_id,
-                    "start_timestamp": start,
-                }
-            )
-
-        logging.info(f"Releasing lock for {prolific_pid}")
-
-    return annotator_batch
-
-
-def generate_campaign_db(campaign_data, examples_per_batch, sort_order):
-    # load all outputs
-    all_examples = []
-
-    for c in campaign_data:
-        dataset = app.db["datasets_obj"][c["dataset"]]
-        for i in range(dataset.get_example_count(c["split"])):
-            all_examples.append(
-                {
-                    "dataset": c["dataset"],
-                    "split": c["split"],
-                    "example_idx": i,
-                    "setup_id": c["setup_id"],
-                }
-            )
-
-    random.seed(42)
-    random.shuffle(all_examples)
-
-    if sort_order == "example":
-        # group outputs by example ids, dataset and split
-        all_examples = sorted(all_examples, key=lambda x: (x["example_idx"], x["dataset"], x["split"]))
-    elif sort_order == "random":
-        pass
-    else:
-        raise ValueError(f"Unknown sort order {sort_order}")
-    df = pd.DataFrame.from_records(all_examples)
-
-    # create a column for batch index and assign each example to a batch
-    df["batch_idx"] = df.index // examples_per_batch
-    df["annotator_id"] = ""
-    df["status"] = "free"
-    df["start"] = ""
-
-    return df
-
-
-def get_dataset_overview():
-    overview = {}
-    for name, dataset in app.db["datasets_obj"].items():
-        overview[name] = {
-            "splits": dataset.get_splits(),
-            "description": dataset.get_info(),
-            "example_count": dataset.get_example_count(),
-            "type": dataset.type,
-        }
-
-    return overview
-
-
 # -----------------
 # Flask endpoints
 # -----------------
-
-
 @app.route("/", methods=["GET", "POST"])
 def index():
     logger.info(f"Main page loaded")
@@ -312,9 +106,9 @@ def annotate():
 
     logger.info(f"Annotate page loaded")
 
-    generate_campaign_index(source="human")
+    utils.generate_campaign_index(app)
     campaign_id = request.args.get("campaign")
-    campaign = app.db["campaign_index"][campaign_id]
+    campaign = app.db["campaign_index"]["human"][campaign_id]
     compl_code = campaign.metadata["prolific_code"]
     prolific_pid = request.args.get("PROLIFIC_PID", "test")
     session_id = request.args.get("SESSION_ID", "test")
@@ -322,7 +116,7 @@ def annotate():
 
     db = campaign.db
     metadata = campaign.metadata
-    annotation_set = get_annotator_batch(campaign, db, prolific_pid, session_id, study_id)
+    annotation_set = utils.get_annotator_batch(app, campaign, db, prolific_pid, session_id, study_id)
     return render_template(
         f"campaigns/{campaign.campaign_id}/annotate.html",
         host_prefix=app.config["host_prefix"],
@@ -340,7 +134,7 @@ def browse():
 
     logger.info(f"Browse page loaded")
 
-    generate_annotation_index()
+    utils.generate_annotation_index(app)
 
     dataset_name = request.args.get("dataset")
     split = request.args.get("split")
@@ -352,7 +146,7 @@ def browse():
     else:
         display_example = None
 
-    datasets = get_dataset_overview()
+    datasets = utils.get_dataset_overview(app)
 
     return render_template(
         "browse.html",
@@ -392,9 +186,9 @@ def crowdsourcing():
     for key in ["datasets", "splits", "setup_ids"]:
         model_outs[key] = sorted(list(set(model_outs[key])))
 
-    generate_campaign_index(source="human")
+    utils.generate_campaign_index(app)
 
-    campaign_index = app.db["campaign_index"]
+    campaign_index = app.db["campaign_index"]["human"]
     campaigns = defaultdict(dict)
 
     for campaign_id, campaign in campaign_index.items():
@@ -410,12 +204,12 @@ def crowdsourcing():
     )
 
 
-@app.route("/crowdsourcing/campaign", methods=["GET", "POST"])
-def campaign():
-    generate_campaign_index(source="human")
+@app.route("/crowdsourcing/detail", methods=["GET", "POST"])
+def crowdsourcing_detail():
+    utils.generate_campaign_index(app)
 
     campaign_id = request.args.get("campaign")
-    db = app.db["campaign_index"][campaign_id].db
+    db = app.db["campaign_index"]["human"][campaign_id].db
     # replace NaN with empty string
     db = db.where(pd.notnull(db), "")
 
@@ -437,7 +231,7 @@ def campaign():
     db = db.to_dict(orient="records")
 
     return render_template(
-        "campaign.html",
+        "crowdsoucing_detail.html",
         campaign_id=campaign_id,
         db=db,
         host_prefix=app.config["host_prefix"],
@@ -448,16 +242,20 @@ def campaign():
 def delete_campaign():
     data = request.get_json()
     campaign_name = data.get("campaign_id")
+    source = data.get("source")
 
     shutil.rmtree(os.path.join(ANNOTATIONS_DIR, campaign_name))
-    shutil.rmtree(os.path.join(TEMPLATES_DIR, "campaigns", campaign_name))
-    del app.db["campaign_index"][campaign_name]
 
-    return success()
+    if os.path.exists(os.path.join(TEMPLATES_DIR, "campaigns", campaign_name)):
+        shutil.rmtree(os.path.join(TEMPLATES_DIR, "campaigns", campaign_name))
+
+    del app.db["campaign_index"][source][campaign_name]
+
+    return utils.success()
 
 
-@app.route("/start_campaign", methods=["POST"])
-def start_campaign():
+@app.route("/crowdsourcing/new", methods=["POST"])
+def crowdsourcing_new():
     data = request.get_json()
 
     campaign_id = data.get("campaignId")
@@ -475,7 +273,7 @@ def start_campaign():
     os.makedirs(os.path.join(ANNOTATIONS_DIR, campaign_id, "files"), exist_ok=True)
 
     # create the annotation CSV
-    db = generate_campaign_db(campaign_data, examples_per_batch, sort_order)
+    db = utils.generate_campaign_db(app, campaign_data, examples_per_batch, sort_order)
     db.to_csv(os.path.join(ANNOTATIONS_DIR, campaign_id, "db.csv"), index=False)
 
     # save metadata
@@ -485,7 +283,7 @@ def start_campaign():
                 "id": campaign_id,
                 "idle_time": idle_time,
                 "prolific_code": prolific_code,
-                "data": campaign_data,
+                # "data": campaign_data,
                 "sort_order": sort_order,
                 "source": "human",
                 "error_categories": error_categories,
@@ -504,97 +302,19 @@ def start_campaign():
     )
 
     # create the campaign object
-    campaign = Campaign(campaign_id=campaign_id)
+    campaign = HumanCampaign(campaign_id=campaign_id)
 
-    app.db["campaign_index"][campaign_id] = campaign
+    app.db["campaign_index"]["human"][campaign_id] = campaign
 
-    return success()
+    return utils.success()
 
 
 @app.route("/datasets", methods=["GET", "POST"])
 def datasets():
     logger.info(f"Datasets loaded")
-    datasets = get_dataset_overview()
+    datasets = utils.get_dataset_overview(app)
 
     return render_template("datasets.html", datasets=datasets, host_prefix=app.config["host_prefix"])
-
-
-@app.route("/run_llm_eval", methods=["GET", "POST"])
-def run_llm_eval():
-    data = request.get_json()
-
-    metric = Llama3Metric()
-    campaign_id = "llama3"
-    batch_idx = 0
-    annotator_id = "llama3"
-    split = "test"
-    dataset_name = "gsmarena"
-    setup_id = "mistral"
-    now = int(time.time())
-    examples_per_batch = 1
-
-    campaign_id = data.get("campaignId")
-    campaign_data = data.get("campaignData")
-    sort_order = data.get("sortOrder")
-
-    # create a new directory
-    if os.path.exists(os.path.join(ANNOTATIONS_DIR, campaign_id)):
-        return jsonify({"error": "Campaign already exists"})
-
-    os.makedirs(os.path.join(ANNOTATIONS_DIR, campaign_id, "files"), exist_ok=True)
-
-    # create the annotation CSV
-    db = generate_campaign_db(campaign_data, examples_per_batch, sort_order)
-    db.to_csv(os.path.join(ANNOTATIONS_DIR, campaign_id, "db.csv"), index=False)
-
-    # save metadata
-    with open(os.path.join(ANNOTATIONS_DIR, campaign_id, "metadata.json"), "w") as f:
-        json.dump(
-            {
-                "id": campaign_id,
-                "data": campaign_data,
-                "sort_order": sort_order,
-                "created": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            },
-            f,
-            indent=4,
-        )
-
-    # create the campaign object
-    campaign = Campaign(campaign_id=campaign_id)
-
-    app.db["campaign_index"][campaign_id] = campaign
-
-    # debug: get input - output examples from the ice_hockey dataset
-    dataset = app.db["datasets_obj"][dataset_name]
-    annotations = []
-
-    for example_idx in range(5):
-        data_input = str(dataset.get_example(split=split, example_idx=example_idx))
-        model_output = dataset.get_generated_outputs(split=split, output_idx=example_idx)
-
-        annotation_set = metric.annotate_example(data_input, model_output)
-        annotation = {
-            "annotations": annotation_set,
-            "annotator_id": annotator_id,
-            "batch_idx": batch_idx,
-            "campaign_id": campaign_id,
-            "dataset": dataset_name,
-            "example_idx": example_idx,
-            "setup": {"id": setup_id},
-            "split": split,
-            "start_timestamp": now,
-        }
-        annotations.append(annotation)
-
-    save_dir = os.path.join(ANNOTATIONS_DIR, campaign_id, "files")
-    os.makedirs(save_dir, exist_ok=True)
-
-    with open(os.path.join(save_dir, f"{batch_idx}-{annotator_id}-{now}.jsonl"), "w") as f:
-        for row in annotations:
-            f.write(json.dumps(row) + "\n")
-
-    return success()
 
 
 @app.route("/example", methods=["GET", "POST"])
@@ -604,7 +324,7 @@ def render_example():
     example_idx = int(request.args.get("example_idx"))
 
     try:
-        example_data = get_example_data(dataset_name, split, example_idx)
+        example_data = utils.get_example_data(app, dataset_name, split, example_idx)
     except Exception as e:
         traceback.print_exc()
         logger.error(f"Error while getting example data: {e}")
@@ -642,22 +362,160 @@ def llm_eval():
     for key in ["datasets", "splits", "setup_ids"]:
         model_outs[key] = sorted(list(set(model_outs[key])))
 
-    generate_campaign_index(source="model")
+    utils.generate_campaign_index(app)
 
-    campaign_index = app.db["campaign_index"]
+    campaign_index = app.db["campaign_index"]["model"]
     campaigns = defaultdict(dict)
 
     for campaign_id, campaign in campaign_index.items():
         campaigns[campaign_id]["metadata"] = campaign.metadata
         campaigns[campaign_id]["stats"] = campaign.get_stats()
 
+    # generate default_campaign_id
+    i = 1
+    default_campaign_id = f"llm-eval-{i}"
+    while default_campaign_id in campaign_index:
+        default_campaign_id = f"llm-eval-{i}"
+        i += 1
+
+    # get a list of available metrics
+    utils.generate_metric_index(app)
+
+    llm_metrics = app.db["metric_index"]
+
     return render_template(
         "llm_eval.html",
         model_outs=model_outs,
         campaigns=campaigns,
         default_error_categories=app.config["default_error_categories"],
+        default_campaign_id=default_campaign_id,
+        llm_metrics=list(llm_metrics.keys()),
         host_prefix=app.config["host_prefix"],
     )
+
+
+@app.route("/llm_eval/detail", methods=["GET", "POST"])
+def llm_eval_detail():
+    utils.generate_campaign_index(app)
+
+    campaign_id = request.args.get("campaign")
+    campaign = app.db["campaign_index"]["model"][campaign_id]
+    overview = campaign.get_overview()
+    finished_examples = overview[overview["status"] == "finished"]
+
+    overview = overview.to_dict(orient="records")
+    finished_examples = finished_examples.to_dict(orient="records")
+
+    return render_template(
+        "llm_eval_detail.html",
+        campaign_id=campaign_id,
+        overview=overview,
+        finished_examples=finished_examples,
+        metadata=campaign.metadata,
+        host_prefix=app.config["host_prefix"],
+    )
+
+
+@app.route("/llm_eval/new", methods=["GET", "POST"])
+def llm_eval_new():
+    data = request.get_json()
+
+    llm_config = data.get("llmConfig")
+    campaign_id = data.get("campaignId")
+    campaign_data = data.get("campaignData")
+    now = datetime.datetime.now()
+
+    utils.generate_metric_index(app)
+
+    metric = app.db["metric_index"][llm_config]
+
+    # create a new directory
+    if os.path.exists(os.path.join(ANNOTATIONS_DIR, campaign_id)):
+        return jsonify({"error": "Campaign already exists"})
+
+    os.makedirs(os.path.join(ANNOTATIONS_DIR, campaign_id, "files"), exist_ok=True)
+
+    # create the annotation CSV
+    db = utils.generate_llm_eval_db(app, campaign_data)
+    db.to_csv(os.path.join(ANNOTATIONS_DIR, campaign_id, "db.csv"), index=False)
+
+    # save metadata
+    with open(os.path.join(ANNOTATIONS_DIR, campaign_id, "metadata.json"), "w") as f:
+        json.dump(
+            {
+                "id": campaign_id,
+                # "data": campaign_data,
+                "created": now.strftime("%Y-%m-%d %H:%M:%S"),
+                "source": "model",
+                "status": "idle",
+                "metric": metric.metric_name,
+            },
+            f,
+            indent=4,
+        )
+
+    # create the campaign object
+    campaign = ModelCampaign(campaign_id=campaign_id)
+    app.db["campaign_index"][campaign_id] = campaign
+
+    return utils.success()
+
+
+@app.route("/llm_eval/run", methods=["POST"])
+def llm_eval_run():
+    utils.generate_campaign_index(app)
+    utils.generate_metric_index(app)
+
+    data = request.get_json()
+    campaign_id = data.get("campaignId")
+    campaign = app.db["campaign_index"]["model"][campaign_id]
+
+    # get the metric
+    metric_name = campaign.metadata["metric"]
+    metric = app.db["metric_index"][metric_name]
+    save_dir = os.path.join(ANNOTATIONS_DIR, campaign_id, "files")
+    os.makedirs(save_dir, exist_ok=True)
+
+    start_time = time.time()
+
+    # set metadata status
+    campaign.metadata["status"] = "in progress"
+    db = campaign.db
+
+    for i, row in db.iterrows():
+        if row["status"] == "finished":
+            continue
+
+        dataset_name = row["dataset"]
+        split = row["split"]
+        setup_id = row["setup_id"]
+        example_idx = row["example_idx"]
+
+        dataset = app.db["datasets_obj"][dataset_name]
+        example = dataset.get_example(split, example_idx)
+
+        output = dataset.get_generated_output_for_setup(split=split, output_idx=example_idx, setup_id=setup_id)
+
+        text = output["generated"]
+        annotation_set = metric.annotate_example(example, text).get("errors", {})
+
+        # save the annotation
+        annotation = {
+            "annotator_id": metric_name,
+            "dataset": dataset_name,
+            "setup": {"id": setup_id, "model": setup_id},
+            "split": split,
+            "example_idx": example_idx,
+            "annotations": annotation_set,
+        }
+
+        # save the annotation
+        with open(os.path.join(save_dir, f"{metric_name}-{dataset_name}-{split}-{start_time}.jsonl"), "a") as f:
+            f.write(json.dumps(annotation) + "\n")
+
+        db.loc[i, "status"] = "finished"
+
+    campaign.metadata["status"] = "idle"
 
 
 @app.route("/submit_annotations", methods=["POST"])
@@ -671,7 +529,7 @@ def submit_annotations():
 
     save_dir = os.path.join(ANNOTATIONS_DIR, campaign_id, "files")
     os.makedirs(save_dir, exist_ok=True)
-    campaign = app.db["campaign_index"][campaign_id]
+    campaign = app.db["campaign_index"]["human"][campaign_id]
 
     with app.db["lock"]:
         db = campaign.db

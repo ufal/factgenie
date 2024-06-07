@@ -7,6 +7,7 @@ import time
 import logging
 import pandas as pd
 import random
+import ast
 import time
 import coloredlogs
 from factgenie.loaders import DATASET_CLASSES
@@ -18,32 +19,6 @@ coloredlogs.install(level="INFO", logger=logger, fmt="%(asctime)s %(levelname)s 
 
 DIR_PATH = os.path.dirname(__file__)
 CROWDSOURCING_DIR = os.path.join(DIR_PATH, "annotations")
-
-
-def get_campaigns(source):
-    campaigns = {}
-
-    # find all subdirs in CROWDSOURCING_DIR
-    for campaign_dir in Path(CROWDSOURCING_DIR).iterdir():
-        if not campaign_dir.is_dir():
-            continue
-
-        metadata = json.load(open(os.path.join(campaign_dir, "metadata.json")))
-        campaign_source = metadata.get("source")
-
-        if campaign_source != source:
-            continue
-
-        campaign_id = metadata["id"]
-
-        if source == "human":
-            campaign = HumanCampaign(campaign_id=campaign_id)
-        elif source == "model":
-            campaign = ModelCampaign(campaign_id=campaign_id)
-
-        campaigns[campaign_id] = campaign
-
-    return campaigns
 
 
 class Campaign:
@@ -63,6 +38,52 @@ class Campaign:
         with open(self.metadata_path) as f:
             self.metadata = json.load(f)
 
+    def get_finished_examples(self):
+        # load all the JSONL files in the "files" subdirectory
+        examples_finished = []
+
+        for jsonl_file in glob.glob(os.path.join(self.dir, "files/*.jsonl")):
+            with open(jsonl_file) as f:
+                for line in f:
+                    example = json.loads(line)
+                    examples_finished.append(example)
+
+        return examples_finished
+
+    def update_db(self, db):
+        db.to_csv(self.db_path, index=False)
+
+    def get_stats(self):
+        # group by batch_idx, keep the first row of each group
+        batch_stats = self.db.groupby("batch_idx").first()
+
+        return batch_stats["status"].value_counts().to_dict()
+
+    def get_overview(self):
+        # pair the examples in db with the finished examples
+        # we need to match the examples on (dataset, split, setup, example_idx)
+        # add the annotations to the df
+
+        # get the finished examples
+        finished_examples = self.get_finished_examples()
+        example_index = {
+            (ex["dataset"], ex["split"], ex["setup"]["id"], ex["example_idx"]): str(ex) for ex in finished_examples
+        }
+
+        overview_db = self.db.copy()
+        overview_db["annotations"] = ""
+
+        for i, row in self.db.iterrows():
+            key = (row["dataset"], row["split"], row["setup_id"], row["example_idx"])
+            example = ast.literal_eval(example_index.get(key, "{}"))
+
+            annotations = example.get("annotations", [])
+            overview_db.at[i, "annotations"] = str(annotations)
+
+        return overview_db
+
+
+class HumanCampaign(Campaign):
     def get_examples_for_batch(self, batch_idx):
         annotator_batch = []
 
@@ -80,19 +101,10 @@ class Campaign:
             )
         return annotator_batch
 
-    def update_db(self, db):
-        db.to_csv(self.db_path, index=False)
-
-    def get_stats(self):
-        # group by batch_idx, keep the first row of each group
-        batch_stats = self.db.groupby("batch_idx").first()
-
-        return batch_stats["status"].value_counts().to_dict()
-
-
-class HumanCampaign(Campaign):
-    pass
-
 
 class ModelCampaign(Campaign):
-    pass
+    def get_stats(self):
+        # group by batch_idx, keep the first row of each group
+        batch_stats = self.db.groupby("example_idx").first()
+
+        return batch_stats["status"].value_counts().to_dict()

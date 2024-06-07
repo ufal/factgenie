@@ -1,0 +1,3 @@
+{"annotator_id": "llm-ollama-llama3", "dataset": "dummy", "setup": {"id": "dummy", "model": "dummy"}, "split": "dev", "example_idx": 0, "annotations": []}
+{"annotator_id": "llm-ollama-llama3", "dataset": "dummy", "setup": {"id": "dummy", "model": "dummy"}, "split": "dev", "example_idx": 1, "annotations": []}
+{"annotator_id": "llm-ollama-llama3", "dataset": "dummy", "setup": {"id": "dummy", "model": "dummy"}, "split": "dev", "example_idx": 2, "annotations": []}

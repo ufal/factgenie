@@ -78,6 +78,13 @@ class Dataset:
         )
         return html
 
+    def get_generated_output_for_setup(self, split, output_idx, setup_id):
+        for out in self.outputs[split][setup_id]:
+            if out["setup"]["id"] == setup_id:
+                return out["generated"][output_idx]["out"]
+
+        return None
+
     def get_generated_outputs(self, split, output_idx):
         outs_all = []
 
