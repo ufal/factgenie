@@ -667,9 +667,22 @@ function runLlmEval(campaignId) {
     });
 }
 
+function stopLlmEval(campaignId) {
+    $.post({
+        url: `${url_prefix}/llm_eval/stop`,
+        contentType: 'application/json', // Specify JSON content type
+        data: JSON.stringify({
+            campaignId: campaignId
+        }),
+        success: function (response) {
+            console.log(response);
+        }
+    });
+}
+
 function deleteCampaign(campaignId, source) {
     // ask for confirmation
-    if (!confirm(`Are you sure you want to delete the campaign ${campaign_id}? All the data will be lost!`)) {
+    if (!confirm(`Are you sure you want to delete the campaign ${campaignId}? All the data will be lost!`)) {
         return;
     }
 
@@ -687,7 +700,7 @@ function deleteCampaign(campaignId, source) {
                 alert(response.error);
             } else {
                 // remove the campaign from the list
-                $(`#campaign-${campaign_id}`).remove();
+                $(`#campaign-${campaignId}`).remove();
 
                 // reload the page
                 location.reload();

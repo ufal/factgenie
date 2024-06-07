@@ -13,6 +13,7 @@ import datetime
 from flask import Flask, render_template, jsonify, request
 from collections import defaultdict
 from pathlib import Path
+from threading import Thread
 import urllib.parse
 
 from factgenie.campaigns import Campaign, ModelCampaign, HumanCampaign
@@ -30,6 +31,7 @@ app.config.update(SECRET_KEY=os.urandom(24))
 app.db = {}
 app.db["annotation_index"] = {}
 app.db["lock"] = threading.Lock()
+app.db["threads"] = {}
 
 
 file_handler = logging.FileHandler("error.log")
@@ -241,7 +243,7 @@ def crowdsourcing_detail():
 @app.route("/delete_campaign", methods=["POST"])
 def delete_campaign():
     data = request.get_json()
-    campaign_name = data.get("campaign_id")
+    campaign_name = data.get("campaignId")
     source = data.get("source")
 
     shutil.rmtree(os.path.join(ANNOTATIONS_DIR, campaign_name))
@@ -463,59 +465,31 @@ def llm_eval_new():
 
 @app.route("/llm_eval/run", methods=["POST"])
 def llm_eval_run():
-    utils.generate_campaign_index(app)
-    utils.generate_metric_index(app)
-
     data = request.get_json()
     campaign_id = data.get("campaignId")
-    campaign = app.db["campaign_index"]["model"][campaign_id]
 
-    # get the metric
-    metric_name = campaign.metadata["metric"]
-    metric = app.db["metric_index"][metric_name]
-    save_dir = os.path.join(ANNOTATIONS_DIR, campaign_id, "files")
-    os.makedirs(save_dir, exist_ok=True)
+    # thread = Thread(target=utils.run_llm_eval, args=(app, campaign_id))
+    # thread.daemon = True
+    # thread.start()
 
-    start_time = time.time()
+    app.db["threads"][campaign_id] = {
+        # "thread": thread,
+        "running": True,
+    }
+    utils.run_llm_eval(app, campaign_id)
+    return utils.success()
 
-    # set metadata status
-    campaign.metadata["status"] = "in progress"
-    db = campaign.db
 
-    for i, row in db.iterrows():
-        if row["status"] == "finished":
-            continue
+@app.route("/llm_eval/stop", methods=["POST"])
+def llm_eval_stop():
+    data = request.get_json()
+    campaign_id = data.get("campaignId")
 
-        dataset_name = row["dataset"]
-        split = row["split"]
-        setup_id = row["setup_id"]
-        example_idx = row["example_idx"]
+    # thread = app.db["threads"][campaign_id]["thread"]
+    # thread.join()
+    app.db["threads"][campaign_id]["running"] = False
 
-        dataset = app.db["datasets_obj"][dataset_name]
-        example = dataset.get_example(split, example_idx)
-
-        output = dataset.get_generated_output_for_setup(split=split, output_idx=example_idx, setup_id=setup_id)
-
-        text = output["generated"]
-        annotation_set = metric.annotate_example(example, text).get("errors", {})
-
-        # save the annotation
-        annotation = {
-            "annotator_id": metric_name,
-            "dataset": dataset_name,
-            "setup": {"id": setup_id, "model": setup_id},
-            "split": split,
-            "example_idx": example_idx,
-            "annotations": annotation_set,
-        }
-
-        # save the annotation
-        with open(os.path.join(save_dir, f"{metric_name}-{dataset_name}-{split}-{start_time}.jsonl"), "a") as f:
-            f.write(json.dumps(annotation) + "\n")
-
-        db.loc[i, "status"] = "finished"
-
-    campaign.metadata["status"] = "idle"
+    return utils.success()
 
 
 @app.route("/submit_annotations", methods=["POST"])

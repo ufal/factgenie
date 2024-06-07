@@ -1,0 +1,7 @@
+{
+    "id": "llm-eval-2",
+    "created": "2024-06-07 22:05:44",
+    "source": "model",
+    "status": "idle",
+    "metric": "llm-openai-gpt-3.5-turbo-1106"
+}

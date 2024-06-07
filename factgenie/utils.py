@@ -306,3 +306,60 @@ def get_dataset_overview(app):
         }
 
     return overview
+
+
+def run_llm_eval(app, campaign_id):
+    generate_campaign_index(app)
+    generate_metric_index(app)
+
+    campaign = app.db["campaign_index"]["model"][campaign_id]
+
+    # get the metric
+    metric_name = campaign.metadata["metric"]
+    metric = app.db["metric_index"][metric_name]
+    save_dir = os.path.join(ANNOTATIONS_DIR, campaign_id, "files")
+    os.makedirs(save_dir, exist_ok=True)
+
+    start_time = time.time()
+
+    # set metadata status
+    campaign.metadata["status"] = "in_progress"
+    db = campaign.db
+
+    for i, row in db.iterrows():
+        if app.db["threads"][campaign_id]["running"] == False:
+            break
+
+        if row["status"] == "finished":
+            continue
+
+        dataset_name = row["dataset"]
+        split = row["split"]
+        setup_id = row["setup_id"]
+        example_idx = row["example_idx"]
+
+        dataset = app.db["datasets_obj"][dataset_name]
+        example = dataset.get_example(split, example_idx)
+
+        output = dataset.get_generated_output_for_setup(split=split, output_idx=example_idx, setup_id=setup_id)
+
+        annotation_set = metric.annotate_example(example, output).get("errors", {})
+
+        # save the annotation
+        annotation = {
+            "annotator_id": metric_name,
+            "dataset": dataset_name,
+            "setup": {"id": setup_id, "model": setup_id},
+            "split": split,
+            "example_idx": example_idx,
+            "annotations": annotation_set,
+        }
+
+        # save the annotation
+        with open(os.path.join(save_dir, f"{metric_name}-{dataset_name}-{split}-{start_time}.jsonl"), "a") as f:
+            f.write(json.dumps(annotation) + "\n")
+
+        db.loc[i, "status"] = "finished"
+        campaign.update_db(db)
+
+    campaign.metadata["status"] = "finished"

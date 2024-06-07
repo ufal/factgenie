@@ -104,7 +104,4 @@ class HumanCampaign(Campaign):
 
 class ModelCampaign(Campaign):
     def get_stats(self):
-        # group by batch_idx, keep the first row of each group
-        batch_stats = self.db.groupby("example_idx").first()
-
-        return batch_stats["status"].value_counts().to_dict()
+        return self.db["status"].value_counts().to_dict()
