@@ -31,21 +31,25 @@
         <dt class="col-sm-3"> Metric </dt>
         <dd class="col-sm-9"> {{ metadata.metric }} </dd>
         <dt class="col-sm-3"> Examples </dt>
-        <dd class="col-sm-9"> {{ finished_examples | length }} / {{ overview | length }} </dd>
+        <dd class="col-sm-9" id="example-cnt-info"> {{ finished_examples | length }} / {{ overview | length }} </dd>
       </dl>
       <div>
         <a onclick="runLlmEval('{{ campaign_id }}')" class="btn btn-outline-secondary" data-bs-toggle="tooltip"
-          title="Run evaluation">
-          <i class="fa fa-play"></i> Run evaluation
+          id="run-button" title="Run evaluation"
+          style="display: {{ 'none' if metadata.status == 'running' else block }};">
+          <i class="fa fa-play"></i> {{ 'Run' if metadata.status == 'new' else 'Continue' }} evaluation
         </a>
         <a onclick="stopLlmEval('{{ campaign_id }}')" class="btn btn-outline-secondary" data-bs-toggle="tooltip"
-          title="Stop evaluation">
-          <i class="fa fa-stop"></i> Stop evaluation
+          id="stop-button" title="Stop evaluation"
+          style="display: {{ 'none' if metadata.status != 'running' else block }};">
+          <i class="fa fa-pause"></i> Pause evaluation
         </a>
       </div>
-      <div class="progress mt-3">
+      <div class="progress mt-3" style="display: {{ 'none' if metadata.status != 'running' else block }};"
+        id="llm-eval-progress">
         <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuemin="0"
-          aria-valuemax="100" style="width: {{ (finished_examples|length) / (overview | length) * 100 }}%">
+          id="llm-eval-progress-bar" aria-valuemax="100"
+          style="width: {{ (finished_examples|length) / (overview | length) * 100 }}%;">
         </div>
       </div>
       <hr>
@@ -65,32 +69,39 @@
                 <th scope="col">Split</th>
                 <th scope="col">Example</th>
                 <th scope="col">Status</th>
-                <th scope="col">Annotations</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>
               {% for example in overview %}
+              {% set rowId = example.dataset + "-" + example.split + "-" + example.setup_id + "-" +
+              (example.example_idx|string) %}
               <tr>
                 <td>{{ loop.index }}</td>
                 <td>{{ example.dataset }}</td>
                 <td>{{ example.setup_id }}</td>
                 <td>{{ example.split }}</td>
                 <td>{{ example.example_idx }}</td>
-                <td>{{ example.status }}</td>
+                <td id="statusBtn{{ rowId }}">
+                  {{ example.status }}</td>
                 <!-- use collapse for hiding annotations -->
                 <td>
+                  <a class="btn btn-sm btn-outline-secondary"
+                    href="{{host_prefix}}/browse?dataset={{ example.dataset }}&split={{ example.split }}&example_idx={{ example.example_idx }}"
+                    role="button">
+                    <i class="fa fa-eye"></i>
+                  </a>
                   <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse"
-                    href="#collapseExample{{ example.dataset }}-{{ example.split }}-{{ example.setup_id }}-{{ example.example_idx }}"
-                    role="button" aria-expanded="false" aria-controls="collapseExample" {% if example.status
-                    !="finished" %} style="display: none;" {% endif %}>
-                    <i class="fa fa-eye"></i> Show
+                    href="#collapseExample{{ rowId }}" role="button" aria-expanded="false" id="annotBtn{{ rowId }}"
+                    aria-controls="collapseExample" {% if example.status !="finished" %} style="display: none;" {% endif
+                    %}>
+                    <i class="fa fa-list"></i>
                   </a>
                 </td>
-              <tr class="collapse"
-                id="collapseExample{{ example.dataset }}-{{ example.split }}-{{ example.setup_id }}-{{ example.example_idx }}">
-                <td colspan="6">
+              <tr class="collapse" id="collapseExample{{ rowId }}">
+                <td colspan="7">
                   <div class="card card-body">
-                    <pre>{{ example.annotations }}</pre>
+                    <pre id="annotPre{{ rowId }}">{{ example.annotations }}</pre>
                   </div>
                 </td>
               </tr>
@@ -112,5 +123,13 @@
     // variable to be used in factgenie.js
     window.url_prefix = "{{ host_prefix }}";
     window.campaigns = "{{ campaigns }}";
+    window.llm_eval_examples = "{{ overview | length }}";
+  </script>
+  <script>
+    $(document).ready(function () {
+      if ("{{ metadata.status }}" == "running") {
+        startLLMEvalListener("{{ campaign_id }}");
+      }
+    });
   </script>
   <script src="{{ host_prefix }}/static/js/factgenie.js"></script>

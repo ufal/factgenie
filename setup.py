@@ -11,7 +11,8 @@ install_requires = [
     "tinyhtml",
     "coloredlogs",
     "json2table",
-    "openai"
+    "openai",
+    "flask-sse",
 ]
 
 setup(

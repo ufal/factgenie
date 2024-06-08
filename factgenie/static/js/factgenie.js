@@ -654,7 +654,52 @@ function startCampaign() {
     });
 }
 
+
+function startLLMEvalListener(campaignId) {
+    // var source = new EventSource("{{ host_prefix }}/llm_eval/progress/{{ campaign_id }}");
+    var source = new EventSource(`${url_prefix}/llm_eval/progress/${campaignId}`);
+    console.log("Listening for progress events");
+
+    source.onmessage = function (event) {
+        // update the progress bar
+        var payload = JSON.parse(event.data);
+        var finished_examples = payload.finished_examples_cnt;
+        var progress = Math.round((finished_examples / window.llm_eval_examples) * 100);
+        $("#llm-eval-progress-bar").css("width", `${progress}%`);
+        $("#llm-eval-progress-bar").attr("aria-valuenow", progress);
+        $("#example-cnt-info").html(`${finished_examples} / ${window.llm_eval_examples}`);
+        console.log(`Received progress: ${progress}%`);
+
+
+        // update the annotation button
+        const example = payload.annotation;
+        const dataset = example.dataset;
+        const split = example.split;
+        const setup_id = example.setup.id;
+        const example_idx = example.example_idx;
+        const rowId = `${dataset}-${split}-${setup_id}-${example_idx}`;
+        const annotation_button = $(`#annotBtn${rowId}`);
+        annotation_button.show();
+
+        // update the annotation content
+        const annotation_content = example.annotations;
+        const annotation_div = $(`#annotPre${rowId}`);
+        annotation_div.text(JSON.stringify(annotation_content));
+
+        // update the status
+        const status_button = $(`#statusBtn${rowId}`);
+        status_button.text("finished");
+
+    };
+}
+
 function runLlmEval(campaignId) {
+    $("#run-button").hide();
+    $("#stop-button").show();
+    $("#llm-eval-progress").show();
+
+    startLLMEvalListener(campaignId);
+
     $.post({
         url: `${url_prefix}/llm_eval/run`,
         contentType: 'application/json', // Specify JSON content type
@@ -668,6 +713,11 @@ function runLlmEval(campaignId) {
 }
 
 function stopLlmEval(campaignId) {
+    $("#run-button").show();
+    $("#stop-button").hide();
+    $("#llm-eval-progress").hide();
+
+
     $.post({
         url: `${url_prefix}/llm_eval/stop`,
         contentType: 'application/json', // Specify JSON content type
@@ -733,6 +783,7 @@ function enableTooltips() {
         return new bootstrap.Tooltip(tooltipTriggerEl)
     })
 }
+
 
 $(document).ready(function () {
     if (mode == "annotate") {

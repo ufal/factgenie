@@ -53,6 +53,10 @@ class Campaign:
     def update_db(self, db):
         db.to_csv(self.db_path, index=False)
 
+    def update_metadata(self):
+        with open(self.metadata_path, "w") as f:
+            json.dump(self.metadata, f)
+
     def get_stats(self):
         # group by batch_idx, keep the first row of each group
         batch_stats = self.db.groupby("batch_idx").first()

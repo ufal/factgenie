@@ -10,7 +10,7 @@ import threading
 import traceback
 import shutil
 import datetime
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, Response
 from collections import defaultdict
 from pathlib import Path
 from threading import Thread
@@ -32,6 +32,7 @@ app.db = {}
 app.db["annotation_index"] = {}
 app.db["lock"] = threading.Lock()
 app.db["threads"] = {}
+app.db["announcers"] = {}
 
 
 file_handler = logging.FileHandler("error.log")
@@ -402,6 +403,11 @@ def llm_eval_detail():
 
     campaign_id = request.args.get("campaign")
     campaign = app.db["campaign_index"]["model"][campaign_id]
+
+    if campaign.metadata["status"] == "running" and not app.db["announcers"].get(campaign_id):
+        campaign.metadata["status"] = "idle"
+        campaign.update_metadata()
+
     overview = campaign.get_overview()
     finished_examples = overview[overview["status"] == "finished"]
 
@@ -449,7 +455,7 @@ def llm_eval_new():
                 # "data": campaign_data,
                 "created": now.strftime("%Y-%m-%d %H:%M:%S"),
                 "source": "model",
-                "status": "idle",
+                "status": "new",
                 "metric": metric.metric_name,
             },
             f,
@@ -468,6 +474,9 @@ def llm_eval_run():
     data = request.get_json()
     campaign_id = data.get("campaignId")
 
+    app.db["announcers"][campaign_id] = utils.MessageAnnouncer()
+
+    # TODO: so far it seems that the app is actually more responsive without threads :-O
     # thread = Thread(target=utils.run_llm_eval, args=(app, campaign_id))
     # thread.daemon = True
     # thread.start()
@@ -478,6 +487,20 @@ def llm_eval_run():
     }
     utils.run_llm_eval(app, campaign_id)
     return utils.success()
+
+
+@app.route("/llm_eval/progress/<campaign_id>", methods=["GET"])
+def listen(campaign_id):
+    if not app.db["announcers"].get(campaign_id):
+        return Response(status=404)
+
+    def stream():
+        messages = app.db["announcers"][campaign_id].listen()
+        while True:
+            msg = messages.get()
+            yield msg
+
+    return Response(stream(), mimetype="text/event-stream")
 
 
 @app.route("/llm_eval/stop", methods=["POST"])

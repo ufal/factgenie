@@ -11,6 +11,8 @@ import time
 import coloredlogs
 import traceback
 import yaml
+import queue
+
 from flask import jsonify
 from collections import defaultdict
 from pathlib import Path
@@ -35,6 +37,38 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 coloredlogs.install(level="INFO", logger=logger, fmt="%(asctime)s %(levelname)s %(message)s")
+
+
+# https://maxhalford.github.io/blog/flask-sse-no-deps/
+class MessageAnnouncer:
+    def __init__(self):
+        self.listeners = []
+
+    def listen(self):
+        self.listeners.append(queue.Queue(maxsize=5))
+        return self.listeners[-1]
+
+    def announce(self, msg):
+        # We go in reverse order because we might have to delete an element, which will shift the
+        # indices backward
+        for i in reversed(range(len(self.listeners))):
+            try:
+                self.listeners[i].put_nowait(msg)
+            except queue.Full:
+                del self.listeners[i]
+
+
+def format_sse(data: str, event=None) -> str:
+    """Formats a string and an event name in order to follow the event stream convention.
+
+    >>> format_sse(data=json.dumps({'abc': 123}), event='Jackson 5')
+    'event: Jackson 5\\ndata: {"abc": 123}\\n\\n'
+
+    """
+    msg = f"data: {data}\n\n"
+    if event is not None:
+        msg = f"event: {event}\n{msg}"
+    return msg
 
 
 def success():
@@ -309,6 +343,8 @@ def get_dataset_overview(app):
 
 
 def run_llm_eval(app, campaign_id):
+    announcer = app.db["announcers"][campaign_id]
+
     generate_campaign_index(app)
     generate_metric_index(app)
 
@@ -323,8 +359,11 @@ def run_llm_eval(app, campaign_id):
     start_time = time.time()
 
     # set metadata status
-    campaign.metadata["status"] = "in_progress"
+    campaign.metadata["status"] = "running"
+    campaign.update_metadata()
     db = campaign.db
+
+    logger.info(f"Starting LLM evaluation for {campaign_id}")
 
     for i, row in db.iterrows():
         if app.db["threads"][campaign_id]["running"] == False:
@@ -362,4 +401,15 @@ def run_llm_eval(app, campaign_id):
         db.loc[i, "status"] = "finished"
         campaign.update_db(db)
 
+        # overview = campaign.get_overview()
+        # finished_examples = overview[overview["status"] == "finished"]
+
+        finished_examples_cnt = len(campaign.get_finished_examples())
+        payload = {"finished_examples_cnt": finished_examples_cnt, "annotation": annotation}
+
+        msg = format_sse(data=json.dumps(payload))
+        announcer.announce(msg=msg)
+        logger.info(f"{campaign_id}: {finished_examples_cnt}/{len(db)} examples")
+
     campaign.metadata["status"] = "finished"
+    campaign.update_metadata()

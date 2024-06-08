@@ -88,6 +88,7 @@ class OpenAIMetric(LLMMetric):
         try:
             prompt = self.metric_prompt_template.format(data=data, text=text)
 
+            logger.debug(f"Calling OpenAI API with prompt: {prompt}")
             response = self.client.chat.completions.create(
                 model=self.model,
                 response_format={"type": "json_object"},
@@ -127,6 +128,7 @@ class OllamaMetric(LLMMetric):
         try:
             prompt = self.metric_prompt_template.format(data=data, text=text)
 
+            logger.debug(f"Calling Ollama API")
             response = requests.post(
                 self.API_URL,
                 json={
