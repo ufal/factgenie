@@ -55,7 +55,7 @@ class Campaign:
 
     def update_metadata(self):
         with open(self.metadata_path, "w") as f:
-            json.dump(self.metadata, f)
+            json.dump(self.metadata, f, indent=4)
 
     def get_stats(self):
         # group by batch_idx, keep the first row of each group

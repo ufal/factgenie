@@ -15,6 +15,7 @@ from collections import defaultdict
 from pathlib import Path
 from threading import Thread
 import urllib.parse
+from slugify import slugify
 
 from factgenie.campaigns import Campaign, ModelCampaign, HumanCampaign
 from factgenie.loaders import DATASET_CLASSES
@@ -261,7 +262,7 @@ def delete_campaign():
 def crowdsourcing_new():
     data = request.get_json()
 
-    campaign_id = data.get("campaignId")
+    campaign_id = slugify(data.get("campaignId"))
     examples_per_batch = int(data.get("examplesPerBatch"))
     idle_time = int(data.get("idleTime"))
     prolific_code = data.get("prolificCode")
@@ -429,8 +430,9 @@ def llm_eval_new():
     data = request.get_json()
 
     llm_config = data.get("llmConfig")
-    campaign_id = data.get("campaignId")
+    campaign_id = slugify(data.get("campaignId"))
     campaign_data = data.get("campaignData")
+    error_categories = data.get("errorCategories")
     now = datetime.datetime.now()
 
     utils.generate_metric_index(app)
@@ -452,11 +454,11 @@ def llm_eval_new():
         json.dump(
             {
                 "id": campaign_id,
-                # "data": campaign_data,
                 "created": now.strftime("%Y-%m-%d %H:%M:%S"),
                 "source": "model",
                 "status": "new",
                 "metric": metric.metric_name,
+                "error_categories": error_categories,
             },
             f,
             indent=4,

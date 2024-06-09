@@ -354,50 +354,32 @@ function changeExample(dataset, split, example_idx) {
     $("#page-input").val(example_idx);
 }
 
-function generateOutputBox(output) {
+function getAnnotatedOutput(output, campaign_id) {
     const setup_id = output.setup.id;
-
-    var label = $('<label>', { class: "label-name" }).text(setup_id);
-    var output_box = $('<div>', {
-        id: `out-${setup_id}`,
-        class: `output-box generated-output-box box-${setup_id}`,
-    }).append(label);
-
-    if (output.generated == null) {
-        return output_box;
-    }
     const content = output.generated.replace(/\\n/g, '<br>');
 
-    const selectbox = $("#annotations-select");
-    selectbox.empty();
+    // if the campaign_id is in output.annotations, show the annotated content
+    const annotations_campaign = output.annotations.filter(a => a.metadata.id == campaign_id);
 
-    // if no annotations are available, add a placeholder
-    if (output.annotations.length == 0) {
-        output.annotations.push({ "metadata": { "id": "None" }, "annotations": [] });
-    }
+    var placeholder = $('<div>', { id: `out-${setup_id}-${campaign_id}-placeholder`, class: `font-mono out-placeholder out-${campaign_id}-placeholder` });
+    var annotated_content;
 
-    for (const annotations of output.annotations) {
-        const metadata = annotations.metadata;
-        const campaign_id = metadata.id;
-        selectbox.append($("<option>", { value: campaign_id }).text(campaign_id));
+    if (annotations_campaign.length > 0) {
+        const annotations = annotations_campaign[0];
+        const error_categories = annotations.metadata.error_categories;
+        annotated_content = annotateContent(content, annotations, error_categories);
+    } else {
+        annotated_content = content;
 
-        // add default text
-        var placeholder = $('<div>', { id: `out-${setup_id}-${campaign_id}-placeholder`, class: `font-mono out-placeholder out-${campaign_id}-placeholder` });
-
-        var annotated_content;
-
-        if (campaign_id == "None") {
-            annotated_content = content;
-        } else {
-            const error_categories = metadata.error_categories;
-            annotated_content = annotateContent(content, annotations, error_categories);
+        if (campaign_id != "None") {
+            placeholder.css("color", "#c2c2c2");
         }
 
-        placeholder.html(annotated_content);
-        placeholder.hide();
-        output_box.append(placeholder);
     }
-    return output_box;
+    placeholder.html(annotated_content);
+    placeholder.hide();
+
+    return placeholder;
 }
 
 function annotateContent(content, annotations, error_categories) {
@@ -456,7 +438,7 @@ function updateDisplayedAnnotations() {
     // show the selected annotator
     $(`.out-${annotator}-placeholder`).show();
 
-    // enableTooltips();
+    enableTooltips();
 }
 
 function createOutputBoxes(generated_outputs) {
@@ -467,11 +449,43 @@ function createOutputBoxes(generated_outputs) {
     generated_outputs.sort(function (a, b) {
         return a.setup.id.localeCompare(b.setup.id);
     });
+    const selectBox = $("#annotations-select");
 
-    for (output of generated_outputs) {
-        const output_box = generateOutputBox(output);
+    // find all campaign ids in output annotations
+    const campaign_ids = new Set();
+
+    generated_outputs.forEach(output => {
+        output.annotations.forEach(annotation => {
+            campaign_ids.add(annotation.metadata.id);
+        });
+    });
+    campaign_ids.add("None");
+
+    for (const output of generated_outputs) {
+        const setup_id = output.setup.id;
+        const model = output.setup.model;
+
+        var label = $('<label>', { class: "label-name" }).text(model);
+        var output_box = $('<div>', {
+            id: `out-${setup_id}`,
+            class: `output-box generated-output-box box-${setup_id}`,
+        }).append(label);
         output_box.appendTo("#outputarea");
     }
+
+    // clear the selectbox
+    selectBox.empty();
+
+    // add an option for each campaign id
+    for (const campaign_id of campaign_ids) {
+        selectBox.append(`<option value="${campaign_id}">${campaign_id}</option>`);
+
+        for (const output of generated_outputs) {
+            const annotated_output = getAnnotatedOutput(output, campaign_id);
+            $(`#out-${output.setup.id}`).append(annotated_output);
+        }
+    }
+
 }
 
 function fetchExample(dataset, split, example_idx) {
@@ -482,10 +496,9 @@ function fetchExample(dataset, split, example_idx) {
         "example_idx": example_idx,
         "split": split,
     }, function (data) {
-        $("#examplearea").html(data.html);
-
-        showRawData(data);
         $("#dataset-spinner").hide();
+        $("#examplearea").html(data.html);
+        showRawData(data);
 
         total_examples = data.total_examples;
         $("#total-examples").html(total_examples - 1);
@@ -493,10 +506,10 @@ function fetchExample(dataset, split, example_idx) {
         createOutputBoxes(data.generated_outputs);
 
         // if the annotator is still among the values, restore it
+        // prevent resetting to the first annotation when switching examples
         if ($("#annotations-select").find(`option[value='${selected_ann}']`).length > 0) {
             $("#annotations-select").val(selected_ann).trigger("change");
         }
-
 
         updateDisplayedAnnotations();
     });
@@ -582,9 +595,15 @@ function gatherCampaignData() {
 
 function createLLMEval() {
     const campaignId = $('#campaignId').val();
-    const sortOrder = $('#sortOrder').val();
     const llmConfig = $('#llmConfig').val();
     var campaignData = gatherCampaignData();
+    const errorCategories = getErrorCategories();
+
+    // if no datasets are selected, show an alert
+    if (campaignData.length == 0) {
+        alert("Please select at least one existing combination of dataset, split, and output.");
+        return;
+    }
 
     $.post({
         url: `${url_prefix}/llm_eval/new`,
@@ -593,7 +612,7 @@ function createLLMEval() {
             campaignId: campaignId,
             campaignData: campaignData,
             llmConfig: llmConfig,
-            sortOrder: sortOrder,
+            errorCategories: errorCategories,
         }),
         success: function (response) {
             console.log(response);
@@ -610,7 +629,18 @@ function createLLMEval() {
     });
 }
 
-function startCampaign() {
+function getErrorCategories() {
+    var errorCategories = [];
+    $("#error-categories").children().each(function () {
+        const name = $(this).find("#errorCategoryName").val();
+        const color = $(this).find("#errorCategoryColor").val();
+        errorCategories.push({ name: name, color: color });
+    }
+    );
+    return errorCategories;
+}
+
+function createHumanCampaign() {
     const campaignId = $('#campaignId').val();
     const examplesPerBatch = $('#examplesPerBatch').val();
     const idleTime = $('#idleTime').val();
@@ -618,14 +648,7 @@ function startCampaign() {
     const sortOrder = $('#sortOrder').val();
 
     var campaignData = gatherCampaignData();
-
-    const errorCategories = [];
-    $("#error-categories").children().each(function () {
-        const name = $(this).find("#errorCategoryName").val();
-        const color = $(this).find("#errorCategoryColor").val();
-        errorCategories.push({ name: name, color: color });
-    }
-    );
+    const errorCategories = getErrorCategories();
 
     $.post({
         url: `${url_prefix}/crowdsourcing/new`,
@@ -656,7 +679,6 @@ function startCampaign() {
 
 
 function startLLMEvalListener(campaignId) {
-    // var source = new EventSource("{{ host_prefix }}/llm_eval/progress/{{ campaign_id }}");
     var source = new EventSource(`${url_prefix}/llm_eval/progress/${campaignId}`);
     console.log("Listening for progress events");
 
@@ -667,7 +689,7 @@ function startLLMEvalListener(campaignId) {
         var progress = Math.round((finished_examples / window.llm_eval_examples) * 100);
         $("#llm-eval-progress-bar").css("width", `${progress}%`);
         $("#llm-eval-progress-bar").attr("aria-valuenow", progress);
-        $("#example-cnt-info").html(`${finished_examples} / ${window.llm_eval_examples}`);
+        $("#metadata-example-cnt").html(`${finished_examples} / ${window.llm_eval_examples}`);
         console.log(`Received progress: ${progress}%`);
 
 
@@ -697,12 +719,13 @@ function runLlmEval(campaignId) {
     $("#run-button").hide();
     $("#stop-button").show();
     $("#llm-eval-progress").show();
+    $("#metadata-status").html("running");
 
     startLLMEvalListener(campaignId);
 
     $.post({
         url: `${url_prefix}/llm_eval/run`,
-        contentType: 'application/json', // Specify JSON content type
+        contentType: 'application/json',
         data: JSON.stringify({
             campaignId: campaignId
         }),
@@ -717,10 +740,9 @@ function stopLlmEval(campaignId) {
     $("#stop-button").hide();
     $("#llm-eval-progress").hide();
 
-
     $.post({
         url: `${url_prefix}/llm_eval/stop`,
-        contentType: 'application/json', // Specify JSON content type
+        contentType: 'application/json',
         data: JSON.stringify({
             campaignId: campaignId
         }),

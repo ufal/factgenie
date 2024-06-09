@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from collections import defaultdict
 import json2table
+from slugify import slugify
 
 
 class Dataset:
@@ -45,7 +46,7 @@ class Dataset:
                 with open(out) as f:
                     j = json.load(f)
 
-                    setup_id = j["setup"]["id"]
+                    setup_id = slugify(j["setup"]["id"])
                     outputs[split][setup_id].append(j)
 
         return outputs

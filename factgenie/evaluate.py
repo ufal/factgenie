@@ -13,6 +13,7 @@ import coloredlogs
 import logging
 import time
 import requests
+import copy
 
 # logging.basicConfig(format="%(message)s", level=logging.INFO, datefmt="%H:%M:%S")
 coloredlogs.install(level="INFO", fmt="%(asctime)s %(levelname)s %(message)s")
@@ -54,11 +55,11 @@ class LLMMetric:
         if self.metric_prompt_template is None:
             raise ValueError("Prompt template (`prompt_template`) field is missing in the config")
 
-    def create_annotation(self, text, j, example_idx):
+    def postprocess_annotations(self, text, model_json):
         annotation_list = []
         current_pos = 0
 
-        for error in j["errors"]:
+        for error in model_json["errors"]:
             # find the `start` index of the error in the text
             start_pos = text.lower().find(error["text"].lower(), current_pos)
 
@@ -71,7 +72,7 @@ class LLMMetric:
                 continue
 
             error["start"] = start_pos
-            annotation_list.append(error)
+            annotation_list.append(copy.deepcopy(error))
 
             current_pos = start_pos + len(error["text"])
 
@@ -98,10 +99,10 @@ class OpenAIMetric(LLMMetric):
                 ],
             )
             annotation_str = response.choices[0].message.content
-
             j = json.loads(annotation_str)
             logger.info(j)
-            return j
+
+            return self.postprocess_annotations(text=text, model_json=j)
         except Exception as e:
             logger.error(e)
             return {"errors": []}
@@ -143,7 +144,7 @@ class OllamaMetric(LLMMetric):
 
             j = self.postprocess_output(annotation_str)
             logger.info(j)
-            return j
+            return self.postprocess_annotations(text=text, model_json=j)
         except Exception as e:
             logger.error(e)
             return {"errors": []}

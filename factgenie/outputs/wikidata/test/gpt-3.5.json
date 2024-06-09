@@ -18,7 +18,7 @@
             "owid": "chart caption",
             "wikidata": "entity description"
         },
-        "id": "gpt-3.5",
+        "id": "gpt-35",
         "model": "gpt-3.5"
     },
     "generated": [

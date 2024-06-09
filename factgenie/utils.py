@@ -116,6 +116,9 @@ def generate_campaign_index(app):
             campaign = HumanCampaign(campaign_id=campaign_id)
         elif campaign_source == "model":
             campaign = ModelCampaign(campaign_id=campaign_id)
+        else:
+            logger.warning(f"Unknown campaign source: {campaign_source}")
+            continue
 
         campaigns[campaign_source][campaign_id] = campaign
 
@@ -128,7 +131,6 @@ def generate_annotation_index(app):
 
     # for all subdirectories in ANNOTATIONS_DIR, load content of all the jsonl files
     for subdir in os.listdir(ANNOTATIONS_DIR):
-
         try:
             # find metadata for the campaign
             metadata_path = os.path.join(ANNOTATIONS_DIR, subdir, "metadata.json")
@@ -154,11 +156,10 @@ def generate_annotation_index(app):
                         )
                         annotations[key].append(annotation)
         except:
-            if app.config["debug"]:
-                traceback.print_exc()
-                logger.error(f"Error while loading annotations for {subdir}")
-                raise
-
+            # if app.config["debug"]:
+            traceback.print_exc()
+            logger.error(f"Error while loading annotations for {subdir}")
+            # raise
     app.db["annotation_index"] = annotations
 
     return annotations
@@ -178,11 +179,11 @@ def get_example_data(app, dataset_name, split, example_idx):
     html = dataset.render(example=example)
     generated_outputs = dataset.get_generated_outputs(split=split, output_idx=example_idx)
 
-    for output in generated_outputs:
+    for i, output in enumerate(generated_outputs):
         setup_id = output["setup"]["id"]
         annotations = get_annotations(app, dataset_name, split, example_idx, setup_id)
 
-        output["annotations"] = annotations
+        generated_outputs[i]["annotations"] = annotations
 
     dataset_info = dataset.get_info()
 
@@ -382,7 +383,7 @@ def run_llm_eval(app, campaign_id):
 
         output = dataset.get_generated_output_for_setup(split=split, output_idx=example_idx, setup_id=setup_id)
 
-        annotation_set = metric.annotate_example(example, output).get("errors", {})
+        annotation_set = metric.annotate_example(example, output)
 
         # save the annotation
         annotation = {
@@ -411,5 +412,7 @@ def run_llm_eval(app, campaign_id):
         announcer.announce(msg=msg)
         logger.info(f"{campaign_id}: {finished_examples_cnt}/{len(db)} examples")
 
-    campaign.metadata["status"] = "finished"
-    campaign.update_metadata()
+    # if all fields are finished, set the metadata to finished
+    if db.status.unique() == "finished":
+        campaign.metadata["status"] = "finished"
+        campaign.update_metadata()

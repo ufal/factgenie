@@ -129,14 +129,17 @@
         <div id="rightpanel" class="collapse show">
           <div id='sidepanel-content' class="tab-content">
             <div id='setuparea'>
-              <label>Annotations
-                <select class="form-select form-select-sm" id="annotations-select">
-                  <option value="plain">None</option>
-                </select>
-              </label>
-              <!-- <button type="button" class="btn btn-sm btn-outline-secondary btn-setup-info" data-bs-toggle="modal"
-                data-bs-target="#setup-modal"><img src="{{ host_prefix }}/static/img/settings.png" width="12px"
-                  class="button-bw-icon" /></button> -->
+              <ul class="list-inline">
+                <li class="list-inline-item"><small class="text-muted">Annotations</small></li>
+                <li class="list-inline-item"><select class="form-select form-select-sm" id="annotations-select">
+                  </select></li>
+                <!-- <li class="list-inline-item">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="displayAnnotations" checked>
+                    <label class="form-check-label" for="displayAnnotations">Display annotations</label>
+                  </div>
+                </li> -->
+              </ul>
             </div>
           </div>
 

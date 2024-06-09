@@ -12,6 +12,7 @@ install_requires = [
     "coloredlogs",
     "json2table",
     "openai",
+    "python-slugify",
     "flask-sse",
 ]
 

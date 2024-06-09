@@ -25,13 +25,13 @@
       <hr>
       <dl class="row">
         <dt class="col-sm-3"> Created </dt>
-        <dd class="col-sm-9"> {{ metadata.created }} </dd>
+        <dd class="col-sm-9" id="metadata-created"> {{ metadata.created }} </dd>
         <dt class="col-sm-3"> Status </dt>
-        <dd class="col-sm-9"> {{ metadata.status }} </dd>
+        <dd class="col-sm-9" id="metadata-status"> {{ metadata.status }} </dd>
         <dt class="col-sm-3"> Metric </dt>
-        <dd class="col-sm-9"> {{ metadata.metric }} </dd>
+        <dd class="col-sm-9" id="metadata-metric"> {{ metadata.metric }} </dd>
         <dt class="col-sm-3"> Examples </dt>
-        <dd class="col-sm-9" id="example-cnt-info"> {{ finished_examples | length }} / {{ overview | length }} </dd>
+        <dd class="col-sm-9" id="metadata-example-cnt"> {{ finished_examples | length }} / {{ overview | length }} </dd>
       </dl>
       <div>
         <a onclick="runLlmEval('{{ campaign_id }}')" class="btn btn-outline-secondary" data-bs-toggle="tooltip"
