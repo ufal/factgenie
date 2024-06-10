@@ -131,6 +131,15 @@ def annotate():
     )
 
 
+@app.route("/annotations", methods=["GET", "POST"])
+def manage_annotations():
+    utils.generate_annotation_index(app)
+
+    annotations = app.db["annotation_index"]
+    breakpoint()
+    return render_template("manage_annotations.html", annotations=annotations, host_prefix=app.config["host_prefix"])
+
+
 @app.route("/browse", methods=["GET", "POST"])
 def browse():
     if app.config["allow_browse"] is False:
@@ -199,10 +208,13 @@ def crowdsourcing():
         campaigns[campaign_id]["metadata"] = campaign.metadata
         campaigns[campaign_id]["stats"] = campaign.get_stats()
 
+    default_campaign_id = utils.generate_default_id(campaign_index=campaign_index, prefix="campaign")
+
     return render_template(
         "crowdsourcing.html",
         model_outs=model_outs,
         campaigns=campaigns,
+        default_campaign_id=default_campaign_id,
         default_error_categories=app.config["default_error_categories"],
         host_prefix=app.config["host_prefix"],
     )
@@ -235,27 +247,11 @@ def crowdsourcing_detail():
     db = db.to_dict(orient="records")
 
     return render_template(
-        "crowdsoucing_detail.html",
+        "crowdsourcing_detail.html",
         campaign_id=campaign_id,
         db=db,
         host_prefix=app.config["host_prefix"],
     )
-
-
-@app.route("/delete_campaign", methods=["POST"])
-def delete_campaign():
-    data = request.get_json()
-    campaign_name = data.get("campaignId")
-    source = data.get("source")
-
-    shutil.rmtree(os.path.join(ANNOTATIONS_DIR, campaign_name))
-
-    if os.path.exists(os.path.join(TEMPLATES_DIR, "campaigns", campaign_name)):
-        shutil.rmtree(os.path.join(TEMPLATES_DIR, "campaigns", campaign_name))
-
-    del app.db["campaign_index"][source][campaign_name]
-
-    return utils.success()
 
 
 @app.route("/crowdsourcing/new", methods=["POST"])
@@ -314,11 +310,26 @@ def crowdsourcing_new():
 
 
 @app.route("/datasets", methods=["GET", "POST"])
-def datasets():
-    logger.info(f"Datasets loaded")
+def manage_datasets():
     datasets = utils.get_dataset_overview(app)
 
-    return render_template("datasets.html", datasets=datasets, host_prefix=app.config["host_prefix"])
+    return render_template("manage_datasets.html", datasets=datasets, host_prefix=app.config["host_prefix"])
+
+
+@app.route("/delete_campaign", methods=["POST"])
+def delete_campaign():
+    data = request.get_json()
+    campaign_name = data.get("campaignId")
+    source = data.get("source")
+
+    shutil.rmtree(os.path.join(ANNOTATIONS_DIR, campaign_name))
+
+    if os.path.exists(os.path.join(TEMPLATES_DIR, "campaigns", campaign_name)):
+        shutil.rmtree(os.path.join(TEMPLATES_DIR, "campaigns", campaign_name))
+
+    del app.db["campaign_index"][source][campaign_name]
+
+    return utils.success()
 
 
 @app.route("/example", methods=["GET", "POST"])
@@ -375,12 +386,7 @@ def llm_eval():
         campaigns[campaign_id]["metadata"] = campaign.metadata
         campaigns[campaign_id]["stats"] = campaign.get_stats()
 
-    # generate default_campaign_id
-    i = 1
-    default_campaign_id = f"llm-eval-{i}"
-    while default_campaign_id in campaign_index:
-        default_campaign_id = f"llm-eval-{i}"
-        i += 1
+    default_campaign_id = utils.generate_default_id(campaign_index=campaign_index, prefix="llm-eval")
 
     # get a list of available metrics
     utils.generate_metric_index(app)
@@ -538,7 +544,17 @@ def submit_annotations():
             for row in annotation_set:
                 f.write(json.dumps(row) + "\n")
 
-        db.loc[batch_idx, "status"] = "finished"
+        # db[db["batch_idx"] == batch_idx]["status"] = "finished"
+
+        # we cannot do that anymore:
+        # A value is trying to be set on a copy of a slice from a DataFrame.
+        # Try using .loc[row_indexer,col_indexer] = value instead
+
+        # See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+        #   db[db["batch_idx"] == batch_idx]["status"] = "finished"
+
+        db.loc[db["batch_idx"] == batch_idx, "status"] = "finished"
+
         db.to_csv(os.path.join(ANNOTATIONS_DIR, campaign_id, "db.csv"), index=False)
         logger.info(f"Annotations for {campaign_id} (batch {batch_idx}) saved")
 

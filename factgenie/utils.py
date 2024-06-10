@@ -343,6 +343,16 @@ def get_dataset_overview(app):
     return overview
 
 
+def generate_default_id(campaign_index, prefix):
+    i = 1
+    default_campaign_id = f"{prefix}-{i}"
+    while default_campaign_id in campaign_index:
+        default_campaign_id = f"{prefix}-{i}"
+        i += 1
+
+    return default_campaign_id
+
+
 def run_llm_eval(app, campaign_id):
     announcer = app.db["announcers"][campaign_id]
 

@@ -86,74 +86,10 @@
                 <div class="form-group">
                   <label for="campaignId">Campaign Id</label>
                   <input type="text" class="form-control" id="campaignId" name="campaignId"
-                    placeholder="Enter a unique identifier" required>
+                    value="{{ default_campaign_id }}" placeholder="Enter a unique identifier" required>
                 </div>
 
-                <div class="accordion accordion-flush" id="accordion-data">
-                  <div class="accordion-item">
-                    <h2 class="accordion-header" id="flush-headingOne-data">
-                      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#flush-collapseOne-data" aria-expanded="false"
-                        aria-controls="flush-collapseOne-data">
-                        <i class="fa fa-database"></i>
-                        <span style="margin-left: 10px;">Data</span>
-                      </button>
-                    </h2>
-                    <div id="flush-collapseOne-data" class="accordion-collapse collapse"
-                      aria-labelledby="flush-headingOne-data" data-bs-parent="#accordion-data">
-                      <div class="accordion-body">
-                        Datasets
-                        <div class="form-group">
-                          {% for output in model_outs.datasets %}
-                          <input type="checkbox" class="btn-check btn-check-data btn-check-dataset"
-                            id="btn-check-dataset-{{ output }}" checked data-content="{{ output }}" autocomplete="off">
-                          <label class="btn btn-outline-secondary btn-sm" for="btn-check-dataset-{{ output }}">{{ output
-                            }}</label>
-                          {% endfor %}
-                        </div>
-                        Splits
-                        <div class="form-group">
-                          {% for output in model_outs.splits %}
-                          <input type="checkbox" class="btn-check btn-check-data btn-check-split"
-                            id="btn-check-split-{{ output }}" checked data-content="{{ output }}" autocomplete="off">
-                          <label class="btn btn-outline-secondary btn-sm" for="btn-check-split-{{ output }}">{{ output
-                            }}</label>
-                          {% endfor %}
-                        </div>
-                        Outputs
-                        <div class="form-group">
-                          {% for output in model_outs.setup_ids %}
-                          <input type="checkbox" class="btn-check btn-check-data btn-check-output"
-                            id="btn-check-out-{{ output }}" checked data-content="{{ output }}" autocomplete="off">
-                          <label class="btn btn-outline-secondary btn-sm" for="btn-check-out-{{ output }}">{{ output
-                            }}</label>
-                          {% endfor %}
-                        </div>
-                        <div class="form-group">
-                          <label for="examplesPerBatch">Examples per batch</label>
-                          <input type="number" class="form-control" id="examplesPerBatch" name="examplesPerBatch"
-                            placeholder="Batches of data to annotate" min="1" value=10 required>
-                        </div>
-                        <div class="form-group">
-                          <!-- select for sort order -->
-                          <label for="sortOrder">Group outputs</label>
-                          <select class="form-select" id="sortOrder" name="sortOrder">
-                            <option value="random">Random</option>
-                            <option value="example">Example-wise (shuffled)</option>
-                          </select>
-                        </div>
-                        <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse"
-                          onclick="updateSelectedDatasets()" data-bs-target="#selectedDatasets" aria-expanded="false"
-                          aria-controls="selectedDatasets">Show
-                          included data</button>
-                        <div class="collapse" id="selectedDatasets">
-                          <div class="card card-body font-monospace" id="selectedDatasetsContent">
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                {% include 'forms/data_selection.html' %}
 
                 <div class="accordion accordion-flush" id="accordion-prolific">
                   <div class="accordion-item">
@@ -169,12 +105,39 @@
                       aria-labelledby="flush-headingOne-prolific" data-bs-parent="#accordion-prolific">
                       <div class="accordion-body">
                         <div class="form-group">
+                          <label for="examplesPerBatch">Examples per batch</label>
+                          <div>
+                            <small class="text-muted">Number of examples shown to each annotator.</small>
+                          </div>
+                          <input type="number" class="form-control" id="examplesPerBatch" name="examplesPerBatch"
+                            placeholder="Batches of data to annotate" min="1" value=10 required>
+                        </div>
+                        <div class="form-group mt-2">
+                          <!-- select for sort order -->
+                          <label for="sortOrder">Shuffle outputs</label>
+                          <div>
+                            <small class="text-muted">How to shuffle outputs before batching.</small>
+                          </div>
+                          <select class="form-select" id="sortOrder" name="sortOrder">
+                            <option value="random">Dataset-level</option>
+                            <option value="example">Example-level</option>
+                          </select>
+                        </div>
+                        <div class="form-group mt-2">
                           <label for="idleTime">Idle Time (minutes)</label>
+                          <div>
+                            <small class="text-muted">The time after which an unfinished example can be re-assigned to a
+                              new annotator.</small>
+                          </div>
                           <input type="number" class="form-control" id="idleTime" name="idleTime" min="0" required
                             value=120>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group mt-2">
                           <label for="prolificCode">Prolific Completion Code</label>
+                          <div>
+                            <small class="text-muted">The code that will be shown to the annotator after submitting the
+                              annotations.</small>
+                          </div>
                           <input type="text" class="form-control" id="prolificCode" name="prolificCode"
                             placeholder="Enter prolific completion code">
                         </div>
@@ -183,7 +146,7 @@
                   </div>
                 </div>
 
-                {% include 'error_categories.html' %}
+                {% include 'forms/error_categories.html' %}
 
               </form>
             </div>

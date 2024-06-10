@@ -650,6 +650,12 @@ function createHumanCampaign() {
     var campaignData = gatherCampaignData();
     const errorCategories = getErrorCategories();
 
+    // if no datasets are selected, show an alert
+    if (campaignData.length == 0) {
+        alert("Please select at least one existing combination of dataset, split, and output.");
+        return;
+    }
+
     $.post({
         url: `${url_prefix}/crowdsourcing/new`,
         contentType: 'application/json', // Specify JSON content type
