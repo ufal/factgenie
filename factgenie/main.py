@@ -493,8 +493,7 @@ def llm_eval_run():
         # "thread": thread,
         "running": True,
     }
-    utils.run_llm_eval(app, campaign_id)
-    return utils.success()
+    return utils.run_llm_eval(app, campaign_id)
 
 
 @app.route("/llm_eval/progress/<campaign_id>", methods=["GET"])

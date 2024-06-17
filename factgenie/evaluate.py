@@ -105,7 +105,7 @@ class OpenAIMetric(LLMMetric):
             return self.postprocess_annotations(text=text, model_json=j)
         except Exception as e:
             logger.error(e)
-            return {"errors": []}
+            return {"error": str(e)}
 
 
 class OllamaMetric(LLMMetric):
@@ -147,7 +147,7 @@ class OllamaMetric(LLMMetric):
             return self.postprocess_annotations(text=text, model_json=j)
         except Exception as e:
             logger.error(e)
-            return {"errors": []}
+            return {"error": str(e)}
 
 
 class Llama3Metric(OllamaMetric):
