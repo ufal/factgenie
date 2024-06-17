@@ -75,6 +75,10 @@ def success():
     resp = jsonify(success=True)
     return resp
 
+def error(j):
+    resp = jsonify(success=False, error=j)
+    return resp
+
 
 def get_dataset(app, dataset_name):
     return app.db["datasets_obj"].get(dataset_name)
@@ -395,6 +399,9 @@ def run_llm_eval(app, campaign_id):
 
         annotation_set = metric.annotate_example(example, output)
 
+        if "error" in annotation_set:
+            return error(annotation_set["error"])
+
         # save the annotation
         annotation = {
             "annotator_id": metric_name,
@@ -426,3 +433,5 @@ def run_llm_eval(app, campaign_id):
     if db.status.unique() == "finished":
         campaign.metadata["status"] = "finished"
         campaign.update_metadata()
+
+    return success()

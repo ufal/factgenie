@@ -136,6 +136,7 @@ def manage_annotations():
     utils.generate_annotation_index(app)
 
     annotations = app.db["annotation_index"]
+    
     return render_template("manage_annotations.html", annotations=annotations, host_prefix=app.config["host_prefix"])
 
 
@@ -492,8 +493,7 @@ def llm_eval_run():
         # "thread": thread,
         "running": True,
     }
-    utils.run_llm_eval(app, campaign_id)
-    return utils.success()
+    return utils.run_llm_eval(app, campaign_id)
 
 
 @app.route("/llm_eval/progress/<campaign_id>", methods=["GET"])

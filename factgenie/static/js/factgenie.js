@@ -736,7 +736,12 @@ function runLlmEval(campaignId) {
             campaignId: campaignId
         }),
         success: function (response) {
-            console.log(response);
+            if (response.success !== true) {
+                $("#log-area").text(JSON.stringify(response.error));
+                console.log(JSON.stringify(response));
+            } else {
+                console.log(response);
+            }
         }
     });
 }
