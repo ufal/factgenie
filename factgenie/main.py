@@ -136,7 +136,6 @@ def manage_annotations():
     utils.generate_annotation_index(app)
 
     annotations = app.db["annotation_index"]
-    breakpoint()
     return render_template("manage_annotations.html", annotations=annotations, host_prefix=app.config["host_prefix"])
 
 

@@ -27,8 +27,7 @@ How does **factgenie** help with that?
 What does factgenie **not help with** is collecting the data or model outputs (we assume that you already have these), starting the crowdsourcing campaign (for that, you need to use a service such as [Prolific.com](https://prolific.com)) or running the LLM evaluators (for that, you need a local framework such as [Ollama](https://ollama.com) or a proprietary API).
 
 ---
-*Please, keep in mind that this project is a spin-off of our custom code we used for research experiments. It may need additional effort on your side to make everything work as expected :wink:*
-
+*This project is meant as a framework and template for you dear researcher. Help us improve it! :wink:*
 ----
 
 ## Quickstart
@@ -38,11 +37,11 @@ The following commands will install the package, start the webserver, and open t
 ```
 pip install -e .
 factgenie run --host=127.0.0.1 --port 8890
-xdg-open http://127.0.0.1:8890
+xdg-open http://127.0.0.1:8890  # for Linux it opens the page for you
 ```
 
 ## Step-by-step guide
-Each project is unique. That is why this **framework is partially DIY**: we assume that it will be customized for a particular use-case.
+Each project is unique. That is why this **framework is partially DIY**: we assume that it will be customized for a particular use case.
 
 ### 1) Gather your inputs and outputs
 
