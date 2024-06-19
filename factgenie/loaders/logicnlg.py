@@ -72,15 +72,15 @@ class LogicnlgBase(Dataset):
         return html_el.render()
 
 
-class LogicnlgDev100(LogicnlgBase):
+class LogicnlgTest100Tables(LogicnlgBase):
     def __init__(self, **kwargs):
         # The name is used in the data loading and output loading
         # but also as the dataset is presented to the user
-        super().__init__(**kwargs, splits=['dev'], name="logicnlg")
+        super().__init__(**kwargs, splits=['test'], name="logicnlg")
 
     def get_info(self):
         return f"""
-        A 100 subset of the LogicNLG {self.split} split which is loaded from  <a href="https://huggingface.co/datasets/kasnerz/logicnlg">HuggingFace Dataset <i>kasnerz/logicnlg</i></a>.
+        A 100 subset of the LogicNLG {self.splits} split which is loaded from  <a href="https://huggingface.co/datasets/kasnerz/logicnlg">HuggingFace Dataset <i>kasnerz/logicnlg</i></a>.
         For details see the official <a href="https://github.com/wenhuchen/LogicNLG?tab=readme-ov-file">LogicNLG official release on GitHub</a>.
         """
 
@@ -88,11 +88,11 @@ class LogicnlgDev100(LogicnlgBase):
         # filter the data for the first 100 examples
         with open(f"{self.data_path}/{self.name}/{split}.json") as f:
             table_ids = json.load(f)
-        hf_dataset = hf_dataset.filter(lambda x: x["table_id"] in table_ids)
-        return super().postprocess_data(hf_dataset, split)
+        filtered_dataset = hf_dataset.filter(lambda x: x["table_id"] in table_ids)
+        return super().postprocess_data(filtered_dataset, split)
 
 
 if __name__ == "__main__":
     # Testing the loader
-    d = LogicnlgDev100()
-    d.load_data()
+    d = LogicnlgTest100Tables()
+    print(len(d.examples['test']))

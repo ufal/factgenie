@@ -18,6 +18,7 @@ class Dataset:
         self.type = "default"
 
     def get_example(self, split, example_idx):
+        __import__('ipdb').set_trace()
         example = self.examples[split][example_idx]
 
         return example

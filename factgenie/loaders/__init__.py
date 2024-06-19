@@ -3,7 +3,7 @@ from factgenie.loaders.gsmarena import GSMArena
 from factgenie.loaders.openweather import OpenWeather
 from factgenie.loaders.owid import OurWorldInData
 from factgenie.loaders.wikidata import Wikidata
-from factgenie.loaders.logicnlg import LogicnlgDev100
+from factgenie.loaders.logicnlg import LogicnlgTest100Tables
 from factgenie.loaders.dummy import Dummy
 
 DATASET_CLASSES = {
@@ -12,6 +12,6 @@ DATASET_CLASSES = {
     "openweather": OpenWeather,
     "owid": OurWorldInData,
     "wikidata": Wikidata,
-    "logicnlg": LogicnlgDev100,
+    "logicnlg": LogicnlgTest100Tables,
     "dummy": Dummy,
 }
