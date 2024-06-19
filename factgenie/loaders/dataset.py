@@ -52,6 +52,13 @@ class Dataset:
         return outputs
 
     def load_data(self):
+        """By default loads the data from factgenie/data/{name}/{split}.json.
+
+        Do override it if you want to load the data e.g. from HuggingFace
+
+        Notice it also calls postprocess_data internally!
+        
+        """
         splits = Path.glob(Path(self.data_path) / self.name, "*.json")
         splits = [split.stem for split in splits]
         examples = {split: [] for split in splits}
