@@ -18,7 +18,6 @@ class Dataset:
         self.type = "default"
 
     def get_example(self, split, example_idx):
-        __import__('ipdb').set_trace()
         example = self.examples[split][example_idx]
 
         return example
@@ -46,7 +45,6 @@ class Dataset:
             for out in outs:
                 with open(out) as f:
                     j = json.load(f)
-
                     setup_id = slugify(j["setup"]["id"])
                     outputs[split][setup_id].append(j)
 
@@ -112,4 +110,4 @@ class Dataset:
         return outs_all
 
     def get_info(self):
-        return "TODO implement get_info()"
+        return "TODO for you: Override this function and fill relevant info for your particular dataset!"

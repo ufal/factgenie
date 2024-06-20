@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import ast
 import json
 import logging
 from datasets import load_dataset
@@ -38,7 +39,8 @@ class LogicnlgBase(Dataset):
         for example in hf_dataset:
             # List of rows (list).
             # The first list is the list of column names ie the header.
-            table = example['table']
+            # Hack how to convert almost json like data to list of list
+            table = ast.literal_eval(example['table'])
             table_title = example['title']
             table_id = example['table_id']
             examples.append((table, table_title, table_id))
@@ -46,18 +48,15 @@ class LogicnlgBase(Dataset):
         return examples
 
     def render(self, example):
-        __import__('ipdb').set_trace()
-        raise NotImplementedError("TODO")
-        example = example.split("\n")
-        title = example[0]
+        table_title = f"{example[1]}" 
+        table_id = f"[{example[2]}]"
+        header_el = h("div")(h("i")(table_id), h("h4", klass="")(table_title))
 
-        trs = []
-        for line in example[2:]:
-            key, value = line.split(": ", 1)
-            key = key.strip("- ")
-            th_el = h("th")(key)
-            td_el = h("td")(value)
-            tr_el = h("tr")(th_el, td_el)
+        rows = example[0]
+        trs = [h("tr")([h("th")(c) for c in rows[0]])]
+        for row in rows[1:]:
+            cells = [h("td")(v) for v in row]   
+            tr_el = h("tr")(cells)
             trs.append(tr_el)
 
         tbody_el = h("tbody", id="main-table-body")(trs)
@@ -66,7 +65,6 @@ class LogicnlgBase(Dataset):
             klass="table table-sm table-bordered caption-top main-table font-mono",
         )(tbody_el)
 
-        header_el = h("div")(h("h4", klass="")(title))
         html_el = h("div")(header_el, table_el)
 
         return html_el.render()
