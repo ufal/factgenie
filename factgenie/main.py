@@ -12,13 +12,10 @@ import shutil
 import datetime
 from flask import Flask, render_template, jsonify, request, Response
 from collections import defaultdict
-from pathlib import Path
-from threading import Thread
 import urllib.parse
 from slugify import slugify
 
 from factgenie.campaigns import Campaign, ModelCampaign, HumanCampaign
-from factgenie.loaders import DATASET_CLASSES
 from factgenie.evaluate import LLMMetric, Llama3Metric
 import factgenie.utils as utils
 
@@ -485,6 +482,7 @@ def llm_eval_run():
     app.db["announcers"][campaign_id] = utils.MessageAnnouncer()
 
     # TODO: so far it seems that the app is actually more responsive without threads :-O
+    # from threading import Thread
     # thread = Thread(target=utils.run_llm_eval, args=(app, campaign_id))
     # thread.daemon = True
     # thread.start()
