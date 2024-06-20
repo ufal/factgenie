@@ -45,13 +45,19 @@ class Dataset:
             for out in outs:
                 with open(out) as f:
                     j = json.load(f)
-
                     setup_id = slugify(j["setup"]["id"])
                     outputs[split][setup_id].append(j)
 
         return outputs
 
     def load_data(self):
+        """By default loads the data from factgenie/data/{name}/{split}.json.
+
+        Do override it if you want to load the data e.g. from HuggingFace
+
+        Notice it also calls postprocess_data internally!
+        
+        """
         splits = Path.glob(Path(self.data_path) / self.name, "*.json")
         splits = [split.stem for split in splits]
         examples = {split: [] for split in splits}
@@ -104,4 +110,4 @@ class Dataset:
         return outs_all
 
     def get_info(self):
-        return "TODO implement get_info()"
+        return "TODO for you: Override this function and fill relevant info for your particular dataset!"
