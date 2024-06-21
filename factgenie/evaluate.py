@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import traceback
 from openai import OpenAI
 from textwrap import dedent
 import argparse
@@ -44,6 +45,7 @@ class LLMMetricFactory:
 class LLMMetric:
     def __init__(self, metric_name, config):
         self.metric_name = metric_name
+        self.annotation_key = config.get("annotation_key", "errors")
 
         self.system_msg = config.get("system_msg", None)
         if self.system_msg is None:
@@ -59,7 +61,7 @@ class LLMMetric:
         annotation_list = []
         current_pos = 0
 
-        for error in model_json["errors"]:
+        for error in model_json[self.annotation_key]:
             # find the `start` index of the error in the text
             start_pos = text.lower().find(error["text"].lower(), current_pos)
 
@@ -110,7 +112,7 @@ class OpenAIMetric(LLMMetric):
 
 class OllamaMetric(LLMMetric):
     def __init__(self, config):
-        super().__init__("llm-ollama-" + config["model"], config)
+        super().__init__("llm-ollama-" +config["model"] + config.get("metric_name_suffix", ""), config)
         self.API_URL = config.get("api_url", None)
 
         if self.API_URL is None:
@@ -126,27 +128,26 @@ class OllamaMetric(LLMMetric):
         return j
 
     def annotate_example(self, data, text):
+        prompt = self.metric_prompt_template.format(data=data, text=text)
+        request_d = {
+                "model": self.model,
+                "prompt": prompt,
+                "format": "json",
+                "stream": False,
+                "options": {"seed": self.seed, "temperature": 0},
+        }
+        msg = f"Ollama API {self.API_URL} with args:\n\t{request_d}"
         try:
-            prompt = self.metric_prompt_template.format(data=data, text=text)
-
-            logger.debug(f"Calling Ollama API")
-            response = requests.post(
-                self.API_URL,
-                json={
-                    "model": self.model,
-                    "prompt": prompt,
-                    "format": "json",
-                    "stream": False,
-                    "options": {"seed": self.seed, "temperature": 0},
-                },
-            )
+            logger.debug(f"Calling {msg}")
+            response = requests.post(self.API_URL, json=request_d)
             annotation_str = response.json()["response"]
 
             j = self.postprocess_output(annotation_str)
             logger.info(j)
             return self.postprocess_annotations(text=text, model_json=j)
         except Exception as e:
-            logger.error(e)
+            logger.error(f"Called {msg}\n\n and received {response=} before the error:{e}")
+            traceback.print_exc()
             return {"error": str(e)}
 
 
@@ -156,7 +157,7 @@ class Llama3Metric(OllamaMetric):
         j = json.loads(output)
 
         # the model often tends to produce a nested list
-        if type(j["errors"][0]) == list:
-            j["errors"] = j["errors"][0]
+        if len(j[self.annotation_key]) == 1 and type(j[self.annotation_key][0]) == list:
+            j[self.annotation_key] = j[self.annotation_key][0]
 
         return j

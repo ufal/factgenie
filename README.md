@@ -93,7 +93,8 @@ For collecting the annotations from a LLM, you will first need to get access to 
 
 In general, you can integrate factgenie with any API that allows decoding responses as JSON (or any API as long as you can get a JSON by postprocessing the response).
 
-You also need to customize the YAML configuration file in `factgenie/llm-eval` by setting the model prompt, optionally along with the system message, model parameters etc. Keep in mind the the prompt needs to **ask the model to produce JSON outputs in the following format**:
+You also need to customize the YAML configuration file in `factgenie/llm-eval` by setting the model prompt, optionally along with the system message, model parameters etc.
+Keep in mind the prompt needs to **ask the model to produce JSON outputs in the following format**:
 ```
 {
   "errors": [
@@ -107,7 +108,7 @@ You also need to customize the YAML configuration file in `factgenie/llm-eval` b
 The provided examples should help you with setting up the prompt.
 
 Once you have the configuration file ready, you should:
-- Go to `/llm-eval`.
+- Go to factgenie `/llm_eval` webpage.
 - Click on **New LLM eval** and select the campaign identifier.
 - In the **Data** section:
   - Select the datasets and splits you want to annotate. 
@@ -116,7 +117,7 @@ Once you have the configuration file ready, you should:
 - In the **Error categories** section:
   - Select the error categories you specified in the prompt.
 
-You eval should appear in the list:
+Your eval should appear in the list:
 
 <img src="factgenie/static/img/github/llm_eval.png" width="100%" style="margin-bottom: 10px" alt="Main screen" />
 
