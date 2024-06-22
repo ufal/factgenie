@@ -5,7 +5,6 @@ import time
 import logging
 import pandas as pd
 import time
-import coloredlogs
 import threading
 import traceback
 import shutil
@@ -24,25 +23,16 @@ TEMPLATES_DIR = os.path.join(DIR_PATH, "templates")
 STATIC_DIR = os.path.join(DIR_PATH, "static")
 ANNOTATIONS_DIR = os.path.join(DIR_PATH, "annotations")
 
+
+
 app = Flask("factgenie", template_folder=TEMPLATES_DIR, static_folder=STATIC_DIR)
-app.config.update(SECRET_KEY=os.urandom(24))
 app.db = {}
 app.db["annotation_index"] = {}
 app.db["lock"] = threading.Lock()
 app.db["threads"] = {}
 app.db["announcers"] = {}
 
-
-file_handler = logging.FileHandler("error.log")
-file_handler.setLevel(logging.ERROR)
-
-logging.basicConfig(
-    format="%(levelname)s - %(message)s",
-    level=logging.DEBUG,
-    handlers=[file_handler, logging.StreamHandler()],
-)
 logger = logging.getLogger(__name__)
-coloredlogs.install(level="DEBUG", logger=logger, fmt="%(asctime)s %(levelname)s %(message)s")
 
 
 # -----------------
