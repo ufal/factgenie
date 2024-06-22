@@ -1,6 +1,6 @@
 {
   "dataset": "logicnlg-100",
-  "setup": {"id": "GPT4-direct-2shotCOT", "name": "GPT4-direct-2shotCOT"},
+  "setup": {"id": "gpt4-direct-2shotcot", "name": "GPT4-direct-2shotCoT"},
   "generated": [
         {"table_id": "2-17814838-6.html.csv", "claim_id": 0, "out": "Liverpool and Everton faced each other twice in the 2008-09 FA Cup, with one match ending in a draw and the other ending in an Everton victory."},
         {"table_id": "2-17814838-6.html.csv", "claim_id": 1, "out": "The highest-scoring draw in the 2008-09 FA Cup was the match between West Bromwich Albion and Burnley, which ended 2-2."},
