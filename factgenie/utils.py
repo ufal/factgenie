@@ -430,7 +430,7 @@ def run_llm_eval(app, campaign_id):
         logger.info(f"{campaign_id}: {finished_examples_cnt}/{len(db)} examples")
 
     # if all fields are finished, set the metadata to finished
-    if db.status.unique() == "finished":
+    if len(db.status.unique()) == 1 and  db.status.unique()[0] == "finished":
         campaign.metadata["status"] = "finished"
         campaign.update_metadata()
 
