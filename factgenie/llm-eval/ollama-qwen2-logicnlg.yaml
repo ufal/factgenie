@@ -31,7 +31,7 @@ prompt_template: |
 
   The list should be sorted by the position of the annotation in the text.
 
-  Also output your confidence how well you understood the task, the table and the text. Classify your confidence as "confident", "unsure", "I have no idea" and provide feedback when you are confident. 
+  Also output your confidence how well you understood the task, the table and the text. Classify your confidence as "confident", "unsure", or "I have no idea" and provide feedback when you are not confident. 
 
   *Example:*
   table:
