@@ -426,11 +426,19 @@ def llm_eval_new():
     campaign_id = slugify(data.get("campaignId"))
     campaign_data = data.get("campaignData")
     error_categories = data.get("errorCategories")
-    now = datetime.datetime.now()
 
     utils.generate_metric_index(app)
 
     metric = app.db["metric_index"][llm_config]
+    datasets = app.db["datasets_obj"]
+
+    campaign = _llm_eval_new(campaign_id, metric, campaign_data, error_categories, datasets)
+    app.db["campaign_index"][campaign_id] = campaign
+
+    return utils.success()
+
+
+def _llm_eval_new(campaign_id, metric, campaign_data, error_categories, datasets):
 
     # create a new directory
     if os.path.exists(os.path.join(ANNOTATIONS_DIR, campaign_id)):
@@ -439,15 +447,19 @@ def llm_eval_new():
     os.makedirs(os.path.join(ANNOTATIONS_DIR, campaign_id, "files"), exist_ok=True)
 
     # create the annotation CSV
-    db = utils.generate_llm_eval_db(app, campaign_data)
-    db.to_csv(os.path.join(ANNOTATIONS_DIR, campaign_id, "db.csv"), index=False)
+    db = utils.generate_llm_eval_db(datasets, campaign_data)
+    db_path = os.path.join(ANNOTATIONS_DIR, campaign_id, "db.csv")
+    logger.info(f"DB with {len(db)} free examples created for {campaign_id} at {db_path}")
+    db.to_csv(db_path, index=False)
 
     # save metadata
-    with open(os.path.join(ANNOTATIONS_DIR, campaign_id, "metadata.json"), "w") as f:
+    metadata_path = os.path.join(ANNOTATIONS_DIR, campaign_id, "metadata.json")
+    logger.info(f"Metadata for {campaign_id} saved at {metadata_path}")
+    with open(metadata_path, "w") as f:
         json.dump(
             {
                 "id": campaign_id,
-                "created": now.strftime("%Y-%m-%d %H:%M:%S"),
+                "created": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "source": "model",
                 "status": "new",
                 "metric": metric.metric_name,
@@ -459,9 +471,7 @@ def llm_eval_new():
 
     # create the campaign object
     campaign = ModelCampaign(campaign_id=campaign_id)
-    app.db["campaign_index"][campaign_id] = campaign
-
-    return utils.success()
+    return campaign
 
 
 @app.route("/llm_eval/run", methods=["POST"])

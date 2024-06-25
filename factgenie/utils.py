@@ -5,6 +5,7 @@ import json
 import glob
 import time
 import logging
+from typing import Dict
 import pandas as pd
 import random
 import time
@@ -18,6 +19,7 @@ from collections import defaultdict
 from pathlib import Path
 from factgenie.campaigns import Campaign, HumanCampaign, ModelCampaign
 from factgenie.evaluate import LLMMetric, LLMMetricFactory
+from factgenie.loaders.dataset import Dataset
 
 DIR_PATH = os.path.dirname(__file__)
 TEMPLATES_DIR = os.path.join(DIR_PATH, "templates")
@@ -269,12 +271,12 @@ def get_annotator_batch(app, campaign, db, prolific_pid, session_id, study_id):
     return annotator_batch
 
 
-def generate_llm_eval_db(app, campaign_data):
+def generate_llm_eval_db(datasets: Dict[str, Dataset], campaign_data):
     # load all outputs
     all_examples = []
 
     for c in campaign_data:
-        dataset = app.db["datasets_obj"][c["dataset"]]
+        dataset = datasets[c["dataset"]]
         for i in range(dataset.get_example_count(c["split"])):
             all_examples.append(
                 {
