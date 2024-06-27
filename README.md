@@ -20,9 +20,9 @@ With **factgenie**, you can have the errors highlighted 🌈:
 - From LLMs through an API.
 
 How does **factgenie** help with that?
-1. It helps you with **creating a user-friendly website** for collecting annotations from human crowdworkers.
+1. It helps you **create a user-friendly website** for collecting annotations from human crowdworkers.
 2. It helps you with **LLM API calls** for collecting equivalent annotations from LLM-based evaluators.
-3. It provides you a **visualization interface** for inspecting the annotated outputs.
+3. It provides you **visualization interface** for inspecting the annotated outputs.
 
 What does factgenie **not help with** is collecting the data or model outputs (we assume that you already have these), starting the crowdsourcing campaign (for that, you need to use a service such as [Prolific.com](https://prolific.com)) or running the LLM evaluators (for that, you need a local framework such as [Ollama](https://ollama.com) or a proprietary API).
 
@@ -33,11 +33,11 @@ What does factgenie **not help with** is collecting the data or model outputs (w
 ## Quickstart
 Make sure you have Python 3 installed (the project is tested with Python 3.10).
 
-The following commands install the package, start the webserver, and open the frontpage in the browser:
+The following commands install the package, start the web server, and open the front page in the browser:
 ```
 pip install -e .
-factgenie run --host=127.0.0.1 --port 8890
-xdg-open http://127.0.0.1:8890  # for Linux it opens the page for you
+factgenie run --host=127.0.0.1 --port 5000
+xdg-open http://127.0.0.1:5000  # for Linux it opens the page for you
 ```
 
 ## Step-by-step guide
@@ -176,3 +176,14 @@ On the details page, you can monitor how individual batches get assigned and com
 Once the annotations are collected, you can view them on the `/browse`. The annotations from each campaign can be selected in the drop-down menu above model outputs.
 
 <img src="factgenie/static/img/github/annot.png" width="60%" style="display: flex; margin: auto;" alt="Main screen" />
+
+
+## Core Developers 
+
+### Optional use of Git Large File Storage (git lfs)
+- We use `git lfs` for storing instructional videos and it is useful for storing any large artefacts.
+- We would like to keep the `git lfs` completely optional so do not commit any large files which are required for running _factgenie_, i.e. use it just for documentation.
+- Links to `git lfs` documentation:
+   - [Git LFS configuration](https://docs.github.com/en/repositories/working-with-files/managing-large-files/configuring-git-large-file-storage)
+   - [Moving a large file from git to git lfs](https://docs.github.com/en/repositories/working-with-files/managing-large-files/moving-a-file-in-your-repository-to-git-large-file-storage)
+   - [Does every user need to use git lfs (no)](https://github.com/git-lfs/git-lfs/discussions/4644)
