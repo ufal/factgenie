@@ -359,6 +359,22 @@ def generate_default_id(campaign_index, prefix):
     return default_campaign_id
 
 
+def save_annotation(save_dir, metric_name, dataset_name, split, setup_id, example_idx, annotation_set, start_time):
+    # save the annotation
+    annotation = {
+        "annotator_id": metric_name,
+        "dataset": dataset_name,
+        "setup": {"id": setup_id, "model": setup_id},
+        "split": split,
+        "example_idx": example_idx,
+        "annotations": annotation_set,
+    }
+
+    # save the annotation
+    with open(os.path.join(save_dir, f"{metric_name}-{dataset_name}-{split}-{start_time}.jsonl"), "a") as f:
+        f.write(json.dumps(annotation) + "\n")
+    return annotation
+
 def run_llm_eval(app, campaign_id):
     announcer = app.db["announcers"][campaign_id]
 
@@ -403,20 +419,8 @@ def run_llm_eval(app, campaign_id):
 
         if "error" in annotation_set:
             return error(annotation_set["error"])
-
-        # save the annotation
-        annotation = {
-            "annotator_id": metric_name,
-            "dataset": dataset_name,
-            "setup": {"id": setup_id, "model": setup_id},
-            "split": split,
-            "example_idx": example_idx,
-            "annotations": annotation_set,
-        }
-
-        # save the annotation
-        with open(os.path.join(save_dir, f"{metric_name}-{dataset_name}-{split}-{start_time}.jsonl"), "a") as f:
-            f.write(json.dumps(annotation) + "\n")
+        
+        annotation = save_annotation(save_dir, metric_name, dataset_name, split, setup_id, example_idx, annotation_set, start_time)
 
         db.loc[i, "status"] = "finished"
         campaign.update_db(db)

@@ -437,6 +437,17 @@ def llm_eval_new():
 
     return utils.success()
 
+def run_llm_eval():
+
+    output = dataset.get_generated_output_for_setup(split=split, output_idx=example_idx, setup_id=setup_id)
+
+    annotation_set = metric.annotate_example(example, output)
+
+    if "error" in annotation_set:
+        return error(annotation_set["error"])
+    
+    annotation = save_annotation(save_dir, metric_name, dataset_name, split, setup_id, example_idx, annotation_set, start_time)
+
 
 def _llm_eval_new(campaign_id, metric, campaign_data, error_categories, datasets):
 
