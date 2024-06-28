@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-import coloredlogs
+
+# local imports in individual functions make CLI way faster
 import click
-import os
-import yaml
-import logging
 from flask.cli import FlaskGroup
-
-from factgenie.loaders import DATASET_CLASSES
-
-from .main import app
 
 
 def create_app(**kwargs):
+    from factgenie.loaders import DATASET_CLASSES
+    import yaml
+    import logging
+    import coloredlogs
+    import os
+    from .main import app
 
     with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.yml")) as f:
         config = yaml.safe_load(f)
@@ -49,3 +49,32 @@ def create_app(**kwargs):
 @click.group(cls=FlaskGroup, create_app=create_app)
 def run():
     pass
+
+@click.command()
+def run_llm_eval(campaign_name: str, dataset_name: str, split: str, output_name: str, llm_metric_config: str):
+    from slugify import slugify
+    from factgenie import utils
+    from factgenie.loaders import DATASET_CLASSES
+
+    campaign_id = slugify(campaign_name)
+    campaign_data = [(dataset_name, split, output_name)]
+
+    metric_name = ...  # ; raise NotImplementedError("load from config")
+    error_categories = ... #; raise NotImplementedError("load from config")
+
+
+    DATASETS = {}
+    for dataset_id in DATASET_CLASSES.keys():
+        DATASETS[dataset_id] = DATASET_CLASSES[dataset_id]()
+    dataset = DATASETS[dataset_name]
+
+    campaign = utils.llm_eval_new(campaign_id, metric, campaign_data, DATASETS)
+
+    metrics_index = utils.generate_metrics_index(dataset)
+    metric = metrics_index[metric_name]
+
+    # mockup objects useful for interactivity
+    threads = {"threads": {campaign_id: {"running": True}}}
+    announcer = None
+
+    return utils.run_llm_eval(campaign_id, announcer, campaign, DATASETS, metric, threads, metric_name)

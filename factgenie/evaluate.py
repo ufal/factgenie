@@ -49,6 +49,8 @@ class LLMMetric:
     def __init__(self, config, metric_name):
         self.metric_name = metric_name
         self.annotation_key = config.get("annotation_key", "errors")
+        self._annotation_categories = config[f"{self.annotation_key}_categories"]
+        assert isinstance(self.annotation_categories, list) and len(self.annotation_categories) > 0, f"Annotation categories must be a non-empty list, got {self.annotation_categories=}"
 
         self.system_msg = config.get("system_msg", None)
         if self.system_msg is None:
@@ -59,6 +61,12 @@ class LLMMetric:
 
         if self.metric_prompt_template is None:
             raise ValueError("Prompt template (`prompt_template`) field is missing in the config")
+
+    @property
+    def annotation_categories(self):
+        return self._annotation_categories
+
+
 
     def postprocess_annotations(self, text, model_json):
         annotation_list = []
@@ -97,6 +105,8 @@ class LLMMetric:
 
     def annotate_example(self, data, text):
         raise NotImplementedError("Override this method in the subclass to call the LLM API")
+
+    
 
 
 class OpenAIMetric(LLMMetric):

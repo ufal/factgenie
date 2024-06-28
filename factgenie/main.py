@@ -376,7 +376,7 @@ def llm_eval():
     default_campaign_id = utils.generate_default_id(campaign_index=campaign_index, prefix="llm-eval")
 
     # get a list of available metrics
-    utils.generate_metric_index(app)
+    app.db["metric_index"] = utils.generate_metric_index()
 
     llm_metrics = app.db["metric_index"]
 
@@ -423,66 +423,18 @@ def llm_eval_new():
     data = request.get_json()
 
     llm_config = data.get("llmConfig")
-    campaign_id = slugify(data.get("campaignId"))
+    campaign_id = data.get("campaignId")
     campaign_data = data.get("campaignData")
-    error_categories = data.get("errorCategories")
 
-    utils.generate_metric_index(app)
+    app.db["metric_index"] = utils.generate_metric_index()
 
     metric = app.db["metric_index"][llm_config]
     datasets = app.db["datasets_obj"]
 
-    campaign = _llm_eval_new(campaign_id, metric, campaign_data, error_categories, datasets)
+    campaign = utils.llm_eval_new(campaign_id, metric, campaign_data, datasets)
     app.db["campaign_index"][campaign_id] = campaign
 
     return utils.success()
-
-def run_llm_eval():
-
-    output = dataset.get_generated_output_for_setup(split=split, output_idx=example_idx, setup_id=setup_id)
-
-    annotation_set = metric.annotate_example(example, output)
-
-    if "error" in annotation_set:
-        return error(annotation_set["error"])
-    
-    annotation = save_annotation(save_dir, metric_name, dataset_name, split, setup_id, example_idx, annotation_set, start_time)
-
-
-def _llm_eval_new(campaign_id, metric, campaign_data, error_categories, datasets):
-
-    # create a new directory
-    if os.path.exists(os.path.join(ANNOTATIONS_DIR, campaign_id)):
-        return jsonify({"error": "Campaign already exists"})
-
-    os.makedirs(os.path.join(ANNOTATIONS_DIR, campaign_id, "files"), exist_ok=True)
-
-    # create the annotation CSV
-    db = utils.generate_llm_eval_db(datasets, campaign_data)
-    db_path = os.path.join(ANNOTATIONS_DIR, campaign_id, "db.csv")
-    logger.info(f"DB with {len(db)} free examples created for {campaign_id} at {db_path}")
-    db.to_csv(db_path, index=False)
-
-    # save metadata
-    metadata_path = os.path.join(ANNOTATIONS_DIR, campaign_id, "metadata.json")
-    logger.info(f"Metadata for {campaign_id} saved at {metadata_path}")
-    with open(metadata_path, "w") as f:
-        json.dump(
-            {
-                "id": campaign_id,
-                "created": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "source": "model",
-                "status": "new",
-                "metric": metric.metric_name,
-                "error_categories": error_categories,
-            },
-            f,
-            indent=4,
-        )
-
-    # create the campaign object
-    campaign = ModelCampaign(campaign_id=campaign_id)
-    return campaign
 
 
 @app.route("/llm_eval/run", methods=["POST"])
@@ -490,7 +442,7 @@ def llm_eval_run():
     data = request.get_json()
     campaign_id = data.get("campaignId")
 
-    app.db["announcers"][campaign_id] = utils.MessageAnnouncer()
+    app.db["announcers"][campaign_id] = announcer = utils.MessageAnnouncer()
 
     # TODO: so far it seems that the app is actually more responsive without threads :-O
     # from threading import Thread
@@ -502,7 +454,17 @@ def llm_eval_run():
         # "thread": thread,
         "running": True,
     }
-    return utils.run_llm_eval(app, campaign_id)
+    # return utils.run_llm_eval(app, campaign_id)
+    app.db["metric_index"] = utils.generate_metric_index()
+
+    campaign = app.db["campaign_index"]["model"][campaign_id]
+
+    threads = app.db["threads"]
+    datasets = app.db["datasets_obj"]
+
+    metric_name = campaign.metadata["metric"]
+    metric = app.db["metric_index"][metric_name]
+    return utils.run_llm_eval(campaign_id, announcer, campaign, datasets, metric, threads, metric_name)
 
 
 @app.route("/llm_eval/progress/<campaign_id>", methods=["GET"])
