@@ -15,3 +15,5 @@ env/
 build
 venv/
 wiki
+factgenie/annotations
+factgenie/templates
