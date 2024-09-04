@@ -51,13 +51,15 @@ Annotation = Backbone.RelationalModel.extend({
   }],
 
   toggleType: function () {
-    /* Removes (if only 1 Annotation type) or changes
-     * the Annotation type when clicked after existing */
-    if (this.get('type') == YPet.AnnotationTypes.length - 1) {
-      this.destroy();
-    } else {
-      this.set('type', this.get('type') + 1);
-    }
+    // Use the current annotation type
+    this.set('type', YPet.currentAnnotationType);
+    // /* Removes (if only 1 Annotation type) or changes
+    //  * the Annotation type when clicked after existing */
+    // if (this.get('type') == YPet.AnnotationTypes.length - 1) {
+    //   this.destroy();
+    // } else {
+    //   this.set('type', this.get('type') + 1);
+    // }
   }
 });
 
@@ -278,7 +280,7 @@ WordView = Backbone.Marionette.ItemView.extend({
           w.get('parentAnnotation').destroy();
         }
       })
-      word.get('parentDocument').get('annotations').create({ words: selected });
+      word.get('parentDocument').get('annotations').create({ words: selected, type: YPet.currentAnnotationType });
     };
 
     words.each(function (word) { word.set('latest', null); });
@@ -377,6 +379,15 @@ WordCollectionView = Backbone.Marionette.CollectionView.extend({
 });
 
 YPet = new Backbone.Marionette.Application();
+
+
+YPet.currentAnnotationType = 0; // Default to the first annotation type
+
+YPet.setCurrentAnnotationType = function (typeIndex) {
+  YPet.currentAnnotationType = typeIndex;
+};
+
+
 // YPet.AnnotationTypes = new AnnotationTypeList([
 //   { name: 'Disease', color: '#00ccff' },
 //   { name: 'Gene', color: '#22A301' },

@@ -504,6 +504,20 @@ $("#dataset-select").on("change", changeDataset);
 $("#split-select").on("change", changeSplit);
 $("#annotations-select").on("change", updateDisplayedAnnotations);
 
+if (mode == "annotate") {
+    $('.btn-check').on('change', function () {
+        $('.btn-check').each(function () {
+            const label = $(`label[for=${this.id}]`);
+            if (this.checked) {
+                label.addClass('active');
+            } else {
+                label.removeClass('active');
+            }
+        });
+    });
+}
+
+
 $(document).keydown(function (event) {
     const key = event.key;
 
@@ -529,6 +543,13 @@ $("#hideOverlayBtn").click(function () {
 
 $("#data-select-area input[type='checkbox']").change(function () {
     updateSelectedDatasets();
+});
+
+$(".btn-err-cat").change(function () {
+    if (this.checked) {
+        const cat_idx = $(this).attr("data-cat-idx");
+        YPet.setCurrentAnnotationType(cat_idx);
+    }
 });
 
 function updateSelectedDatasets() {

@@ -21,12 +21,12 @@ annotator_instructions: |
   3.  <span style="background-color: #FFF79F"><b>Misleading</b></span>: The fact in the text is misleading in the given context.
   4.  <span style="background-color: #bbbbbb"><b>Other</b></span> : The text is problematic for another reason, e.g. grammatically or stylistically incorrect, irrelevant, or repetitive.
 
-  You can annotate the errors by dragging your mouse over the text, highlighting the error span.
+  You can annotate the errors by selecting the appropriate error category and dragging your mouse over the text, highlighting the error span.
   
   Once you think you have marked all the errors present in the text, click the **✅ Mark example as complete** button (you can still update the annotation later). 
   
   You will be able to submit the annotations once they are all are marked as complete.
-annotator_prompt: "Please annotate all the errors in the text:"
+annotator_prompt: "Please annotate all the errors in the text with the following categories:"
 final_message: |
   Your annotations have been submitted.
 
