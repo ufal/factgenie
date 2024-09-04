@@ -198,7 +198,7 @@ WordView = Backbone.Marionette.ItemView.extend({
     this.listenTo(this.model, 'change:neighbor', this.render);
     this.listenTo(this.model, 'change:latest', function (model, value, options) {
       if (this.model.get('latest')) {
-        this.model.trigger('highlight', { 'color': '#FFBCBC' });
+        this.model.trigger('highlight', { 'color': options.color });
       }
       if (options.force) {
         this.model.trigger('highlight', { 'color': '#fff' });
