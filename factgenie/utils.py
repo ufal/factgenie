@@ -38,7 +38,7 @@ CROWDSOURCING_CONFIG_DIR = DIR_PATH / "config" / "crowdsourcing"
 
 DATASET_CONFIG_PATH = DIR_PATH / "loaders" / "datasets.yml"
 MAIN_CONFIG = DIR_PATH / "config.yml"
-assert MAIN_CONFIG.exists(), f"Invalid path to config.yml {MAIN_CONFIG=}. Please rename config_TEMPLATE.yml to config.yml. Change the password, update the host profix, etc."
+assert MAIN_CONFIG.exists(), f"Invalid path to config.yml {MAIN_CONFIG=}. Please rename config_TEMPLATE.yml to config.yml. Change the password, update the host prefix, etc."
 
 file_handler = logging.FileHandler("error.log")
 file_handler.setLevel(logging.ERROR)
