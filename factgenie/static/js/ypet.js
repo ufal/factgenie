@@ -111,10 +111,11 @@ AnnotationList = Backbone.Collection.extend({
   drawAnnotations: function (annotation) {
     var annotation_type = YPet.AnnotationTypes.at(annotation.get('type')),
       words_len = annotation.get('words').length;
-
     annotation.get('words').each(function (word, word_index) {
-      word.trigger('highlight', { 'color': annotation_type.get('color') });
-      if (word_index == words_len - 1) { word.set('neighbor', true); }
+      word.trigger('highlight', { 'color': annotation_type.get('color'), 'name': annotation_type.get('name') });
+      if (word_index == words_len - 1) {
+        word.set('neighbor', true);
+      }
     });
   },
 
@@ -206,6 +207,7 @@ WordView = Backbone.Marionette.ItemView.extend({
     });
     this.listenTo(this.model, 'highlight', function (options) {
       this.$el.css({ 'backgroundColor': options.color });
+      this.$el.attr('title', options.name);
     });
   },
 
