@@ -201,7 +201,8 @@ WordView = Backbone.Marionette.ItemView.extend({
     this.listenTo(this.model, 'change:neighbor', this.render);
     this.listenTo(this.model, 'change:latest', function (model, value, options) {
       if (this.model.get('latest')) {
-        this.model.trigger('highlight', { 'color': options.color });
+        color = YPet.AnnotationTypes.at(YPet.currentAnnotationType).get('color');
+        this.model.trigger('highlight', { 'color': color });
       }
       if (options.force) {
         this.model.trigger('highlight', { 'color': '#fff' });
@@ -271,8 +272,12 @@ WordView = Backbone.Marionette.ItemView.extend({
       words = word.collection;
 
     var selected = words.filter(function (word) { return word.get('latest') });
+
     if (selected.length == 1 && word.get('parentAnnotation')) {
-      word.get('parentAnnotation').toggleType();
+      // word.get('parentAnnotation').toggleType();
+
+      // remove annotation on click
+      word.get('parentAnnotation').destroy();
     } else {
       /* if selection includes an annotation, delete that one */
       _.each(selected, function (w) {
@@ -284,7 +289,7 @@ WordView = Backbone.Marionette.ItemView.extend({
     };
 
     words.each(function (word) { word.set('latest', null); });
-  }
+  },
 
 });
 

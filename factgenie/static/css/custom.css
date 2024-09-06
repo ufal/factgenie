@@ -147,7 +147,11 @@ pre {
 }
 
 #outputarea {
-    margin-top: 20px;
+    margin-top: 10px;
+}
+
+#outputarea .paragraph {
+    cursor: url(brush.png), grab !important;
 }
 
 #pipelinearea {
@@ -836,12 +840,15 @@ a:hover {
 }
 
 .btn-err-cat-label {
+    box-shadow: 0 2px 4px darkslategray;
     color: #4a4a4a;
+    border-color: transparent !important;
+    padding: 2px 5px !important;
 }
 
 .btn-err-cat-label:not(.active) {
     filter: opacity(0.4);
-    border-color: transparent !important;
+    /* border-color: transparent !important; */
 }
 
 .btn-err-cat-label.active {
