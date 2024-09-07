@@ -162,20 +162,24 @@ Paragraph = Backbone.RelationalModel.extend({
   /* Required step after attaching YPet to a <p> to
    * extract the individual words */
   initialize: function (options) {
-    var step = 0,
-      space_padding,
-      word_obj,
-      text = options.text,
-      words = _.map(_.str.words(text), function (word) {
-        word_obj = {
-          'text': word,
-          'start': step,
-        }
-        space_padding = (text.substring(step).match(/\s+/g) || [""])[0].length;
-        step = step + word.length + space_padding;
-        return word_obj;
-      });
+    // Add a space before each newline
+    options.text = options.text.replace(/\\n/g, ' \\n');
+    // Split the text into words and create Word models with separators
+    var wordsArray = options.text.split(/(\s+)/).filter(function (word) { return word.replace(' ', '').length > 0; });
+    var words = [];
 
+    for (var i = 0; i < wordsArray.length; i++) {
+      var step = 0;
+      const text = wordsArray[i].replace(' ', '');
+      space_padding = (text.substring(step).match(/\s+/g) || [""])[0].length;
+      step = step + text.length + space_padding;
+
+      words.push(new Word({
+        text: text,
+        start: step,
+      }));
+    }
+    debugger;
     this.get('words').each(function (word) { word.destroy(); });
     this.get('words').add(words);
   },
@@ -185,7 +189,7 @@ Paragraph = Backbone.RelationalModel.extend({
  * Views
  */
 WordView = Backbone.Marionette.ItemView.extend({
-  template: _.template('<% if(neighbor) { %><%= text %><% } else { %><%= text %> <% } %>'),
+  template: _.template('<% if (text.match(/\\n+/)) { %><%= text.replace(/\\n/g, "<br>") %><% } else if(neighbor) { %><%= text %><% } else { %><%= text %> <% } %>'),
   tagName: 'span',
 
   /* These events are only triggered when over

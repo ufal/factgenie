@@ -14,7 +14,7 @@ has_display_overlay: true
 annotator_instructions: |
   In this task, you will annotate outputs of an automatic text generation system. For each example, you will see **data** on the left side and the corresponding generated **text** on the right side. Your task is to **annotate errors** in the text with respect to the data.
 
-  There are five types of errors that you can mark in the generated text:
+  There are four types of errors that you can mark in the generated text:
 
   1.  <span style="background-color: #FFBCBC"><b>Incorrect fact</b></span>: The fact in the text contradicts the data.
   2.  <span style="background-color: #e9d2ff"><b>Not checkable</b></span> : The fact in the text cannot be checked given the data.
