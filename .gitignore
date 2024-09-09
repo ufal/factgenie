@@ -16,4 +16,5 @@ build
 venv/
 wiki
 factgenie/annotations
-factgenie/templates
+factgenie/templates/campaigns/*
+!factgenie/templates/campaigns/*.*
