@@ -359,17 +359,14 @@ function getAnnotatedOutput(output, campaign_id) {
 
         annotated_content = annotateContent(content, annotations, annotation_span_categories);
     } else {
-        annotated_content = content;
-
-        // this output is not annotated -> grey out the text
-        if (campaign_id != "None") {
+        // we do not have outputs for the particular campaign -> grey out the text
+        if (campaign_id != "original") {
             placeholder.css("color", "#c2c2c2");
         }
-
+        annotated_content = content;
     }
     placeholder.html(annotated_content);
-    placeholder.hide();
-
+    // placeholder.hide();
     return placeholder;
 }
 
@@ -419,19 +416,48 @@ function annotateContent(content, annotations, annotation_span_categories) {
 }
 
 function updateDisplayedAnnotations() {
-    const annotator = $("#annotations-select").val();
-    // if `selected_ann` contains one of the values in the selectbox, show it
-    // otherwise, show the first one
-    // const annotator = selected_ann || $("#annotations-select").val();
-    // selected_ann = annotator;
-
+    const activeButtons = $('.btn-ann-select.active');
+    const campaign_ids = activeButtons.map(function () {
+        return $(this).data('ann');
+    }).get();
     // hide all placeholders
-    $(".out-placeholder").hide();
+    $(".output-box").hide();
 
-    // show the selected annotator
-    $(`.out-${annotator}-placeholder`).show();
-
+    // if no campaign ids, show the original output
+    if (campaign_ids.length == 0) {
+        $(".box-original").show();
+    }
+    for (const campaign_id of campaign_ids) {
+        // show the selected annotator
+        $(`.box-${campaign_id}`).show();
+    }
     enableTooltips();
+}
+
+
+function createOutputBox(content, campaign_id, setup) {
+    const setup_id = setup.id;
+    const model = setup.model;
+
+    var card = $('<div>', { class: `card output-box generated-output-box box-${setup_id} box-${campaign_id} box-${setup_id}-${campaign_id}` });
+
+    var annotationBadge = (campaign_id !== "original") ? `<span class="small"><i class="fa fa-pencil"></i> ${campaign_id}</span>` : ""
+    var headerHTML = `<div class="d-flex justify-content-between">
+    <span class="small">${setup_id}</span>
+    ${annotationBadge}
+    </div>
+    `
+
+    var cardHeader = $('<div>', { class: "card-header small" }).html(headerHTML);
+    var cardBody = $('<div>', { class: "card-body" });
+    var cardTitle = $('<h5>', { class: "card-title" }).text(model);
+    var cardText = $('<div>', { class: "card-text" }).html(content);
+
+    cardBody.append(cardTitle);
+    cardBody.append(cardText);
+    card.append(cardHeader);
+    card.append(cardBody);
+    return card;
 }
 
 function createOutputBoxes(generated_outputs) {
@@ -442,7 +468,6 @@ function createOutputBoxes(generated_outputs) {
     generated_outputs.sort(function (a, b) {
         return a.setup.id.localeCompare(b.setup.id);
     });
-    const selectBox = $("#annotations-select");
 
     // find all campaign ids in output annotations
     const campaign_ids = new Set();
@@ -452,37 +477,34 @@ function createOutputBoxes(generated_outputs) {
             campaign_ids.add(annotation.metadata.id);
         });
     });
-    campaign_ids.add("None");
-
-    for (const output of generated_outputs) {
-        const setup_id = output.setup.id;
-
-        var card = $('<div>', { class: "card output-box generated-output-box box-${setup_id}" });
-        var cardHeader = $('<div>', { class: "card-header small" }).text(setup_id);
-        var cardBody = $('<div>', { class: "card-body" });
-        var cardTitle = $('<h5>', { class: "card-title" }).text(output.setup.model);
-        var cardText = $('<div>', { class: "card-text", id: `out-${setup_id}` });
-
-        cardBody.append(cardTitle);
-        cardBody.append(cardText);
-        card.append(cardHeader);
-        card.append(cardBody);
-        card.appendTo("#outputarea");
-    }
-
+    const selectBox = $("#annotations-select");
     // clear the selectbox
     selectBox.empty();
 
     // add an option for each campaign id
     for (const campaign_id of campaign_ids) {
-        selectBox.append(`<option value="${campaign_id}">${campaign_id}</option>`);
+        const button = $(`<button type="button" class="btn btn-sm btn-light btn-ann-select" data-ann="${campaign_id}">${campaign_id}</button>`);
+        button.on('click', function () {
+            $(this).toggleClass('active');
+            updateDisplayedAnnotations();
+        });
+        selectBox.append(button);
+    }
+    for (const output of generated_outputs) {
+        groupDiv = $('<div>', { class: `output-group box-${output.setup.id} d-inline-flex gap-2` });
+        groupDiv.appendTo("#outputarea");
 
-        for (const output of generated_outputs) {
+        plain_output = getAnnotatedOutput(output, "original");
+        card = createOutputBox(plain_output, "original", output.setup);
+        card.appendTo(groupDiv);
+
+        for (const campaign_id of campaign_ids) {
             const annotated_output = getAnnotatedOutput(output, campaign_id);
-            $(`#out-${output.setup.id}`).append(annotated_output);
+            card = createOutputBox(annotated_output, campaign_id, output.setup);
+            card.appendTo(groupDiv);
+            card.hide();
         }
     }
-
 }
 
 function fetchExample(dataset, split, example_idx) {
@@ -507,7 +529,6 @@ function fetchExample(dataset, split, example_idx) {
         if ($("#annotations-select").find(`option[value='${selected_ann}']`).length > 0) {
             $("#annotations-select").val(selected_ann).trigger("change");
         }
-
         updateDisplayedAnnotations();
     });
 }
@@ -515,7 +536,6 @@ function fetchExample(dataset, split, example_idx) {
 
 $("#dataset-select").on("change", changeDataset);
 $("#split-select").on("change", changeSplit);
-$("#annotations-select").on("change", updateDisplayedAnnotations);
 
 if (mode == "annotate") {
     $('.btn-check').on('change', function () {
