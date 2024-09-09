@@ -11,6 +11,7 @@ Word = Backbone.RelationalModel.extend({
     start: null,
     latest: null,
     neighbor: false,
+    space_padding: '',
   }
 });
 
@@ -77,17 +78,14 @@ AnnotationList = Backbone.Collection.extend({
   model: Annotation,
   url: '/api/v1/annotations',
 
-  sanitizeAnnotation: function (full_str, start) {
-    /* Return the cleaned string and the (potentially) new start position */
-    var str = _.str.clean(full_str).replace(/^[^a-z\d]*|[^a-z\d]*$/gi, '');
-    return { 'text': str, 'start': start + full_str.indexOf(str) };
-  },
-
   initialize: function (options) {
     this.listenTo(this, 'add', function (annotation) {
-      var ann = this.sanitizeAnnotation(annotation.get('words').pluck('text').join(' '), annotation.get('words').first().get('start'));
-      annotation.set('text', ann.text);
-      annotation.set('start', ann.start);
+      var text = annotation.get('words').map(word => word.get('text') + word.get('space_padding')).join('');
+      var start = annotation.get('words').first().get('start');
+
+      annotation.set('text', text);
+      annotation.set('start', start);
+
       this.drawAnnotations(annotation);
     });
 
@@ -162,24 +160,32 @@ Paragraph = Backbone.RelationalModel.extend({
   /* Required step after attaching YPet to a <p> to
    * extract the individual words */
   initialize: function (options) {
-    // Add a space before each newline
-    options.text = options.text.replace(/\\n/g, ' \\n');
-    // Split the text into words and create Word models with separators
-    var wordsArray = options.text.split(/(\s+)/).filter(function (word) { return word.replace(' ', '').length > 0; });
+
+    if (options.level == "words") {
+      var wordsArray = options.text.split(/(\s+)/).filter(function (word) { return word.replace(/\s+/g, '').length > 0; });
+    } else if (options.level == "chars") {
+      var wordsArray = options.text.split('').filter(function (word) { return word.replace(/\s+/g, '').length > 0; });
+    }
     var words = [];
+    var step = 0;
 
     for (var i = 0; i < wordsArray.length; i++) {
-      var step = 0;
-      const text = wordsArray[i].replace(' ', '');
-      space_padding = (text.substring(step).match(/\s+/g) || [""])[0].length;
-      step = step + text.length + space_padding;
+      const word = wordsArray[i];
+      if (options.level == "words") {
+        var space_padding = (options.text.substring(step).match(/\s+/g) || [""])[0];
+      } else if (options.level == "chars") {
+        var space_padding = (options.text.substring(step + 1).match(/^\s+/g) || [""])[0];
+      }
 
       words.push(new Word({
-        text: text,
+        text: word,
         start: step,
+        space_padding: space_padding,
       }));
+      // Matches the first whitespace segment after the word
+      space_padding_length = space_padding.length;
+      step = step + word.length + space_padding_length;
     }
-    debugger;
     this.get('words').each(function (word) { word.destroy(); });
     this.get('words').add(words);
   },
@@ -189,7 +195,7 @@ Paragraph = Backbone.RelationalModel.extend({
  * Views
  */
 WordView = Backbone.Marionette.ItemView.extend({
-  template: _.template('<% if (text.match(/\\n+/)) { %><%= text.replace(/\\n/g, "<br>") %><% } else if(neighbor) { %><%= text %><% } else { %><%= text %> <% } %>'),
+  template: _.template('<% if(neighbor) { %><%= text %><%= space_padding.replace(/\\n/g, "<br>") %><% } else { %><%= text %><%= space_padding.replace(/\\n/g, "<br>") %><% } %>'),
   tagName: 'span',
 
   /* These events are only triggered when over
@@ -221,7 +227,12 @@ WordView = Backbone.Marionette.ItemView.extend({
   /* Triggers the proper class assignment
    * when the word <span> is redrawn */
   onRender: function () {
-    this.$el.css({ 'margin-right': this.model.get('neighbor') ? '5px' : '0px' });
+    // if neighbor is true, trim the right whitespace and add it to the next span
+    if (this.model.get('neighbor')) {
+      this.$el.html(this.model.get('text') + "<span style='background-color: #FFF !important;'>" + this.model.get('space_padding').replace(/\n/g, "<br>") + "</span>");
+
+    }
+
   },
 
   /* When clicking down, make sure to keep track

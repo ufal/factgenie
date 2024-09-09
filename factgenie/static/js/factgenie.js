@@ -138,7 +138,7 @@ function loadAnnotations() {
 
                 for (const [annotation_idx, data] of Object.entries(examples_cached)) {
 
-                    var p = new Paragraph({ 'text': data.generated_outputs.generated });
+                    var p = new Paragraph({ 'text': data.generated_outputs.generated, 'level': 'words' });
 
                     paragraphs[`p${annotation_idx}`] = p;
                     regions[`p${annotation_idx}`] = `#out-text-${annotation_idx}`;
@@ -180,6 +180,13 @@ function loadAnnotations() {
 }
 
 function submitAnnotations(campaign_id) {
+    // remove `words` from the annotations: they are only used by the YPet library
+    for (const example of annotation_set) {
+        for (const annotation of example.annotations) {
+            delete annotation.words;
+        }
+    }
+
     $.post({
         url: `${url_prefix}/submit_annotations`,
         contentType: 'application/json', // Specify JSON content type
@@ -337,12 +344,13 @@ function changeExample(dataset, split, example_idx) {
 
 function getAnnotatedOutput(output, campaign_id) {
     const setup_id = output.setup.id;
+    // replace newlines with any spaces around them with <br>
     const content = output.generated.replace(/\\n/g, '<br>');
 
     // if the campaign_id is in output.annotations, show the annotated content
     const annotations_campaign = output.annotations.filter(a => a.metadata.id == campaign_id);
 
-    var placeholder = $('<div>', { id: `out-${setup_id}-${campaign_id}-placeholder`, class: `font-mono out-placeholder out-${campaign_id}-placeholder` });
+    var placeholder = $('<pre>', { id: `out-${setup_id}-${campaign_id}-placeholder`, class: `font-mono out-placeholder out-${campaign_id}-placeholder` });
     var annotated_content;
 
     if (annotations_campaign.length > 0) {
@@ -353,6 +361,7 @@ function getAnnotatedOutput(output, campaign_id) {
     } else {
         annotated_content = content;
 
+        // this output is not annotated -> grey out the text
         if (campaign_id != "None") {
             placeholder.css("color", "#c2c2c2");
         }
@@ -364,6 +373,8 @@ function getAnnotatedOutput(output, campaign_id) {
     return placeholder;
 }
 
+// Our custom function to highlight the text spans using the collected annotations
+// Here we do *not* use the YPet library, but directly work with HTML
 function annotateContent(content, annotations, annotation_span_categories) {
     let offset = 0; // Track cumulative offset
     const annotationSet = annotations.annotations;
@@ -382,7 +393,7 @@ function annotateContent(content, annotations, annotation_span_categories) {
             return;
         }
         const color = annotation_span_categories[annotationType].color;
-        const text = annotation.text;
+        const text = annotation.text.trimEnd();
 
         const start = annotation.start + offset;
         const end = start + text.length;
