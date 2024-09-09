@@ -456,14 +456,18 @@ function createOutputBoxes(generated_outputs) {
 
     for (const output of generated_outputs) {
         const setup_id = output.setup.id;
-        // const model = output.setup.model;
 
-        var label = $('<label>', { class: "label-name" }).text(setup_id);
-        var output_box = $('<div>', {
-            id: `out-${setup_id}`,
-            class: `output-box generated-output-box box-${setup_id}`,
-        }).append(label);
-        output_box.appendTo("#outputarea");
+        var card = $('<div>', { class: "card output-box generated-output-box box-${setup_id}" });
+        var cardHeader = $('<div>', { class: "card-header small" }).text(setup_id);
+        var cardBody = $('<div>', { class: "card-body" });
+        var cardTitle = $('<h5>', { class: "card-title" }).text(output.setup.model);
+        var cardText = $('<div>', { class: "card-text", id: `out-${setup_id}` });
+
+        cardBody.append(cardTitle);
+        cardBody.append(cardText);
+        card.append(cardHeader);
+        card.append(cardBody);
+        card.appendTo("#outputarea");
     }
 
     // clear the selectbox
