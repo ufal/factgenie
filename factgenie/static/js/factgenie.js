@@ -61,7 +61,7 @@ function randomBtn() {
 function goToAnnotation(page) {
     $(".page-link").removeClass("bg-active");
     $(`#page-link-${page}`).addClass("bg-active");
-    saveCurrentOnly();
+    saveCurrentAnnotations();
     showAnnotation();
 }
 
@@ -207,16 +207,14 @@ function collectFlags() {
     return flags;
 }
 
-function saveCurrentOnly() {
+function saveCurrentAnnotations() {
     var collection = YPet[`p${example_idx}`].currentView.collection.parentDocument.get('annotations').toJSON();
     annotation_set[example_idx]["annotations"] = collection;
 }
 
 
 function markAnnotationAsComplete() {
-    var collection = YPet[`p${example_idx}`].currentView.collection.parentDocument.get('annotations').toJSON();
-    annotation_set[example_idx]["annotations"] = collection;
-    console.log(example_idx);
+    saveCurrentAnnotations();
     annotation_set[example_idx]["flags"] = collectFlags();
 
     $('#page-link-' + example_idx).removeClass("bg-incomplete");

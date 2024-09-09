@@ -148,6 +148,8 @@ pre {
 
 #outputarea {
     margin-top: 10px;
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 16px;
 }
 
 #outputarea .paragraph {
@@ -315,7 +317,10 @@ pre {
     border-radius: 2%;
     margin: 10px;
     position: relative;
-    font-size: smaller;
+}
+
+.output-box>pre {
+    margin-bottom: 0px;
 }
 
 .annotate-box {

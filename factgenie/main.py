@@ -417,7 +417,6 @@ def render_example():
         return jsonify({"error": f"Error\n\t{e}\nwhile getting example data: {dataset_id=}, {split=}, {example_idx=}"})
 
 
-
 @app.route("/export_annotations", methods=["GET", "POST"])
 @login_required
 def export_annotations():
