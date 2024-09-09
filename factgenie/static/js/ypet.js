@@ -161,9 +161,9 @@ Paragraph = Backbone.RelationalModel.extend({
    * extract the individual words */
   initialize: function (options) {
 
-    if (options.level == "words") {
+    if (options.granularity == "words") {
       var wordsArray = options.text.split(/(\s+)/).filter(function (word) { return word.replace(/\s+/g, '').length > 0; });
-    } else if (options.level == "chars") {
+    } else if (options.granularity == "chars") {
       var wordsArray = options.text.split('').filter(function (word) { return word.replace(/\s+/g, '').length > 0; });
     }
     var words = [];
@@ -171,9 +171,9 @@ Paragraph = Backbone.RelationalModel.extend({
 
     for (var i = 0; i < wordsArray.length; i++) {
       const word = wordsArray[i];
-      if (options.level == "words") {
+      if (options.granularity == "words") {
         var space_padding = (options.text.substring(step).match(/\s+/g) || [""])[0];
-      } else if (options.level == "chars") {
+      } else if (options.granularity == "chars") {
         var space_padding = (options.text.substring(step + 1).match(/^\s+/g) || [""])[0];
       }
 

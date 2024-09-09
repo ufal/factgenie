@@ -8,6 +8,7 @@ annotation_span_categories:
   - name: "Other"
     color: "#bbbbbb"
 examples_per_batch: 10
+annotation_granularity: words
 sort_order: dataset-level
 idle_time: 120
 has_display_overlay: true

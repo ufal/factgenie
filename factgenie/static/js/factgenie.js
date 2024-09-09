@@ -138,7 +138,7 @@ function loadAnnotations() {
 
                 for (const [annotation_idx, data] of Object.entries(examples_cached)) {
 
-                    var p = new Paragraph({ 'text': data.generated_outputs.generated, 'level': 'words' });
+                    var p = new Paragraph({ 'text': data.generated_outputs.generated, 'granularity': metadata.config.annotation_granularity });
 
                     paragraphs[`p${annotation_idx}`] = p;
                     regions[`p${annotation_idx}`] = `#out-text-${annotation_idx}`;
@@ -613,6 +613,7 @@ function gatherConfig() {
         config.hasDisplayOverlay = $("#displayOverlay").is(":checked");
         config.examplesPerBatch = $("#examplesPerBatch").val();
         config.idleTime = $("#idleTime").val();
+        config.annotationGranularity = $("#annotationGranularity").val();
         config.sortOrder = $("#sortOrder").val();
         config.annotationSpanCategories = getAnnotationSpanCategories();
         config.flags = getKeys($("#flags"));
@@ -1037,6 +1038,7 @@ function updateCrowdsourcingConfig() {
     const finalMessage = cfg.final_message;
     const examplesPerBatch = cfg.examples_per_batch;
     const idleTime = cfg.idle_time;
+    const annotationGranularity = cfg.annotation_granularity;
     const sortOrder = cfg.sort_order;
     const annotationSpanCategories = cfg.annotation_span_categories;
     const flags = cfg.flags;
@@ -1046,6 +1048,7 @@ function updateCrowdsourcingConfig() {
     finalMessageMDE.value(finalMessage);
     $("#examplesPerBatch").val(examplesPerBatch);
     $("#idleTime").val(idleTime);
+    $("#annotationGranularity").val(annotationGranularity);
     $("#sortOrder").val(sortOrder);
     $("#annotation-span-categories").empty();
 

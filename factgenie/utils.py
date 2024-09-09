@@ -792,6 +792,7 @@ def parse_crowdsourcing_config(config):
         "final_message": config.get("finalMessage"),
         "examples_per_batch": int(config.get("examplesPerBatch")),
         "idle_time": int(config.get("idleTime")),
+        "annotation_granularity": config.get("annotationGranularity"),
         "sort_order": config.get("sortOrder"),
         "annotation_span_categories": config.get("annotationSpanCategories"),
         "flags": config.get("flags"),

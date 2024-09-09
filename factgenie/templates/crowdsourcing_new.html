@@ -125,6 +125,17 @@
             </div>
             <div class="form-group mt-4">
               <!-- select for sort order -->
+              <label for="annotationGranularity">Annotation granularity</label>
+              <div class="mb-2">
+                <small class="form-text text-muted">The smallest unit annotators can annotate.</small>
+              </div>
+              <select class="form-select" id="annotationGranularity" name="annotationGranularity">
+                <option value="words">Words</option>
+                <option value="chars">Characters</option>
+              </select>
+            </div>
+            <div class="form-group mt-4">
+              <!-- select for sort order -->
               <label for="sortOrder">Shuffle outputs</label>
               <div class="mb-2">
                 <small class="form-text text-muted">How to shuffle examples before batching (model outputs are
