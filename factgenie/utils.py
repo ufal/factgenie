@@ -26,7 +26,7 @@ from collections import defaultdict
 from pathlib import Path
 from factgenie.campaigns import Campaign, HumanCampaign, ModelCampaign
 from factgenie.metrics import LLMMetric, LLMMetricFactory
-from factgenie.loaders.dataset import Dataset, DATA_DIR
+from factgenie.loaders.dataset import Dataset, DATA_DIR, OUTPUT_DIR
 from jinja2 import Template
 
 DIR_PATH = Path(__file__).parent
@@ -516,6 +516,26 @@ def export_dataset(app, dataset_id):
     response = make_response(zip_buffer.getvalue())
     response.headers["Content-Type"] = "application/zip"
     response.headers["Content-Disposition"] = f"attachment; filename={dataset_id}.zip"
+
+    return response
+
+
+def export_outputs(app, dataset_id, split, setup_id):
+    zip_buffer = BytesIO()
+    output_path = f"{OUTPUT_DIR}/{dataset_id}/{split}"
+
+    with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+        for root, dirs, files in os.walk(output_path):
+            for file in files:
+                zip_file.write(
+                    os.path.join(root, file),
+                    os.path.relpath(os.path.join(root, file), output_path),
+                )
+
+    # Set response headers for download
+    response = make_response(zip_buffer.getvalue())
+    response.headers["Content-Type"] = "application/zip"
+    response.headers["Content-Disposition"] = f"attachment; filename={dataset_id}_{split}_{setup_id}.zip"
 
     return response
 

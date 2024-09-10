@@ -433,6 +433,16 @@ def export_dataset():
     return utils.export_dataset(app, dataset_id)
 
 
+@app.route("/export_outputs", methods=["GET", "POST"])
+@login_required
+def export_outputs():
+    dataset_id = request.args.get("dataset")
+    split = request.args.get("split")
+    setup_id = request.args.get("setup")
+
+    return utils.export_outputs(app, dataset_id, split, setup_id)
+
+
 @app.route("/files/<path:filename>", methods=["GET"])
 def download_file(filename):
     # serving external files for datasets

@@ -66,6 +66,10 @@ function showModelOutputs() {
                     data-bs-toggle="tooltip" title="Show the outputs">
                     <i class="fa fa-eye"></i>
                 </a>
+                <a href="${url_prefix}/export_outputs?dataset=${dataset}&split=${split}&setup=${setup}" class="btn btn-outline-secondary"
+                data-bs-toggle="tooltip" title="Download model outputs">
+                <i class="fa fa-download"></i>
+              </a>
                 <a onclick="deleteOutput('${dataset}', '${split}', '${setup}')" class="btn btn-outline-danger"
                 data-bs-toggle="tooltip" title="Delete the output">
                 <i class="fa fa-trash"></i>
