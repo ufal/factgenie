@@ -908,6 +908,11 @@ def run_llm_eval(campaign_id, announcer, campaign, datasets, metric, threads):
         annotation_set = metric.annotate_example(example, output)
 
         if "error" in annotation_set:
+            # remove the `running` flag
+            threads[campaign_id]["running"] = False
+            campaign.metadata["status"] = "paused"
+            campaign.update_metadata()
+
             return error(annotation_set["error"])
 
         annotation = save_annotation(

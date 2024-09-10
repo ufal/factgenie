@@ -821,11 +821,16 @@ function runLlmEval(campaignId) {
             if (response.success !== true) {
                 $("#log-area").text(JSON.stringify(response.error));
                 console.log(JSON.stringify(response));
+
+                $("#metadata-status").html("error");
+                $("#run-button").show();
+                $("#stop-button").hide();
+                $("#llm-eval-progress").hide();
             } else {
                 console.log(response);
 
                 if (response.status == "finished") {
-                    $("#metadata-status").html("finished");
+                    $("#metadata-status").html("new");
                     $("#run-button").hide();
                     $("#download-button").show();
                     $("#stop-button").hide();
