@@ -830,7 +830,7 @@ function runLlmEval(campaignId) {
                 console.log(response);
 
                 if (response.status == "finished") {
-                    $("#metadata-status").html("new");
+                    $("#metadata-status").html("finished");
                     $("#run-button").hide();
                     $("#download-button").show();
                     $("#stop-button").hide();
