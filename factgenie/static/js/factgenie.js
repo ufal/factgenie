@@ -835,6 +835,8 @@ function runLlmEval(campaignId) {
                     $("#download-button").show();
                     $("#stop-button").hide();
                     $("#llm-eval-progress").hide();
+
+                    $("#log-area").text(response.final_message);
                 }
             }
         }
