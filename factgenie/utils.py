@@ -321,9 +321,9 @@ def get_annotator_batch(app, campaign, db, annotator_id, session_id, study_id):
             db = free_idle_examples(db)
 
             # update the CSV
-            db.loc[batch_idx, "status"] = "assigned"
-            db.loc[batch_idx, "start"] = start
-            db.loc[batch_idx, "annotator_id"] = annotator_id
+            db.loc[db["batch_idx"] == batch_idx, "status"] = "assigned"
+            db.loc[db["batch_idx"] == batch_idx, "start"] = start
+            db.loc[db["batch_idx"] == batch_idx, "annotator_id"] = annotator_id
 
             campaign.update_db(db)
 
