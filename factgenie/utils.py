@@ -38,7 +38,9 @@ CROWDSOURCING_CONFIG_DIR = DIR_PATH / "config" / "crowdsourcing"
 
 DATASET_CONFIG_PATH = DIR_PATH / "loaders" / "datasets.yml"
 MAIN_CONFIG = DIR_PATH / "config.yml"
-assert MAIN_CONFIG.exists(), f"Invalid path to config.yml {MAIN_CONFIG=}. Please rename config_TEMPLATE.yml to config.yml. Change the password, update the host profix, etc."
+assert (
+    MAIN_CONFIG.exists()
+), f"Invalid path to config.yml {MAIN_CONFIG=}. Please rename config_TEMPLATE.yml to config.yml. Change the password, update the host prefix, etc."
 
 file_handler = logging.FileHandler("error.log")
 file_handler.setLevel(logging.ERROR)
@@ -790,6 +792,7 @@ def parse_crowdsourcing_config(config):
         "final_message": config.get("finalMessage"),
         "examples_per_batch": int(config.get("examplesPerBatch")),
         "idle_time": int(config.get("idleTime")),
+        "annotation_granularity": config.get("annotationGranularity"),
         "sort_order": config.get("sortOrder"),
         "annotation_span_categories": config.get("annotationSpanCategories"),
         "flags": config.get("flags"),
@@ -840,6 +843,7 @@ def create_crowdsourcing_page(campaign_id, config):
         instructions=instructions_html,
         annotator_prompt=annotator_prompt,
         final_message=final_message_html,
+        annotation_span_categories=config.get("annotation_span_categories", []),
         has_display_overlay='style="display: none"' if not has_display_overlay else "",
         flags=generate_checkboxes(config.get("flags", [])),
     )

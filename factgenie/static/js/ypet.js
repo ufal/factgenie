@@ -11,6 +11,7 @@ Word = Backbone.RelationalModel.extend({
     start: null,
     latest: null,
     neighbor: false,
+    space_padding: '',
   }
 });
 
@@ -51,13 +52,15 @@ Annotation = Backbone.RelationalModel.extend({
   }],
 
   toggleType: function () {
-    /* Removes (if only 1 Annotation type) or changes
-     * the Annotation type when clicked after existing */
-    if (this.get('type') == YPet.AnnotationTypes.length - 1) {
-      this.destroy();
-    } else {
-      this.set('type', this.get('type') + 1);
-    }
+    // Use the current annotation type
+    this.set('type', YPet.currentAnnotationType);
+    // /* Removes (if only 1 Annotation type) or changes
+    //  * the Annotation type when clicked after existing */
+    // if (this.get('type') == YPet.AnnotationTypes.length - 1) {
+    //   this.destroy();
+    // } else {
+    //   this.set('type', this.get('type') + 1);
+    // }
   }
 });
 
@@ -75,17 +78,14 @@ AnnotationList = Backbone.Collection.extend({
   model: Annotation,
   url: '/api/v1/annotations',
 
-  sanitizeAnnotation: function (full_str, start) {
-    /* Return the cleaned string and the (potentially) new start position */
-    var str = _.str.clean(full_str).replace(/^[^a-z\d]*|[^a-z\d]*$/gi, '');
-    return { 'text': str, 'start': start + full_str.indexOf(str) };
-  },
-
   initialize: function (options) {
     this.listenTo(this, 'add', function (annotation) {
-      var ann = this.sanitizeAnnotation(annotation.get('words').pluck('text').join(' '), annotation.get('words').first().get('start'));
-      annotation.set('text', ann.text);
-      annotation.set('start', ann.start);
+      var text = annotation.get('words').map(word => word.get('text') + word.get('space_padding')).join('');
+      var start = annotation.get('words').first().get('start');
+
+      annotation.set('text', text);
+      annotation.set('start', start);
+
       this.drawAnnotations(annotation);
     });
 
@@ -111,10 +111,11 @@ AnnotationList = Backbone.Collection.extend({
   drawAnnotations: function (annotation) {
     var annotation_type = YPet.AnnotationTypes.at(annotation.get('type')),
       words_len = annotation.get('words').length;
-
     annotation.get('words').each(function (word, word_index) {
-      word.trigger('highlight', { 'color': annotation_type.get('color') });
-      if (word_index == words_len - 1) { word.set('neighbor', true); }
+      word.trigger('highlight', { 'color': annotation_type.get('color'), 'name': annotation_type.get('name') });
+      if (word_index == words_len - 1) {
+        word.set('neighbor', true);
+      }
     });
   },
 
@@ -159,20 +160,32 @@ Paragraph = Backbone.RelationalModel.extend({
   /* Required step after attaching YPet to a <p> to
    * extract the individual words */
   initialize: function (options) {
-    var step = 0,
-      space_padding,
-      word_obj,
-      text = options.text,
-      words = _.map(_.str.words(text), function (word) {
-        word_obj = {
-          'text': word,
-          'start': step,
-        }
-        space_padding = (text.substring(step).match(/\s+/g) || [""])[0].length;
-        step = step + word.length + space_padding;
-        return word_obj;
-      });
 
+    if (options.granularity == "words") {
+      var wordsArray = options.text.split(/(\s+)/).filter(function (word) { return word.replace(/\s+/g, '').length > 0; });
+    } else if (options.granularity == "chars") {
+      var wordsArray = options.text.split('').filter(function (word) { return word.replace(/\s+/g, '').length > 0; });
+    }
+    var words = [];
+    var step = 0;
+
+    for (var i = 0; i < wordsArray.length; i++) {
+      const word = wordsArray[i];
+      if (options.granularity == "words") {
+        var space_padding = (options.text.substring(step).match(/\s+/g) || [""])[0];
+      } else if (options.granularity == "chars") {
+        var space_padding = (options.text.substring(step + 1).match(/^\s+/g) || [""])[0];
+      }
+
+      words.push(new Word({
+        text: word,
+        start: step,
+        space_padding: space_padding,
+      }));
+      // Matches the first whitespace segment after the word
+      space_padding_length = space_padding.length;
+      step = step + word.length + space_padding_length;
+    }
     this.get('words').each(function (word) { word.destroy(); });
     this.get('words').add(words);
   },
@@ -182,7 +195,7 @@ Paragraph = Backbone.RelationalModel.extend({
  * Views
  */
 WordView = Backbone.Marionette.ItemView.extend({
-  template: _.template('<% if(neighbor) { %><%= text %><% } else { %><%= text %> <% } %>'),
+  template: _.template('<% if(neighbor) { %><%= text %><%= space_padding.replace(/\\n/g, "<br>") %><% } else { %><%= text %><%= space_padding.replace(/\\n/g, "<br>") %><% } %>'),
   tagName: 'span',
 
   /* These events are only triggered when over
@@ -198,7 +211,8 @@ WordView = Backbone.Marionette.ItemView.extend({
     this.listenTo(this.model, 'change:neighbor', this.render);
     this.listenTo(this.model, 'change:latest', function (model, value, options) {
       if (this.model.get('latest')) {
-        this.model.trigger('highlight', { 'color': '#FFBCBC' });
+        color = YPet.AnnotationTypes.at(YPet.currentAnnotationType).get('color');
+        this.model.trigger('highlight', { 'color': color });
       }
       if (options.force) {
         this.model.trigger('highlight', { 'color': '#fff' });
@@ -206,13 +220,19 @@ WordView = Backbone.Marionette.ItemView.extend({
     });
     this.listenTo(this.model, 'highlight', function (options) {
       this.$el.css({ 'backgroundColor': options.color });
+      this.$el.attr('title', options.name);
     });
   },
 
   /* Triggers the proper class assignment
    * when the word <span> is redrawn */
   onRender: function () {
-    this.$el.css({ 'margin-right': this.model.get('neighbor') ? '5px' : '0px' });
+    // if neighbor is true, trim the right whitespace and add it to the next span
+    if (this.model.get('neighbor')) {
+      this.$el.html(this.model.get('text') + "<span style='background-color: #FFF !important;'>" + this.model.get('space_padding').replace(/\n/g, "<br>") + "</span>");
+
+    }
+
   },
 
   /* When clicking down, make sure to keep track
@@ -267,8 +287,12 @@ WordView = Backbone.Marionette.ItemView.extend({
       words = word.collection;
 
     var selected = words.filter(function (word) { return word.get('latest') });
+
     if (selected.length == 1 && word.get('parentAnnotation')) {
-      word.get('parentAnnotation').toggleType();
+      // word.get('parentAnnotation').toggleType();
+
+      // remove annotation on click
+      word.get('parentAnnotation').destroy();
     } else {
       /* if selection includes an annotation, delete that one */
       _.each(selected, function (w) {
@@ -276,11 +300,11 @@ WordView = Backbone.Marionette.ItemView.extend({
           w.get('parentAnnotation').destroy();
         }
       })
-      word.get('parentDocument').get('annotations').create({ words: selected });
+      word.get('parentDocument').get('annotations').create({ words: selected, type: YPet.currentAnnotationType });
     };
 
     words.each(function (word) { word.set('latest', null); });
-  }
+  },
 
 });
 
@@ -375,6 +399,15 @@ WordCollectionView = Backbone.Marionette.CollectionView.extend({
 });
 
 YPet = new Backbone.Marionette.Application();
+
+
+YPet.currentAnnotationType = 0; // Default to the first annotation type
+
+YPet.setCurrentAnnotationType = function (typeIndex) {
+  YPet.currentAnnotationType = typeIndex;
+};
+
+
 // YPet.AnnotationTypes = new AnnotationTypeList([
 //   { name: 'Disease', color: '#00ccff' },
 //   { name: 'Gene', color: '#22A301' },

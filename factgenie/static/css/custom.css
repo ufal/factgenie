@@ -147,7 +147,14 @@ pre {
 }
 
 #outputarea {
-    margin-top: 20px;
+    /* margin-top: 20px; */
+    /* font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; */
+    padding: 10px;
+    /* font-size: 16px; */
+}
+
+#outputarea .paragraph {
+    cursor: url(brush.png), grab !important;
 }
 
 #pipelinearea {
@@ -306,12 +313,22 @@ pre {
 }
 
 .output-box {
-    padding: 20px;
-    border: 1px solid #ddd;
-    border-radius: 2%;
-    margin: 10px;
-    position: relative;
-    font-size: smaller;
+    /* padding: 20px; */
+    /* border: 1px solid #ddd;
+    border-radius: 2%; */
+    margin-bottom: 10px;
+    /* position: relative; */
+    /* font-size: 16px !important; */
+}
+
+.card-text>pre {
+    font-size: 14px !important;
+    margin-left: 10px !important;
+    margin-right: 10px !important;
+}
+
+.output-box .card-body {
+    padding: 5px;
 }
 
 .annotate-box {
@@ -341,14 +358,14 @@ pre {
 
 
 
-.output-box>label {
+/* .output-box>label {
     position: absolute;
     font-size: smaller;
     top: -17px;
     padding-left: 3px;
     padding-right: 3px;
     background-color: white;
-}
+} */
 
 
 .select2-search--inline {
@@ -754,7 +771,9 @@ a:hover {
 }
 
 #sidepanel-content {
-    padding: 15px;
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-top: 15px;
 }
 
 
@@ -833,4 +852,25 @@ a:hover {
 .CodeMirror,
 .CodeMirror-scroll {
     min-height: 150px !important;
+}
+
+.btn-err-cat-label {
+    box-shadow: 0 2px 4px darkslategray;
+    color: #4a4a4a;
+    border-color: transparent !important;
+    padding: 2px 5px !important;
+}
+
+.btn-err-cat-label:not(.active) {
+    filter: opacity(0.4);
+    /* border-color: transparent !important; */
+}
+
+.btn-err-cat-label.active {
+    font-weight: bold;
+}
+
+.btn-ann-select {
+    /* box-shadow: 0 1px 2px darkslategray; */
+    border: 1px solid #ddd;
 }

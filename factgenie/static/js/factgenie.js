@@ -9,7 +9,7 @@ var generated_outputs = window.generated_outputs;
 var mode = window.mode;
 var examples_cached = {};
 var sizes = mode == "annotate" ? [50, 50] : [66, 33];
-var selected_ann = null;
+var selected_campaigns = [];
 
 
 if (mode == "annotate") {
@@ -61,7 +61,7 @@ function randomBtn() {
 function goToAnnotation(page) {
     $(".page-link").removeClass("bg-active");
     $(`#page-link-${page}`).addClass("bg-active");
-    saveCurrentOnly();
+    saveCurrentAnnotations();
     showAnnotation();
 }
 
@@ -138,7 +138,7 @@ function loadAnnotations() {
 
                 for (const [annotation_idx, data] of Object.entries(examples_cached)) {
 
-                    var p = new Paragraph({ 'text': data.generated_outputs.generated });
+                    var p = new Paragraph({ 'text': data.generated_outputs.generated, 'granularity': metadata.config.annotation_granularity });
 
                     paragraphs[`p${annotation_idx}`] = p;
                     regions[`p${annotation_idx}`] = `#out-text-${annotation_idx}`;
@@ -180,6 +180,13 @@ function loadAnnotations() {
 }
 
 function submitAnnotations(campaign_id) {
+    // remove `words` from the annotations: they are only used by the YPet library
+    for (const example of annotation_set) {
+        for (const annotation of example.annotations) {
+            delete annotation.words;
+        }
+    }
+
     $.post({
         url: `${url_prefix}/submit_annotations`,
         contentType: 'application/json', // Specify JSON content type
@@ -207,16 +214,14 @@ function collectFlags() {
     return flags;
 }
 
-function saveCurrentOnly() {
+function saveCurrentAnnotations() {
     var collection = YPet[`p${example_idx}`].currentView.collection.parentDocument.get('annotations').toJSON();
     annotation_set[example_idx]["annotations"] = collection;
 }
 
 
 function markAnnotationAsComplete() {
-    var collection = YPet[`p${example_idx}`].currentView.collection.parentDocument.get('annotations').toJSON();
-    annotation_set[example_idx]["annotations"] = collection;
-    console.log(example_idx);
+    saveCurrentAnnotations();
     annotation_set[example_idx]["flags"] = collectFlags();
 
     $('#page-link-' + example_idx).removeClass("bg-incomplete");
@@ -339,12 +344,13 @@ function changeExample(dataset, split, example_idx) {
 
 function getAnnotatedOutput(output, campaign_id) {
     const setup_id = output.setup.id;
+    // replace newlines with any spaces around them with <br>
     const content = output.generated.replace(/\\n/g, '<br>');
 
     // if the campaign_id is in output.annotations, show the annotated content
     const annotations_campaign = output.annotations.filter(a => a.metadata.id == campaign_id);
 
-    var placeholder = $('<div>', { id: `out-${setup_id}-${campaign_id}-placeholder`, class: `font-mono out-placeholder out-${campaign_id}-placeholder` });
+    var placeholder = $('<pre>', { id: `out-${setup_id}-${campaign_id}-placeholder`, class: `font-mono out-placeholder out-${campaign_id}-placeholder` });
     var annotated_content;
 
     if (annotations_campaign.length > 0) {
@@ -353,19 +359,19 @@ function getAnnotatedOutput(output, campaign_id) {
 
         annotated_content = annotateContent(content, annotations, annotation_span_categories);
     } else {
-        annotated_content = content;
-
-        if (campaign_id != "None") {
+        // we do not have outputs for the particular campaign -> grey out the text
+        if (campaign_id != "original") {
             placeholder.css("color", "#c2c2c2");
         }
-
+        annotated_content = content;
     }
     placeholder.html(annotated_content);
-    placeholder.hide();
-
+    // placeholder.hide();
     return placeholder;
 }
 
+// Our custom function to highlight the text spans using the collected annotations
+// Here we do *not* use the YPet library, but directly work with HTML
 function annotateContent(content, annotations, annotation_span_categories) {
     let offset = 0; // Track cumulative offset
     const annotationSet = annotations.annotations;
@@ -384,7 +390,7 @@ function annotateContent(content, annotations, annotation_span_categories) {
             return;
         }
         const color = annotation_span_categories[annotationType].color;
-        const text = annotation.text;
+        const text = annotation.text.trimEnd();
 
         const start = annotation.start + offset;
         const end = start + text.length;
@@ -410,19 +416,48 @@ function annotateContent(content, annotations, annotation_span_categories) {
 }
 
 function updateDisplayedAnnotations() {
-    const annotator = $("#annotations-select").val();
-    // if `selected_ann` contains one of the values in the selectbox, show it
-    // otherwise, show the first one
-    // const annotator = selected_ann || $("#annotations-select").val();
-    // selected_ann = annotator;
-
+    const activeButtons = $('.btn-ann-select.active');
+    selected_campaigns = activeButtons.map(function () {
+        return $(this).data('ann');
+    }).get();
     // hide all placeholders
-    $(".out-placeholder").hide();
+    $(".output-box").hide();
 
-    // show the selected annotator
-    $(`.out-${annotator}-placeholder`).show();
-
+    // if no campaign ids, show the original output
+    if (selected_campaigns.length == 0) {
+        $(".box-original").show();
+    }
+    for (const campaign_id of selected_campaigns) {
+        // show the selected annotator
+        $(`.box-${campaign_id}`).show();
+    }
     enableTooltips();
+}
+
+
+function createOutputBox(content, campaign_id, setup) {
+    const setup_id = setup.id;
+    const model = setup.model;
+
+    var card = $('<div>', { class: `card output-box generated-output-box box-${setup_id} box-${campaign_id} box-${setup_id}-${campaign_id}` });
+
+    var annotationBadge = (campaign_id !== "original") ? `<span class="small"><i class="fa fa-pencil"></i> ${campaign_id}</span>` : ""
+    var headerHTML = `<div class="d-flex justify-content-between">
+    <span class="small">${setup_id}</span>
+    ${annotationBadge}
+    </div>
+    `
+
+    var cardHeader = $('<div>', { class: "card-header small" }).html(headerHTML);
+    var cardBody = $('<div>', { class: "card-body" });
+    var cardTitle = $('<h5>', { class: "card-title" }).text(model);
+    var cardText = $('<div>', { class: "card-text" }).html(content);
+
+    cardBody.append(cardTitle);
+    cardBody.append(cardText);
+    card.append(cardHeader);
+    card.append(cardBody);
+    return card;
 }
 
 function createOutputBoxes(generated_outputs) {
@@ -433,7 +468,6 @@ function createOutputBoxes(generated_outputs) {
     generated_outputs.sort(function (a, b) {
         return a.setup.id.localeCompare(b.setup.id);
     });
-    const selectBox = $("#annotations-select");
 
     // find all campaign ids in output annotations
     const campaign_ids = new Set();
@@ -443,38 +477,58 @@ function createOutputBoxes(generated_outputs) {
             campaign_ids.add(annotation.metadata.id);
         });
     });
-    campaign_ids.add("None");
-
-    for (const output of generated_outputs) {
-        const setup_id = output.setup.id;
-        // const model = output.setup.model;
-
-        var label = $('<label>', { class: "label-name" }).text(setup_id);
-        var output_box = $('<div>', {
-            id: `out-${setup_id}`,
-            class: `output-box generated-output-box box-${setup_id}`,
-        }).append(label);
-        output_box.appendTo("#outputarea");
-    }
-
+    const selectBox = $("#annotations-select");
     // clear the selectbox
     selectBox.empty();
 
     // add an option for each campaign id
     for (const campaign_id of campaign_ids) {
-        selectBox.append(`<option value="${campaign_id}">${campaign_id}</option>`);
+        const button = $(`<button type="button" class="btn btn-sm btn-light btn-ann-select" data-ann="${campaign_id}">${campaign_id}</button>`);
+        button.on('click', function () {
+            $(this).toggleClass('active');
+            updateDisplayedAnnotations();
+        });
+        selectBox.append(button);
+    }
 
-        for (const output of generated_outputs) {
+    if (campaign_ids.size > 0) {
+        $("#setuparea").show();
+    } else {
+        $("#setuparea").hide();
+    }
+
+    // add the annotated outputs
+    for (const output of generated_outputs) {
+        groupDiv = $('<div>', { class: `output-group box-${output.setup.id} d-inline-flex gap-2` });
+        groupDiv.appendTo("#outputarea");
+
+        plain_output = getAnnotatedOutput(output, "original");
+        card = createOutputBox(plain_output, "original", output.setup);
+        card.appendTo(groupDiv);
+
+        for (const campaign_id of campaign_ids) {
             const annotated_output = getAnnotatedOutput(output, campaign_id);
-            $(`#out-${output.setup.id}`).append(annotated_output);
+            card = createOutputBox(annotated_output, campaign_id, output.setup);
+            card.appendTo(groupDiv);
+            card.hide();
         }
     }
 
 }
 
+function showSelectedCampaigns() {
+    // if the annotator is still among the values, restore it
+    // prevent resetting to the first annotation when switching examples
+    $(".btn-ann-select").each(function () {
+        if (selected_campaigns.includes($(this).data('ann'))) {
+            $(this).addClass("active").trigger("change");
+        } else {
+            $(this).removeClass("active");
+        }
+    });
+}
+
 function fetchExample(dataset, split, example_idx) {
-    // save the current selected annotator
-    const selected_ann = $("#annotations-select").val();
     $.get(`${url_prefix}/example`, {
         "dataset": dataset,
         "example_idx": example_idx,
@@ -488,13 +542,7 @@ function fetchExample(dataset, split, example_idx) {
         $("#total-examples").html(total_examples - 1);
 
         createOutputBoxes(data.generated_outputs);
-
-        // if the annotator is still among the values, restore it
-        // prevent resetting to the first annotation when switching examples
-        if ($("#annotations-select").find(`option[value='${selected_ann}']`).length > 0) {
-            $("#annotations-select").val(selected_ann).trigger("change");
-        }
-
+        showSelectedCampaigns();
         updateDisplayedAnnotations();
     });
 }
@@ -502,7 +550,20 @@ function fetchExample(dataset, split, example_idx) {
 
 $("#dataset-select").on("change", changeDataset);
 $("#split-select").on("change", changeSplit);
-$("#annotations-select").on("change", updateDisplayedAnnotations);
+
+if (mode == "annotate") {
+    $('.btn-check').on('change', function () {
+        $('.btn-check').each(function () {
+            const label = $(`label[for=${this.id}]`);
+            if (this.checked) {
+                label.addClass('active');
+            } else {
+                label.removeClass('active');
+            }
+        });
+    });
+}
+
 
 $(document).keydown(function (event) {
     const key = event.key;
@@ -529,6 +590,13 @@ $("#hideOverlayBtn").click(function () {
 
 $("#data-select-area input[type='checkbox']").change(function () {
     updateSelectedDatasets();
+});
+
+$(".btn-err-cat").change(function () {
+    if (this.checked) {
+        const cat_idx = $(this).attr("data-cat-idx");
+        YPet.setCurrentAnnotationType(cat_idx);
+    }
 });
 
 function updateSelectedDatasets() {
@@ -583,6 +651,7 @@ function gatherConfig() {
         config.hasDisplayOverlay = $("#displayOverlay").is(":checked");
         config.examplesPerBatch = $("#examplesPerBatch").val();
         config.idleTime = $("#idleTime").val();
+        config.annotationGranularity = $("#annotationGranularity").val();
         config.sortOrder = $("#sortOrder").val();
         config.annotationSpanCategories = getAnnotationSpanCategories();
         config.flags = getKeys($("#flags"));
@@ -1007,6 +1076,7 @@ function updateCrowdsourcingConfig() {
     const finalMessage = cfg.final_message;
     const examplesPerBatch = cfg.examples_per_batch;
     const idleTime = cfg.idle_time;
+    const annotationGranularity = cfg.annotation_granularity;
     const sortOrder = cfg.sort_order;
     const annotationSpanCategories = cfg.annotation_span_categories;
     const flags = cfg.flags;
@@ -1016,6 +1086,7 @@ function updateCrowdsourcingConfig() {
     finalMessageMDE.value(finalMessage);
     $("#examplesPerBatch").val(examplesPerBatch);
     $("#idleTime").val(idleTime);
+    $("#annotationGranularity").val(annotationGranularity);
     $("#sortOrder").val(sortOrder);
     $("#annotation-span-categories").empty();
 
