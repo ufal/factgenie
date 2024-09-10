@@ -9,7 +9,7 @@ var generated_outputs = window.generated_outputs;
 var mode = window.mode;
 var examples_cached = {};
 var sizes = mode == "annotate" ? [50, 50] : [66, 33];
-var selected_ann = null;
+var selected_campaigns = [];
 
 
 if (mode == "annotate") {
@@ -417,17 +417,17 @@ function annotateContent(content, annotations, annotation_span_categories) {
 
 function updateDisplayedAnnotations() {
     const activeButtons = $('.btn-ann-select.active');
-    const campaign_ids = activeButtons.map(function () {
+    selected_campaigns = activeButtons.map(function () {
         return $(this).data('ann');
     }).get();
     // hide all placeholders
     $(".output-box").hide();
 
     // if no campaign ids, show the original output
-    if (campaign_ids.length == 0) {
+    if (selected_campaigns.length == 0) {
         $(".box-original").show();
     }
-    for (const campaign_id of campaign_ids) {
+    for (const campaign_id of selected_campaigns) {
         // show the selected annotator
         $(`.box-${campaign_id}`).show();
     }
@@ -490,6 +490,14 @@ function createOutputBoxes(generated_outputs) {
         });
         selectBox.append(button);
     }
+
+    if (campaign_ids.size > 0) {
+        $("#setuparea").show();
+    } else {
+        $("#setuparea").hide();
+    }
+
+    // add the annotated outputs
     for (const output of generated_outputs) {
         groupDiv = $('<div>', { class: `output-group box-${output.setup.id} d-inline-flex gap-2` });
         groupDiv.appendTo("#outputarea");
@@ -505,11 +513,22 @@ function createOutputBoxes(generated_outputs) {
             card.hide();
         }
     }
+
+}
+
+function showSelectedCampaigns() {
+    // if the annotator is still among the values, restore it
+    // prevent resetting to the first annotation when switching examples
+    $(".btn-ann-select").each(function () {
+        if (selected_campaigns.includes($(this).data('ann'))) {
+            $(this).addClass("active").trigger("change");
+        } else {
+            $(this).removeClass("active");
+        }
+    });
 }
 
 function fetchExample(dataset, split, example_idx) {
-    // save the current selected annotator
-    const selected_ann = $("#annotations-select").val();
     $.get(`${url_prefix}/example`, {
         "dataset": dataset,
         "example_idx": example_idx,
@@ -523,12 +542,7 @@ function fetchExample(dataset, split, example_idx) {
         $("#total-examples").html(total_examples - 1);
 
         createOutputBoxes(data.generated_outputs);
-
-        // if the annotator is still among the values, restore it
-        // prevent resetting to the first annotation when switching examples
-        if ($("#annotations-select").find(`option[value='${selected_ann}']`).length > 0) {
-            $("#annotations-select").val(selected_ann).trigger("change");
-        }
+        showSelectedCampaigns();
         updateDisplayedAnnotations();
     });
 }
