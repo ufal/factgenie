@@ -196,7 +196,7 @@ def export_annotations(app, campaign_id):
     zip_buffer = BytesIO()
 
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
-        for root, _dirs, files in (ANNOTATIONS_DIR / campaign_id).walk():
+        for root, _dirs, files in os.walk(os.path.join(ANNOTATIONS_DIR, campaign_id)):
             for file in files:
                 zip_file.write(
                     os.path.join(root, file),
