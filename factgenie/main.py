@@ -690,7 +690,7 @@ def submit_annotations():
 
         db.loc[db["batch_idx"] == batch_idx, "status"] = "finished"
 
-        db.to_csv(os.path.join(ANNOTATIONS_DIR, campaign_id, "db.csv"), index=False)
+        campaign.update_db(db)
         logger.info(f"Annotations for {campaign_id} (batch {batch_idx}) saved")
 
     return jsonify({"status": "success"})
