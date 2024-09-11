@@ -53,19 +53,22 @@
 
       <div id="campaign-status">
         <h4>Batches</h4>
-        <table class="table table-striped">
+        <table class="table table-sm table-striped">
           <thead>
             <tr>
-              <th scope="col">#</th>
+              <th scope="col">Batch id</th>
               <th scope="col">Size</th>
               <th scope="col">Status</th>
               <th scope="col">Annotator id</th>
               <th scope="col">Start time</th>
               <th scope="col">Elapsed time</th>
+              <th scope="col">Actions</th>
             </tr>
           </thead>
           <tbody>
             {% for batch in overview %}
+            {% set rowId = batch.dataset + "-" + batch.split + "-" + batch.setup_id + "-" +
+            (batch.batch_idx|string) %}
             <tr>
               <td>{{ batch.batch_idx }}</td>
               <td>{{ batch.example_cnt }}</td>
@@ -74,12 +77,35 @@
               <td>{{ batch.annotator_id }}</td>
               <td>{{ batch.start | ctime }}</td>
               <td>{{ batch | elapsed }}</td>
+              <td>
+                <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" href="#collapseExample{{ rowId }}"
+                  role="button" aria-expanded="false" id="annotBtn{{ rowId }}" aria-controls="collapseExample">
+                  <i class="fa fa-list-alt"></i>
+                </a>
+              </td>
+            <tr class="collapse" id="collapseExample{{ rowId }}">
+              <td colspan="7">
+                <div class="card card-body" style="display: block !important;">
+                  <b>examples:</b>
+                  {% for example_id in batch.example_ids %}
+                  <!-- link, open in new tab -->
+                  <a href="{{ host_prefix }}/browse?dataset={{ batch.dataset }}&split={{ batch.split }}&example_idx={{ example_id }}"
+                    class="btn btn-outline-secondary btn-sm" target="_blank">
+                    {{ example_id }}</a>
+                  {% endfor %}
+                </div>
+              </td>
             </tr>
-            {% endfor %}
-          </tbody>
-
+            <!-- correct striping -->
+            <tr>
+            </tr>
       </div>
+      </tr>
+      {% endfor %}
+      </tbody>
+
     </div>
+  </div>
   </div>
   {% include 'forms/config_modal.html' %}
 
