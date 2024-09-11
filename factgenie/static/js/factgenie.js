@@ -11,7 +11,6 @@ var examples_cached = {};
 var sizes = mode == "annotate" ? [50, 50] : [66, 33];
 var selected_campaigns = [];
 
-
 if (mode == "annotate") {
     var annotation_set = window.annotation_set;
     var annotator_id = window.annotator_id;

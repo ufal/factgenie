@@ -134,8 +134,7 @@
   window.url_prefix = "{{ host_prefix }}";
   window.campaigns = "{{ campaigns }}";
   window.llm_eval_examples = "{{ overview | length }}";
-</script>
-<script>
+
   $(document).ready(function () {
     if ("{{ metadata.status }}" == "running") {
       startLLMEvalListener("{{ campaign_id }}");
