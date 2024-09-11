@@ -37,7 +37,7 @@
           <a onclick="runLlmEval('{{ campaign_id }}')" class="btn btn-outline-secondary" data-bs-toggle="tooltip"
             id="run-button" title="Run evaluation" {% if metadata.status=='finished' or metadata.status=='running' %}
             style="display: none;" {% endif %}>
-            <i class="fa fa-play"></i> {{ 'Continue' if metadata.status == 'paused' else 'Run' }} evaluation
+            <i class="fa fa-play"></i> Run evaluation
           </a>
           <a onclick="pauseLlmEval('{{ campaign_id }}')" class="btn btn-outline-secondary" data-bs-toggle="tooltip"
             id="stop-button" title="Stop evaluation" {% if metadata.status!='running' %} style="display: none;" {% endif
@@ -45,7 +45,7 @@
             <i class="fa fa-pause"></i> Pause evaluation
           </a>
           <a href="{{ host_prefix }}/export_annotations?campaign={{ campaign_id }}" class="btn btn-outline-secondary"
-            data-bs-toggle="tooltip" id="download-button" title="Export annotations" {% if metadata.status=='new' %}
+            data-bs-toggle="tooltip" id="download-button" title="Export annotations" {% if metadata.status=='idle' %}
             style="display: none;" {% endif %}>
             <i class="fa fa-download"></i> Download annotations
           </a>

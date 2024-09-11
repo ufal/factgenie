@@ -17,6 +17,18 @@ DIR_PATH = os.path.dirname(__file__)
 CROWDSOURCING_DIR = os.path.join(DIR_PATH, "annotations")
 
 
+class CampaignStatus:
+    IDLE = "idle"
+    RUNNING = "running"
+    FINISHED = "finished"
+
+
+class ExampleStatus:
+    FREE = "free"
+    ASSIGNED = "assigned"
+    FINISHED = "finished"
+
+
 class Campaign:
     @classmethod
     def get_name(cls):
@@ -33,6 +45,11 @@ class Campaign:
 
         with open(self.metadata_path) as f:
             self.metadata = json.load(f)
+
+        # temporary fix for the old campaigns
+        if self.metadata.get("status") in ["new", "paused"]:
+            self.metadata["status"] = CampaignStatus.IDLE
+            self.update_metadata()
 
     def get_finished_examples(self):
         # load all the JSONL files in the "files" subdirectory

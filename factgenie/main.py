@@ -25,7 +25,7 @@ from collections import defaultdict
 import urllib.parse
 from slugify import slugify
 
-from factgenie.campaigns import Campaign, ModelCampaign, HumanCampaign
+from factgenie.campaigns import ModelCampaign, HumanCampaign, CampaignStatus, ExampleStatus
 from factgenie.metrics import LLMMetricFactory
 import factgenie.utils as utils
 
@@ -520,12 +520,12 @@ def llm_eval_detail():
     campaign_id = request.args.get("campaign")
     campaign = app.db["campaign_index"]["llm_eval"][campaign_id]
 
-    if campaign.metadata["status"] == "running" and not app.db["announcers"].get(campaign_id):
-        campaign.metadata["status"] = "paused"
+    if campaign.metadata["status"] == CampaignStatus.RUNNING and not app.db["announcers"].get(campaign_id):
+        campaign.metadata["status"] = CampaignStatus.IDLE
         campaign.update_metadata()
 
     overview = campaign.get_overview()
-    finished_examples = overview[overview["status"] == "finished"]
+    finished_examples = overview[overview["status"] == ExampleStatus.FINISHED]
 
     overview = overview.to_dict(orient="records")
     finished_examples = finished_examples.to_dict(orient="records")
@@ -610,7 +610,7 @@ def llm_eval_pause():
     app.db["threads"][campaign_id]["running"] = False
 
     campaign = app.db["campaign_index"]["llm_eval"][campaign_id]
-    campaign.metadata["status"] = "paused"
+    campaign.metadata["status"] = CampaignStatus.IDLE
     campaign.update_metadata()
 
     resp = jsonify(success=True, status=campaign.metadata["status"])
@@ -688,7 +688,7 @@ def submit_annotations():
             for row in annotation_set:
                 f.write(json.dumps(row) + "\n")
 
-        db.loc[db["batch_idx"] == batch_idx, "status"] = "finished"
+        db.loc[db["batch_idx"] == batch_idx, "status"] = ExampleStatus.FINISHED
 
         campaign.update_db(db)
         logger.info(f"Annotations for {campaign_id} (batch {batch_idx}) saved")

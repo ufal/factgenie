@@ -24,8 +24,7 @@ from slugify import slugify
 from flask import jsonify, make_response
 from collections import defaultdict
 from pathlib import Path
-from factgenie.campaigns import Campaign, HumanCampaign, ModelCampaign
-from factgenie.metrics import LLMMetric, LLMMetricFactory
+from factgenie.campaigns import HumanCampaign, ModelCampaign, CampaignStatus, ExampleStatus
 from factgenie.loaders.dataset import Dataset, DATA_DIR, OUTPUT_DIR
 from jinja2 import Template
 
@@ -272,9 +271,9 @@ def free_idle_examples(db):
     start = int(time.time())
 
     # check if there are annotations which are idle for more than 2 hours: set them to free
-    idle_examples = db[(db["status"] == "assigned") & (db["start"] < start - 2 * 60 * 60)]
+    idle_examples = db[(db["status"] == ExampleStatus.ASSIGNED) & (db["start"] < start - 2 * 60 * 60)]
     for i in idle_examples.index:
-        db.loc[i, "status"] = "free"
+        db.loc[i, "status"] = ExampleStatus.FREE
         db.loc[i, "start"] = ""
         db.loc[i, "annotator_id"] = ""
 
@@ -282,8 +281,8 @@ def free_idle_examples(db):
 
 
 def select_batch_idx(db, seed):
-    free_examples = db[db["status"] == "free"]
-    assigned_examples = db[db["status"] == "assigned"]
+    free_examples = db[db["status"] == ExampleStatus.FREE]
+    assigned_examples = db[db["status"] == ExampleStatus.ASSIGNED]
 
     if len(free_examples) == 0 and len(assigned_examples) == 0:
         raise ValueError("No examples available")
@@ -321,7 +320,7 @@ def get_annotator_batch(app, campaign, db, annotator_id, session_id, study_id):
             db = free_idle_examples(db)
 
             # update the CSV
-            db.loc[db["batch_idx"] == batch_idx, "status"] = "assigned"
+            db.loc[db["batch_idx"] == batch_idx, "status"] = ExampleStatus.ASSIGNED
             db.loc[db["batch_idx"] == batch_idx, "start"] = start
             db.loc[db["batch_idx"] == batch_idx, "annotator_id"] = annotator_id
 
@@ -366,7 +365,7 @@ def generate_llm_eval_db(datasets: Dict[str, Dataset], campaign_data):
 
     # create a column for batch index and assign each example to a batch
     df["annotator_id"] = ""
-    df["status"] = "free"
+    df["status"] = ExampleStatus.FREE
     df["start"] = ""
 
     return df
@@ -408,7 +407,7 @@ def generate_campaign_db(app, campaign_data, config):
     # create a column for batch index and assign each example to a batch
     df["batch_idx"] = df.index // examples_per_batch
     df["annotator_id"] = ""
-    df["status"] = "free"
+    df["status"] = ExampleStatus.FREE
     df["start"] = ""
 
     return df
@@ -666,7 +665,7 @@ def llm_eval_new(campaign_id, config, campaign_data, datasets, overwrite=False):
                 "id": campaign_id,
                 "created": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "source": "llm_eval",
-                "status": "new",
+                "status": CampaignStatus.IDLE,
                 "config": config,
             },
             f,
@@ -754,7 +753,7 @@ def duplicate_eval(app, campaign_id, new_campaign_id):
     # copy the db
     old_db = pd.read_csv(os.path.join(old_campaign_dir, "db.csv"))
     new_db = old_db.copy()
-    new_db["status"] = "free"
+    new_db["status"] = ExampleStatus.FREE
 
     new_db.to_csv(os.path.join(new_campaign_dir, "db.csv"), index=False)
 
@@ -765,7 +764,7 @@ def duplicate_eval(app, campaign_id, new_campaign_id):
 
     metadata["id"] = new_campaign_id
     metadata["created"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    metadata["status"] = "new"
+    metadata["status"] = CampaignStatus.IDLE
 
     with open(metadata_path, "w") as f:
         json.dump(metadata, f, indent=4)
@@ -882,7 +881,7 @@ def run_llm_eval(campaign_id, announcer, campaign, datasets, metric, threads):
     os.makedirs(save_dir, exist_ok=True)
 
     # set metadata status
-    campaign.metadata["status"] = "running"
+    campaign.metadata["status"] = CampaignStatus.RUNNING
     campaign.update_metadata()
     db = campaign.db
 
@@ -892,7 +891,7 @@ def run_llm_eval(campaign_id, announcer, campaign, datasets, metric, threads):
         if threads[campaign_id]["running"] == False:
             break
 
-        if row["status"] == "finished":
+        if row["status"] == ExampleStatus.FINISHED:
             continue
 
         dataset_id = row["dataset"]
@@ -910,7 +909,7 @@ def run_llm_eval(campaign_id, announcer, campaign, datasets, metric, threads):
         if "error" in annotation_set:
             # remove the `running` flag
             threads[campaign_id]["running"] = False
-            campaign.metadata["status"] = "paused"
+            campaign.metadata["status"] = CampaignStatus.IDLE
             campaign.update_metadata()
 
             return error(annotation_set["error"])
@@ -919,7 +918,7 @@ def run_llm_eval(campaign_id, announcer, campaign, datasets, metric, threads):
             save_dir, metric, dataset_id, split, setup_id, example_idx, annotation_set, start_time
         )
 
-        db.loc[i, "status"] = "finished"
+        db.loc[i, "status"] = ExampleStatus.FINISHED
         campaign.update_db(db)
 
         # overview = campaign.get_overview()
@@ -934,8 +933,8 @@ def run_llm_eval(campaign_id, announcer, campaign, datasets, metric, threads):
         logger.info(f"{campaign_id}: {finished_examples_cnt}/{len(db)} examples")
 
     # if all fields are finished, set the metadata to finished
-    if len(db.status.unique()) == 1 and db.status.unique()[0] == "finished":
-        campaign.metadata["status"] = "finished"
+    if len(db.status.unique()) == 1 and db.status.unique()[0] == ExampleStatus.FINISHED:
+        campaign.metadata["status"] = CampaignStatus.FINISHED
         campaign.update_metadata()
 
     final_message = f"SUCCESS: all examples have been annotated. You can find the annotations in {ANNOTATIONS_DIR}/{campaign_id}/files."
