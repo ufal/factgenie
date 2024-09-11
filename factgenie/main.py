@@ -225,31 +225,17 @@ def crowdsourcing_detail():
     utils.generate_campaign_index(app)
 
     campaign_id = request.args.get("campaign")
-    db = app.db["campaign_index"]["crowdsourcing"][campaign_id].db
-    # replace NaN with empty string
-    db = db.where(pd.notnull(db), "")
+    campaign = app.db["campaign_index"]["crowdsourcing"][campaign_id]
 
-    # group by batch idx
-    # add a column with the number of examples for each batch
-    # for other columns keep first item
-    db = db.groupby("batch_idx").agg(
-        {
-            "dataset": "first",
-            "split": "first",
-            "example_idx": "count",
-            "setup_id": "first",
-            "status": "first",
-            "start": "first",
-            "annotator_id": "first",
-        }
-    )
-    db = db.rename(columns={"example_idx": "example_cnt"}).reset_index()
-    db = db.to_dict(orient="records")
+    overview = campaign.get_overview()
+    finished_examples = [x for x in overview if x["status"] == ExampleStatus.FINISHED]
 
     return render_template(
         "crowdsourcing_detail.html",
         campaign_id=campaign_id,
-        db=db,
+        overview=overview,
+        finished_examples=finished_examples,
+        metadata=campaign.metadata,
         host_prefix=app.config["host_prefix"],
     )
 
@@ -525,10 +511,7 @@ def llm_eval_detail():
         campaign.update_metadata()
 
     overview = campaign.get_overview()
-    finished_examples = overview[overview["status"] == ExampleStatus.FINISHED]
-
-    overview = overview.to_dict(orient="records")
-    finished_examples = finished_examples.to_dict(orient="records")
+    finished_examples = [x for x in overview if x["status"] == ExampleStatus.FINISHED]
 
     return render_template(
         "llm_eval_detail.html",

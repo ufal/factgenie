@@ -921,9 +921,6 @@ def run_llm_eval(campaign_id, announcer, campaign, datasets, metric, threads):
         db.loc[i, "status"] = ExampleStatus.FINISHED
         campaign.update_db(db)
 
-        # overview = campaign.get_overview()
-        # finished_examples = overview[overview["status"] == "finished"]
-
         finished_examples_cnt = len(campaign.get_finished_examples())
         payload = {"finished_examples_cnt": finished_examples_cnt, "annotation": annotation}
 

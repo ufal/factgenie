@@ -874,3 +874,9 @@ a:hover {
     /* box-shadow: 0 1px 2px darkslategray; */
     border: 1px solid #ddd;
 }
+
+.inline-icon {
+    height: 0.9em;
+    margin-right: 5px;
+    vertical-align: middle;
+}
