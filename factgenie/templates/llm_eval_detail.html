@@ -91,8 +91,9 @@
                   <td>{{ example.setup_id }}</td>
                   <td>{{ example.split }}</td>
                   <td>{{ example.example_idx }}</td>
-                  <td id="statusBtn{{ rowId }}">
-                    {{ example.status }}</td>
+
+                  <td><span id="statusBtn{{ rowId }}" class="badge bg-secondary">{{ example.status }}</span>
+                  </td>
                   <!-- use collapse for hiding annotations -->
                   <td>
                     <a class="btn btn-sm btn-outline-secondary"

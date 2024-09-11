@@ -949,6 +949,8 @@ def run_llm_eval(campaign_id, announcer, campaign, datasets, metric, threads):
         campaign.metadata["status"] = CampaignStatus.FINISHED
         campaign.update_metadata()
 
-    final_message = f"SUCCESS: all examples have been annotated. You can find the annotations in {ANNOTATIONS_DIR}/{campaign_id}/files."
+    final_message = (
+        f"All examples have been annotated. You can find the annotations in {ANNOTATIONS_DIR}/{campaign_id}/files."
+    )
 
     return jsonify(success=True, status=campaign.metadata["status"], final_message=final_message)

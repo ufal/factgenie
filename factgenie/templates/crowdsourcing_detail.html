@@ -43,6 +43,9 @@
           <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#config-modal"><i
               class="fa fa-cog"></i> Show
             configuration</a>
+          <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
+            data-bs-target="#campaign-help-modal"><i class="fa fa-question-circle">
+            </i> Help</a>
         </div>
         <div id="log-area" class="font-monospace mt-3"></div>
         <hr>
@@ -58,7 +61,7 @@
               <th scope="col">Status</th>
               <th scope="col">Annotator id</th>
               <th scope="col">Start time</th>
-              <th scope="col">Elapsed</th>
+              <th scope="col">Elapsed time</th>
             </tr>
           </thead>
           <tbody>
@@ -79,6 +82,28 @@
     </div>
   </div>
   {% include 'forms/config_modal.html' %}
+
+  <div class="modal fade" id="campaign-help-modal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="campaign-help-modal-label">How to manage the campaign</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="tab-pane sidepanel-panel" role="tabpanel" tabindex="0">
+            <p>Use the <b>Page link</b> to share the URL with your annotators, e.g. through the crowdsourcing platform.
+            </p>
+            <p>Use the <b>Download annotations</b> button to download the annotations
+              collected so far.</p>
+            <p>See the <a class="blue-link"
+                href="https://github.com/ufal/factgenie/wiki/04-Crowdsourcing-Annotations">crowsourcing
+                annotation tutorial</a> on the project wiiki for more information.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 <script>
   // variable to be used in factgenie.js
