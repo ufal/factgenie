@@ -30,7 +30,7 @@
               campaign_id }}</span> </dd>
           <dt class="col-sm-3"> Created </dt>
           <dd class="col-sm-9" id="metadata-created"> {{ metadata.created }} </dd>
-          <dt class="col-sm-3"> Examples </dt>
+          <dt class="col-sm-3"> Finished batches </dt>
           <dd class="col-sm-9" id="metadata-example-cnt"> {{ finished_examples | length }} / {{ overview | length }}
           </dd>
         </dl>
@@ -66,10 +66,11 @@
             <tr>
               <td>{{ batch.batch_idx }}</td>
               <td>{{ batch.example_cnt }}</td>
-              <td>{{ batch.status }}</td>
+              <td><span id="statusBtn{{ rowId }}" class="badge bg-secondary">{{ batch.status }}</span>
+              </td>
               <td>{{ batch.annotator_id }}</td>
               <td>{{ batch.start | ctime }}</td>
-              <td>{{ batch.start | elapsed }}</td>
+              <td>{{ batch | elapsed }}</td>
             </tr>
             {% endfor %}
           </tbody>

@@ -275,6 +275,7 @@ def free_idle_examples(db):
     for i in idle_examples.index:
         db.loc[i, "status"] = ExampleStatus.FREE
         db.loc[i, "start"] = ""
+        db.loc[i, "end"] = ""
         db.loc[i, "annotator_id"] = ""
 
     return db
@@ -409,6 +410,7 @@ def generate_campaign_db(app, campaign_data, config):
     df["annotator_id"] = ""
     df["status"] = ExampleStatus.FREE
     df["start"] = ""
+    df["end"] = ""
 
     return df
 
@@ -755,9 +757,10 @@ def duplicate_eval(app, campaign_id, new_campaign_id):
     new_db = old_db.copy()
     new_db["status"] = ExampleStatus.FREE
 
-    # clean the columns `annotator_id` and `start`
+    # clean the columns
     new_db["annotator_id"] = ""
     new_db["start"] = ""
+    new_db["end"] = ""
 
     new_db.to_csv(os.path.join(new_campaign_dir, "db.csv"), index=False)
 
@@ -930,6 +933,7 @@ def run_llm_eval(campaign_id, announcer, campaign, datasets, metric, threads):
         )
 
         db.loc[i, "status"] = ExampleStatus.FINISHED
+        db.loc[i, "end"] = int(time.time())
         campaign.update_db(db)
 
         finished_examples_cnt = len(campaign.get_finished_examples())

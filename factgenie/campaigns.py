@@ -51,6 +51,11 @@ class Campaign:
             self.metadata["status"] = CampaignStatus.IDLE
             self.update_metadata()
 
+        # if the db does not contain the `end` column, add it
+        if "end" not in self.db.columns:
+            self.db["end"] = ""
+            self.update_db(self.db)
+
     def get_finished_examples(self):
         # load all the JSONL files in the "files" subdirectory
         examples_finished = []
@@ -111,6 +116,7 @@ class HumanCampaign(Campaign):
                 "setup_id": "first",
                 "status": "first",
                 "start": "first",
+                "end": "first",
                 "annotator_id": "first",
             }
         )

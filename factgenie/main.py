@@ -61,13 +61,22 @@ def timectime(timestamp):
 
 
 @app.template_filter("elapsed")
-def time_elapsed(timestamp):
+def time_elapsed(batch):
+    start_timestamp = batch["start"]
+    end_timestamp = batch["end"]
     try:
-        s = datetime.datetime.fromtimestamp(timestamp)
-        diff = str(datetime.datetime.now() - s)
-        return diff.split(".")[0]
+        if end_timestamp:
+            s = datetime.datetime.fromtimestamp(start_timestamp)
+            e = datetime.datetime.fromtimestamp(end_timestamp)
+            diff = str(e - s)
+            return diff.split(".")[0]
+        else:
+
+            s = datetime.datetime.fromtimestamp(start_timestamp)
+            diff = str(datetime.datetime.now() - s)
+            return diff.split(".")[0]
     except:
-        return timestamp
+        return ""
 
 
 @app.template_filter("annotate_url")
@@ -672,6 +681,7 @@ def submit_annotations():
                 f.write(json.dumps(row) + "\n")
 
         db.loc[db["batch_idx"] == batch_idx, "status"] = ExampleStatus.FINISHED
+        db.loc[db["batch_idx"] == batch_idx, "end"] = now
 
         campaign.update_db(db)
         logger.info(f"Annotations for {campaign_id} (batch {batch_idx}) saved")
