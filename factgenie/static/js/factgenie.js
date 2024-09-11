@@ -587,7 +587,7 @@ $("#hideOverlayBtn").click(function () {
     $("#overlay-start").fadeOut();
 });
 
-$("#data-select-area input[type='checkbox']").change(function () {
+$(document).on('change', "#data-select-area input[type='checkbox']", function () {
     updateSelectedDatasets();
 });
 
@@ -600,7 +600,16 @@ $(".btn-err-cat").change(function () {
 
 function updateSelectedDatasets() {
     var selectedData = gatherCampaignData();
-    $("#selectedDatasetsContent").html("<ul>" + selectedData.map(d => `<li>${d.dataset} ▸ ${d.split} ▸ ${d.setup_id}</li>`).join("\n") + "</ul>");
+    $("#selectedDatasetsContent").html(
+        selectedData.map(d =>
+            `<tr>
+            <td>${d.dataset}</td>
+            <td>${d.split}</td>
+            <td>${d.setup_id}</td>
+            <td>${d.example_cnt}</td>
+          </tr>`
+        ).join("\n")
+    );
 }
 
 function gatherCampaignData() {
@@ -618,20 +627,19 @@ function gatherCampaignData() {
             campaign_splits.push($(this).attr("data-content"));
         }
     });
-    $(".btn-check-out").each(function () {
+    $(".btn-check-output").each(function () {
         if ($(this).prop("checked")) {
             campaign_outputs.push($(this).attr("data-content"));
         }
     });
     // get all available combinations of datasets, splits, and outputs
     var combinations = [];
-    var valid_triplets = model_outs.valid_triplets;
 
     for (const dataset of campaign_datasets) {
         for (const split of campaign_splits) {
             for (const output of campaign_outputs) {
-                if (valid_triplets.some(triplet => triplet.dataset === dataset && triplet.split === split && triplet.setup_id === output)) {
-                    combinations.push({ dataset: dataset, split: split, setup_id: output });
+                if (model_outs[dataset][split][output] !== undefined) {
+                    combinations.push({ dataset: dataset, split: split, setup_id: output, example_cnt: model_outs[dataset][split][output].example_count });
                 }
             }
         }

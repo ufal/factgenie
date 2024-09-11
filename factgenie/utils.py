@@ -243,7 +243,7 @@ def get_example_data(app, dataset_id, split, example_idx):
     }
 
 
-def get_model_outputs_overview(app, datasets):
+def get_model_outputs_overview(app, datasets, non_empty=False):
     model_outputs = {}
 
     for dataset_id, dataset_config in datasets.items():
@@ -253,16 +253,20 @@ def get_model_outputs_overview(app, datasets):
         model_outputs[dataset_id] = {}
 
         for split in splits:
-            # model_outputs[dataset_id][split] = {}
+            model_outputs[dataset_id][split] = {}
             outputs = dataset.get_generated_outputs_for_split(split)
 
             for setup_id, output in outputs.items():
                 output_info = {}
-                output_info["split"] = split
-                output_info["setup_id"] = setup_id
                 output_info["example_count"] = len(outputs[setup_id]["generated"])
 
-                model_outputs[dataset_id][setup_id] = output_info
+                model_outputs[dataset_id][split][setup_id] = output_info
+
+    if non_empty:
+        for dataset_id, splits in model_outputs.items():
+            model_outputs[dataset_id] = {k: v for k, v in splits.items() if v}
+
+        model_outputs = {k: v for k, v in model_outputs.items() if v}
 
     return model_outputs
 
@@ -687,35 +691,6 @@ def generate_default_id(campaign_index, prefix):
         i += 1
 
     return default_campaign_id
-
-
-def get_model_outs(app):
-    datasets = app.db["datasets_obj"]
-    model_outs = {x: [] for x in ["datasets", "splits", "setup_ids", "valid_triplets"]}
-
-    for dataset_id, dataset in datasets.items():
-        splits = dataset.get_splits()
-        model_outs["datasets"].append(dataset_id)
-
-        for split in splits:
-            output_setups = dataset.outputs[split].keys()
-            model_outs["splits"].append(split)
-
-            for setup_id in output_setups:
-                model_outs["setup_ids"].append(setup_id)
-                model_outs["valid_triplets"].append(
-                    {
-                        "dataset": dataset_id,
-                        "split": split,
-                        "setup_id": setup_id,
-                        "example_count": dataset.get_example_count(split),
-                    }
-                )
-
-    for key in ["datasets", "splits", "setup_ids"]:
-        model_outs[key] = sorted(list(set(model_outs[key])))
-
-    return model_outs
 
 
 def check_login(app, username, password):

@@ -298,7 +298,10 @@ def crowdsourcing_create():
 @app.route("/crowdsourcing/new", methods=["GET", "POST"])
 @login_required
 def crowdsourcing_new():
-    model_outs = utils.get_model_outs(app)
+    datasets = utils.get_dataset_overview(app)
+    datasets = {k: v for k, v in datasets.items() if v["enabled"]}
+
+    model_outs = utils.get_model_outputs_overview(app, datasets, non_empty=True)
 
     utils.generate_campaign_index(app)
     campaign_index = app.db["campaign_index"]["crowdsourcing"]
@@ -535,7 +538,9 @@ def llm_eval_detail():
 @app.route("/llm_eval/new", methods=["GET", "POST"])
 @login_required
 def llm_eval_new():
-    model_outs = utils.get_model_outs(app)
+    datasets = utils.get_dataset_overview(app)
+    datasets = {k: v for k, v in datasets.items() if v["enabled"]}
+    model_outs = utils.get_model_outputs_overview(app, datasets, non_empty=True)
 
     # get a list of available metrics
     llm_configs = utils.load_configs(mode="llm_eval")
