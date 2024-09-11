@@ -36,11 +36,11 @@
                             campaign.metadata.id }}</code> but without any collected annotations.</small>
                         </p>
                         <div class="row g-3 mb-3 align-items-center">
+                            {% set input_duplicate_id = 'campaignId-' ~ campaign.metadata.id ~ '-copy' %}
                             <div class="col-auto">
                                 <label for="{{ input_duplicate_id }}">New campaign id</label>
                             </div>
                             <div class="col-auto">
-                                {% set input_duplicate_id = 'campaignId-' ~ campaign.metadata.id ~ '-copy' %}
                                 <input type="text" class="form-control" id="{{ input_duplicate_id }}"
                                     name="{{ input_duplicate_id }}" value="{{ campaign.metadata.id }}-copy" required>
                             </div>

@@ -755,6 +755,10 @@ def duplicate_eval(app, campaign_id, new_campaign_id):
     new_db = old_db.copy()
     new_db["status"] = ExampleStatus.FREE
 
+    # clean the columns `annotator_id` and `start`
+    new_db["annotator_id"] = ""
+    new_db["start"] = ""
+
     new_db.to_csv(os.path.join(new_campaign_dir, "db.csv"), index=False)
 
     # update the metadata
@@ -768,6 +772,13 @@ def duplicate_eval(app, campaign_id, new_campaign_id):
 
     with open(metadata_path, "w") as f:
         json.dump(metadata, f, indent=4)
+
+    # if it is a human campaign, copy also the templates
+    if metadata["source"] == "crowdsourcing":
+        shutil.copytree(
+            os.path.join(TEMPLATES_DIR, "campaigns", campaign_id),
+            os.path.join(TEMPLATES_DIR, "campaigns", new_campaign_id),
+        )
 
     return success()
 
