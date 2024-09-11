@@ -638,7 +638,8 @@ function gatherCampaignData() {
     for (const dataset of campaign_datasets) {
         for (const split of campaign_splits) {
             for (const output of campaign_outputs) {
-                if (model_outs[dataset][split][output] !== undefined) {
+                if (model_outs[dataset][split] !== undefined &&
+                    model_outs[dataset][split][output] !== undefined) {
                     combinations.push({ dataset: dataset, split: split, setup_id: output, example_cnt: model_outs[dataset][split][output].example_count });
                 }
             }
