@@ -17,5 +17,6 @@ venv/
 wiki
 factgenie/annotations
 factgenie/generations
+factgenie/outputs
 factgenie/templates/campaigns/*
 !factgenie/templates/campaigns/*.*
