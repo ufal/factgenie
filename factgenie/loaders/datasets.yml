@@ -70,3 +70,10 @@ datasets:
     splits:
     - test
     type: text
+  xsum-debug:
+    class: base.PlainTextDataset
+    description: ''
+    enabled: true
+    splits:
+    - test
+    type: default
