@@ -1,0 +1,23 @@
+api_url: http://localhost:11434/api/
+extra_args:
+  rstrip: '"'
+model: llama3
+model_args:
+  do_sample: 'false'
+  max_tokens: '1024'
+  num_beams: '1'
+  seed: '42'
+  temperature: '0'
+  top_k: '0'
+  top_p: '1'
+prompt_template: |-
+  Given the original text:
+  """
+  {data}
+  """
+  Generate a plain text summary of the text. Generate only the output summary without any additional comments.
+start_with: |-
+  Here is the summary:
+  "
+system_msg: You are an expert automatic summarization system.
+type: ollama_gen
