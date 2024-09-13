@@ -62,7 +62,7 @@ function updateCombinations() {
     }
     if (selectedSplits.length === 0 || selectedDatasets.length === 0) {
         $('#outputs-column').hide();
-    } else if (window.mode == "llm_eval") {
+    } else if (window.mode != "llm_gen") {
         $('#outputs-column').show();
     }
 
