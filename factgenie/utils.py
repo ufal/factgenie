@@ -869,6 +869,7 @@ def parse_crowdsourcing_config(config):
         "sort_order": config.get("sortOrder"),
         "annotation_span_categories": config.get("annotationSpanCategories"),
         "flags": config.get("flags"),
+        "options": config.get("options"),
     }
 
     return config
@@ -878,9 +879,9 @@ def generate_checkboxes(flags):
     if not flags:
         return ""
 
-    checkboxes = "<p>Please also <b>check if you agree with any of the following statements</b>, then mark the example as complete:</p>"
+    flags_segment = "<div class='mb-4'><p><b>Please check if you agree with any of the following statements:</b></p>"
     for i, flag in enumerate(flags):
-        checkboxes += f"""
+        flags_segment += f"""
             <div class="form-check flag-checkbox">
                 <input class="form-check-input" type="checkbox" value="{i}" id="checkbox-{i}">
                 <label class="form-check-label" for="checkbox-{i}">
@@ -888,8 +889,52 @@ def generate_checkboxes(flags):
                 </label>
             </div>
         """
+    flags_segment += "</div>"
 
-    return checkboxes
+    return flags_segment
+
+
+def generate_options(options):
+    if not options:
+        return ""
+
+    options_segment = "<div class='mt-2 mb-3'><p><b>Please select from the following:</b></p>"
+    for i, option in enumerate(options):
+        if option["type"] == "select":
+            options_segment += f"""
+                <div class="form-group crowdsourcing-option option-select mb-4">
+                    <div><label for="select-{i}">{option["label"]}</label></div>
+                    <select class="form-select select-crowdsourcing mb-1" id="select-crowdsourcing-{i}">
+            """
+            for j, value in enumerate(option["values"]):
+                options_segment += f"""<option class="select-crowdsourcing-{i}-value" value="{j}">{value}</option>
+                """
+            options_segment += """
+                    </select>
+                </div>
+            """
+        elif option["type"] == "slider":
+            # option["values"] are textual values to be displayed below the slider
+            options_segment += f"""
+                <div class="form-group crowdsourcing-option option-slider mb-4">
+                    <div><label for="slider-{i}">{option["label"]}</label></div>
+                    <div class="slider-container">
+                    <input type="range" class="form-range slider-crowdsourcing" id="slider-crowdsourcing-{i}" min="0" max="{len(option["values"])-1}" list="slider-crowdsourcing-{i}-values">
+                    </div>
+                    <datalist id="slider-crowdsourcing-{i}-values" class="datalist-crowdsourcing">
+            """
+            for value in option["values"]:
+                options_segment += f"""<option class="slider-crowdsourcing-{i}-value" value="{value}" label="{value}"></option>
+                """
+            options_segment += """
+                    </datalist>
+                </div>
+            """
+        else:
+            raise ValueError(f"Unknown option type {option['type']}")
+
+    options_segment += """<script src="{{ host_prefix }}/static/js/render-sliders.js"></script>"""
+    return options_segment
 
 
 def create_crowdsourcing_page(campaign_id, config):
@@ -919,6 +964,7 @@ def create_crowdsourcing_page(campaign_id, config):
         annotation_span_categories=config.get("annotation_span_categories", []),
         has_display_overlay='style="display: none"' if not has_display_overlay else "",
         flags=generate_checkboxes(config.get("flags", [])),
+        options=generate_options(config.get("options", [])),
     )
 
     # concatenate with header and footer

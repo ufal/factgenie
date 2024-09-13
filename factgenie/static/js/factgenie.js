@@ -205,9 +205,36 @@ function collectFlags() {
         const value = $(this).find("input[type='checkbox']").prop("checked");
         flags.push(value);
     });
-    console.log("collected flags", flags);
     return flags;
 }
+
+function collectOptions() {
+    const options = [];
+
+    // for all ".crowdsourcing-option" div's, see whether is has the "option-select" or "option-slider" class
+    // and collect the value of the select or the slider, respectively
+    // save it along with the value of the label
+
+    $(".crowdsourcing-option").each(function (x) {
+        if ($(this).hasClass("option-select")) {
+            const type = "select";
+            const label = $(this).find("label").text();
+            const index = $(this).find("select").val();
+            const value = $(this).find("select option:selected").text();
+            options.push({ type: type, label: label, index: index, value: value });
+        } else if ($(this).hasClass("option-slider")) {
+            const type = "slider";
+            const label = $(this).find("label").text();
+            const index = $(this).find("input[type='range']").val();
+            const value = $(this).find("datalist option")[index].value;
+            options.push({ type: type, label: label, index: index, value: value });
+        }
+    });
+    return options;
+}
+
+
+
 
 function saveCurrentAnnotations() {
     var collection = YPet[`p${example_idx}`].currentView.collection.parentDocument.get('annotations').toJSON();
@@ -218,6 +245,7 @@ function saveCurrentAnnotations() {
 function markAnnotationAsComplete() {
     saveCurrentAnnotations();
     annotation_set[example_idx]["flags"] = collectFlags();
+    annotation_set[example_idx]["options"] = collectOptions();
 
     $('#page-link-' + example_idx).removeClass("bg-incomplete");
     $('#page-link-' + example_idx).addClass("bg-complete");
@@ -257,6 +285,7 @@ function showAnnotation() {
 
     const data = examples_cached[example_idx];
     const flags = annotation_set[example_idx].flags;
+    const options = annotation_set[example_idx].options;
 
     if (flags !== undefined) {
         // flags are an array
@@ -267,6 +296,20 @@ function showAnnotation() {
         // uncheck all checkboxes
         $(".flag-checkbox input[type='checkbox']").prop("checked", false);
     }
+
+    if (options !== undefined) {
+        // options is an array of objects
+        for (const [i, option] of Object.entries(options)) {
+            const div = $(`#options div:eq(${i})`);
+            div.find("select[name='optionType']").val(option.type);
+            div.find("input[name='optionLabel']").val(option.label);
+            div.find("input[name='optionValues']").val(option.values.join(", "));
+        }
+    } else {
+        // clear all options
+        $("#options").empty();
+    }
+
     $("#examplearea").html(data.html);
     // $(".text-type").html(`${type}`);
 }
@@ -685,6 +728,7 @@ function gatherConfig() {
         config.sortOrder = $("#sortOrder").val();
         config.annotationSpanCategories = getAnnotationSpanCategories();
         config.flags = getKeys($("#flags"));
+        config.options = getOptions();
     } else if (window.mode == "llm_eval" || window.mode == "llm_gen") {
         config.metricType = $("#metric-type").val();
         config.modelName = $("#model-name").val();
@@ -768,6 +812,18 @@ function getKeys(div) {
         keys.push(key);
     });
     return keys;
+}
+
+function getOptions() {
+    var options = [];
+
+    $("#options").children().each(function () {
+        const type = $(this).find("select[name='optionType']").val();
+        const label = $(this).find("input[name='optionLabel']").val();
+        const values = $(this).find("input[name='optionValues']").val().split(",").map(v => v.trim());
+        options.push({ type: type, label: label, values: values });
+    });
+    return options;
 }
 
 function createHumanCampaign() {
@@ -966,6 +1022,12 @@ function addFlag() {
     flags.append(newFlag);
 }
 
+function addOption() {
+    const options = $("#options");
+    const newOption = createOptionElem("select", "", "");
+    options.append(newOption);
+}
+
 
 function deleteRow(button) {
     $(button).parent().parent().remove();
@@ -986,6 +1048,28 @@ function createFlagElem(key) {
     return newFlag;
 }
 
+function createOptionElem(type, label, values) {
+    // three columns: option type (selectbox, slider) text input for the label, and text input for comma-separated values
+    const newOption = $(`
+        <div class="row mt-1">
+        <div class="col-3">
+        <select class="form-select" name="optionType">
+            <option value="select" ${type === 'select' ? 'selected' : ''}>Select box</option>
+            <option value="slider" ${type === 'slider' ? 'selected' : ''}>Slider</option>
+        </select>
+        </div>
+        <div class="col-3">
+        <input type="text" class="form-control" name="optionLabel" value="${label}" placeholder="Label">
+        </div>
+        <div class="col-5">
+        <input type="text" class="form-control" name="optionValues" value="${values}" placeholder="Comma-separated values">
+        </div>
+        <div class="col-1">
+        <button type="button" class="btn btn-danger" onclick="deleteRow(this);">x</button>
+        </div>
+        `);
+    return newOption;
+}
 
 function createArgElem(key, value) {
     // escape quotes in the value
@@ -1156,6 +1240,7 @@ function updateCrowdsourcingConfig() {
         $("#idleTime").val("");
         $("#annotation-span-categories").empty();
         $("#flags").empty();
+        $("#options").empty();
         return;
     }
     const cfg = window.configs[crowdsourcingConfig];
@@ -1169,6 +1254,7 @@ function updateCrowdsourcingConfig() {
     const sortOrder = cfg.sort_order;
     const annotationSpanCategories = cfg.annotation_span_categories;
     const flags = cfg.flags;
+    const options = cfg.options;
 
     annotatorInstructionsMDE.value(annotatorInstructions);
     $("#annotatorPrompt").val(annotatorPrompt);
@@ -1185,10 +1271,21 @@ function updateCrowdsourcingConfig() {
     });
     $("#flags").empty();
 
-    flags.forEach((flag) => {
-        const newFlag = createFlagElem(flag);
-        $("#flags").append(newFlag);
-    });
+    if (flags !== undefined) {
+        flags.forEach((flag) => {
+            const newFlag = createFlagElem(flag);
+            $("#flags").append(newFlag);
+        });
+    }
+
+    $("#options").empty();
+
+    if (options !== undefined) {
+        options.forEach((option) => {
+            const newOption = createOptionElem(option.type, option.label, option.values.join(", "));
+            $("#options").append(newOption);
+        });
+    }
 }
 
 

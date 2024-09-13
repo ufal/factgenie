@@ -880,3 +880,29 @@ a:hover {
     margin-right: 5px;
     vertical-align: middle;
 }
+
+.slider-container {
+    position: relative;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.slider-crowdsourcing {
+    position: absolute;
+    width: 100%;
+}
+
+.datalist-crowdsourcing {
+    display: flex;
+    justify-content: space-between;
+}
+
+.datalist-crowdsourcing option {
+    flex-grow: 1;
+    text-align: center;
+    text-wrap: wrap;
+}

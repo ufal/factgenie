@@ -171,9 +171,9 @@
                   <div id="collapseAdvanced" class="accordion-collapse collapse" aria-labelledby="headingAdvanced"
                     data-bs-parent="#advancedAccordion">
                     <div class="accordion-body">
-                      <div class="row mb-1 align-items-center">
+                      <div class="row mb-3 align-items-center">
                         <div class="col-auto">
-                          <i class="fa fa-list-ul"></i>
+                          <i class="fa fa-check"></i>
                           <span style="margin-left: 5px; margin-right: 10px;">Flags</span>
                           <div class="mb-2">
                             <small class="form-text text-muted">Checkboxes that the annotators can mark for each
@@ -183,6 +183,21 @@
                         <div id="flags"></div>
                         <div class="col-auto mt-1">
                           <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addFlag();">+</button>
+                        </div>
+                      </div>
+                      <div class="row mb-1 align-items-center">
+                        <div class="col-auto">
+                          <i class="fa fa-list-ul"></i>
+                          <span style="margin-left: 5px; margin-right: 10px;">List of options</span>
+                          <div class="mb-2">
+                            <small class="form-text text-muted">Options that the annotators can choose from for each
+                              example.</small>
+                          </div>
+                        </div>
+                        <div id="options"></div>
+                        <div class="col-auto mt-1">
+                          <button type="button" class="btn btn-outline-secondary btn-sm"
+                            onclick="addOption();">+</button>
                         </div>
                       </div>
                     </div>
