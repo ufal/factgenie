@@ -19,8 +19,10 @@
   <div class="container w-50 mt-5">
 
     <div class="mt-5">
-      <a href="{{ host_prefix }}/llm_eval" class="btn btn-outline-secondary mb-5">← List of LLM evals</a>
-      <h3><img src="{{ host_prefix }}/static/img/llm.png" class="inline-icon"> <b>{{ campaign_id }}</b></h3>
+      <a href="{{ host_prefix }}/llm_campaign?mode={{ mode }}" class="btn btn-outline-secondary mb-5">← List of LLM {%
+        if mode == 'llm_eval' %}evaluation{% else %}generation{% endif %}
+        campaigns</a>
+      <h3><img src="{{ host_prefix }}/static/img/{{ mode }}.png" class="inline-icon"> <b>{{ campaign_id }}</b></h3>
 
       <div id="metadata-block" class="mt-3">
         <hr>
@@ -34,29 +36,38 @@
           </dd>
         </dl>
         <div>
-          <a onclick="runLlmEval('{{ campaign_id }}')" class="btn btn-outline-secondary" data-bs-toggle="tooltip"
-            id="run-button" title="Run evaluation" {% if metadata.status=='finished' or metadata.status=='running' %}
+          <a onclick="runLLMCampaign('{{ campaign_id }}')" class="btn btn-outline-secondary" data-bs-toggle="tooltip"
+            id="run-button" title="Run" {% if metadata.status=='finished' or metadata.status=='running' %}
             style="display: none;" {% endif %}>
-            <i class="fa fa-play"></i> Run evaluation
+            <i class="fa fa-play"></i> Run {% if mode == 'llm_eval' %}evaluation{% else %}generation{% endif %}
           </a>
-          <a onclick="pauseLlmEval('{{ campaign_id }}')" class="btn btn-outline-secondary" data-bs-toggle="tooltip"
+          <a onclick="pauseLLMCampaign('{{ campaign_id }}')" class="btn btn-outline-secondary" data-bs-toggle="tooltip"
             id="stop-button" title="Stop evaluation" {% if metadata.status!='running' %} style="display: none;" {% endif
             %}>
             <i class="fa fa-pause"></i> Pause evaluation
           </a>
-          <a href="{{ host_prefix }}/export_annotations?campaign={{ campaign_id }}" class="btn btn-outline-secondary"
-            data-bs-toggle="tooltip" id="download-button" title="Export annotations" {% if metadata.status=='idle' %}
-            style="display: none;" {% endif %}>
-            <i class="fa fa-download"></i> Download annotations
+          <a href="{{ host_prefix }}/export_campaign_outputs?campaign={{ campaign_id }}&mode={{ mode }}"
+            class="btn btn-outline-secondary" data-bs-toggle="tooltip" id="download-button" title="Export outputs" {% if
+            metadata.status=='idle' %} style="display: none;" {% endif %}>
+            <i class="fa fa-download"></i> Download {% if mode == 'llm_eval' %}annotations{% else %}generated outputs{%
+            endif %}
           </a>
+          {% if mode == 'llm_gen' %}
+          <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" id="save-generations-button"
+            data-bs-target="#save-generations-modal" class="btn btn-outline-secondary" title="Export as model outputs"
+            {% if metadata.status!='finished' %} style="display: none;" {% endif %}>
+            <!-- print out metadata.status -->
+            <i class="fa fa-file-text"></i> Export as model outputs
+          </a>
+          {% endif %}
           <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#config-modal"><i
               class="fa fa-cog"></i> Show
             configuration</a>
         </div>
         <div class="progress mt-3" style="display: {{ 'none' if metadata.status != 'running' else block }};"
-          id="llm-eval-progress">
+          id="llm-progress">
           <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuemin="0"
-            id="llm-eval-progress-bar" aria-valuemax="100"
+            id="llm-progress-bar" aria-valuemax="100"
             style="width: {{ (finished_examples|length) / (overview | length) * 100 }}%;">
           </div>
         </div>
@@ -68,13 +79,15 @@
 
         <div id="finished-examples" class="mt-3">
           <h4>Examples</h4>
+          {% if mode == 'llm_gen' %}<p><small class="text-muted">To view the outputs in the browse interface, wait until
+              all outputs are generated and export them as model outputs.</small></p>{% endif %}
           <div id="llm-status">
             <table class="table table-sm table-striped">
               <thead>
                 <tr>
                   <th scope="col">#</th>
                   <th scope="col">Dataset</th>
-                  <th scope="col">Setup</th>
+                  <th scope="col" {% if mode=='llm_gen' %} style="display: none;" {% endif %}>Setup</th>
                   <th scope="col">Split</th>
                   <th scope="col">Example</th>
                   <th scope="col">Status</th>
@@ -88,11 +101,11 @@
                 <tr>
                   <td>{{ loop.index }}</td>
                   <td>{{ example.dataset }}</td>
-                  <td>{{ example.setup_id }}</td>
+                  <td {% if mode=='llm_gen' %} style="display: none;" {% endif %}>{{ example.setup_id }}</td>
                   <td>{{ example.split }}</td>
                   <td>{{ example.example_idx }}</td>
 
-                  <td><span class="badge bg-secondary">{{ example.status }}</span>
+                  <td><span class="badge bg-secondary" id="statusBtn{{ rowId }}">{{ example.status }}</span>
                   </td>
                   <!-- use collapse for hiding annotations -->
                   <td>
@@ -111,7 +124,7 @@
                 <tr class="collapse" id="collapseExample{{ rowId }}">
                   <td colspan="7">
                     <div class="card card-body">
-                      <pre id="annotPre{{ rowId }}">{{ example.annotations }}</pre>
+                      <pre id="annotPre{{ rowId }}">{{ example.output }}</pre>
                     </div>
                   </td>
                 </tr>
@@ -129,16 +142,18 @@
   </div>
 
   {% include 'forms/config_modal.html' %}
+  {% include 'forms/save_generations_modal.html' %}
 </body>
 <script>
   // variable to be used in factgenie.js
   window.url_prefix = "{{ host_prefix }}";
   window.campaigns = "{{ campaigns }}";
-  window.llm_eval_examples = "{{ overview | length }}";
+  window.llm_examples = "{{ overview | length }}";
+  window.mode = "{{ mode }}";
 
   $(document).ready(function () {
     if ("{{ metadata.status }}" == "running") {
-      startLLMEvalListener("{{ campaign_id }}");
+      startLLMCampaignListener("{{ campaign_id }}");
     }
   });
 </script>

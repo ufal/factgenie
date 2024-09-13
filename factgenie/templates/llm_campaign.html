@@ -20,12 +20,12 @@
 
   <div class="container w-75 mt-5">
     <a href="{{ host_prefix }}/" class="btn btn-outline-secondary mb-5">← Main page</a>
-    <a href="{{ host_prefix }}/llm_eval/new" class="btn btn-primary mb-5">New LLM
-      eval</a>
+    <a href="{{ host_prefix }}/llm_campaign/new?mode={{ mode }}" class="btn btn-primary mb-5">New LLM
+      campaign</a>
 
     <div class="mt-1">
-      <h3><img src="{{ host_prefix }}/static/img/llm.png" class="heading-img-inline">
-        <b>List of LLM evaluation campaigns</b>
+      <h3><img src="{{ host_prefix }}/static/img/{{ mode }}.png" class="heading-img-inline">
+        <b>List of LLM {% if mode == 'llm_eval' %}evaluation{% else %}generation{% endif %} campaigns</b>
       </h3>
       <div id="campaigns">
         <table class="table table-hover">
@@ -40,7 +40,8 @@
           <tbody>
             {% for name, campaign in campaigns.items() %}
             <tr>
-              <td><a href="{{ host_prefix }}/llm_eval/detail?campaign={{ campaign.metadata.id }}" class="blue-link">{{
+              <td><a href="{{ host_prefix }}/llm_campaign/detail?mode={{ mode }}&campaign={{ campaign.metadata.id }}"
+                  class="blue-link">{{
                   campaign.metadata.id }}</a></td>
               <td>{{ campaign.metadata.created }}</td>
               <!-- <td>{{ campaign.stats }}</td> -->
@@ -49,7 +50,7 @@
                 {% endfor %}
               </td>
               <td>
-                <a href="{{ host_prefix }}/export_annotations?campaign={{ campaign.metadata.id }}"
+                <a href="{{ host_prefix }}/export_campaign_outputs?campaign={{ campaign.metadata.id }}&mode={{ mode }}"
                   class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Export annotations">
                   <i class="fa fa-download"></i>
                 </a>
@@ -57,13 +58,17 @@
                   campaign.metadata.id }}">
                   <i class="fa fa-clone"></i>
                 </a>
-                <a onclick="deleteCampaign('{{ campaign.metadata.id }}', 'llm_eval')" class="btn btn-outline-danger"
+                <a onclick="deleteCampaign('{{ campaign.metadata.id }}', '{{ mode }}')" class="btn btn-outline-danger"
                   data-bs-toggle="tooltip" title="Delete the campaign">
                   <i class="fa fa-trash"></i>
                 </a>
               </td>
             </tr>
+            {% if mode == 'llm_gen' %}
+            {% include 'forms/duplicate_gen_modal.html' %}
+            {% else %}
             {% include 'forms/duplicate_modal.html' %}
+            {% endif %}
             {% endfor %}
           </tbody>
 
@@ -76,6 +81,6 @@
 <script>
   // variable to be used in factgenie.js
   window.url_prefix = "{{ host_prefix }}";
-  window.mode = "llm_eval";
+  window.mode = "{{ mode }}";
 </script>
 <script src="{{ host_prefix }}/static/js/factgenie.js"></script>
