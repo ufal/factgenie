@@ -25,8 +25,8 @@ from collections import defaultdict
 import urllib.parse
 from slugify import slugify
 
-from factgenie.campaigns import ModelCampaign, HumanCampaign, CampaignStatus, ExampleStatus
-from factgenie.metrics import LLMMetricFactory
+from factgenie.campaigns import HumanCampaign, CampaignStatus, ExampleStatus
+from factgenie.models import ModelFactory
 import factgenie.utils as utils
 
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -35,6 +35,7 @@ DIR_PATH = os.path.dirname(__file__)
 TEMPLATES_DIR = os.path.join(DIR_PATH, "templates")
 STATIC_DIR = os.path.join(DIR_PATH, "static")
 ANNOTATIONS_DIR = os.path.join(DIR_PATH, "annotations")
+GENERATIONS_DIR = os.path.join(DIR_PATH, "generations")
 
 
 app = Flask("factgenie", template_folder=TEMPLATES_DIR, static_folder=STATIC_DIR)
@@ -325,8 +326,14 @@ def delete_campaign():
     data = request.get_json()
     campaign_name = data.get("campaignId")
     source = data.get("source")
+    mode = data.get("mode")
 
-    shutil.rmtree(os.path.join(ANNOTATIONS_DIR, campaign_name))
+    if mode == "llm_gen":
+        target_dir = GENERATIONS_DIR
+    else:
+        target_dir = ANNOTATIONS_DIR
+
+    shutil.rmtree(os.path.join(target_dir, campaign_name))
 
     if os.path.exists(os.path.join(TEMPLATES_DIR, "campaigns", campaign_name)):
         shutil.rmtree(os.path.join(TEMPLATES_DIR, "campaigns", campaign_name))
@@ -394,7 +401,7 @@ def duplicate_eval():
     campaign_id = data.get("campaignId")
     new_campaign_id = data.get("newCampaignId")
 
-    ret = utils.duplicate_eval(app, campaign_id, new_campaign_id)
+    ret = utils.duplicate_eval(app, mode, campaign_id, new_campaign_id)
 
     return ret
 
@@ -415,12 +422,13 @@ def render_example():
         return jsonify({"error": f"Error\n\t{e}\nwhile getting example data: {dataset_id=}, {split=}, {example_idx=}"})
 
 
-@app.route("/export_annotations", methods=["GET", "POST"])
+@app.route("/export_campaign_outputs", methods=["GET", "POST"])
 @login_required
-def export_annotations():
+def export_campaign_outputs():
     campaign_id = request.args.get("campaign")
+    mode = request.args.get("mode")
 
-    return utils.export_annotations(app, campaign_id)
+    return utils.export_campaign_outputs(app, mode, campaign_id)
 
 
 @app.route("/export_dataset", methods=["GET", "POST"])
@@ -462,17 +470,21 @@ def login():
     return render_template("login.html", host_prefix=app.config["host_prefix"])
 
 
-@app.route("/llm_eval", methods=["GET", "POST"])
+@app.route("/llm_campaign", methods=["GET", "POST"])
 @login_required
-def llm_eval():
-    logger.info(f"LLM eval page loaded")
+def llm_campaign():
+    logger.info(f"LLM campaign page loaded")
+    mode = request.args.get("mode")
+
+    if not mode:
+        return "The `mode` argument was not specified", 404
 
     utils.generate_campaign_index(app)
 
-    campaign_index = app.db["campaign_index"]["llm_eval"]
+    campaign_index = app.db["campaign_index"][mode]
     campaigns = defaultdict(dict)
 
-    llm_configs = utils.load_configs(mode="llm_eval")
+    llm_configs = utils.load_configs(mode=mode)
     crowdsourcing_configs = utils.load_configs(mode="crowdsourcing")
 
     for campaign_id, campaign in sorted(campaign_index.items(), key=lambda x: x[1].metadata["created"], reverse=True):
@@ -480,7 +492,8 @@ def llm_eval():
         campaigns[campaign_id]["stats"] = campaign.get_stats()
 
     return render_template(
-        "llm_eval.html",
+        f"llm_campaign.html",
+        mode=mode,
         llm_configs=llm_configs,
         crowdsourcing_configs=crowdsourcing_configs,
         campaigns=campaigns,
@@ -488,20 +501,29 @@ def llm_eval():
     )
 
 
-@app.route("/llm_eval/create", methods=["GET", "POST"])
+@app.route("/llm_campaign/create", methods=["GET", "POST"])
 @login_required
-def llm_eval_create():
+def llm_campaign_create():
+    mode = request.args.get("mode")
+
+    if not mode:
+        return "The `mode` argument was not specified", 404
+
     data = request.get_json()
 
     campaign_id = data.get("campaignId")
     campaign_data = data.get("campaignData")
     config = data.get("config")
 
-    config = utils.parse_llm_config(config)
+    if mode == "llm_eval":
+        config = utils.parse_llm_eval_config(config)
+    elif mode == "llm_gen":
+        config = utils.parse_llm_gen_config(config)
+
     datasets = app.db["datasets_obj"]
 
     try:
-        campaign = utils.llm_eval_new(campaign_id, config, campaign_data, datasets)
+        campaign = utils.llm_campaign_new(mode, campaign_id, config, campaign_data, datasets)
     except Exception as e:
         return utils.error(f"Error while creating campaign: {e}")
 
@@ -510,13 +532,18 @@ def llm_eval_create():
     return utils.success()
 
 
-@app.route("/llm_eval/detail", methods=["GET", "POST"])
+@app.route("/llm_campaign/detail", methods=["GET", "POST"])
 @login_required
-def llm_eval_detail():
+def llm_campaign_detail():
+    mode = request.args.get("mode")
+
+    if not mode:
+        return "The `mode` argument was not specified", 404
+
     utils.generate_campaign_index(app)
 
     campaign_id = request.args.get("campaign")
-    campaign = app.db["campaign_index"]["llm_eval"][campaign_id]
+    campaign = app.db["campaign_index"][mode][campaign_id]
 
     if campaign.metadata["status"] == CampaignStatus.RUNNING and not app.db["announcers"].get(campaign_id):
         campaign.metadata["status"] = CampaignStatus.IDLE
@@ -526,7 +553,8 @@ def llm_eval_detail():
     finished_examples = [x for x in overview if x["status"] == ExampleStatus.FINISHED]
 
     return render_template(
-        "llm_eval_detail.html",
+        f"llm_campaign_detail.html",
+        mode=mode,
         campaign_id=campaign_id,
         overview=overview,
         finished_examples=finished_examples,
@@ -535,24 +563,32 @@ def llm_eval_detail():
     )
 
 
-@app.route("/llm_eval/new", methods=["GET", "POST"])
+@app.route("/llm_campaign/new", methods=["GET", "POST"])
 @login_required
-def llm_eval_new():
+def llm_campaign_new():
+    mode = request.args.get("mode")
+
+    if not mode:
+        return "The `mode` argument was not specified", 404
+
     datasets = utils.get_dataset_overview(app)
     datasets = {k: v for k, v in datasets.items() if v["enabled"]}
-    model_outs = utils.get_model_outputs_overview(app, datasets, non_empty=True)
+
+    non_empty = True if mode == "llm_eval" else False
+    model_outs = utils.get_model_outputs_overview(app, datasets, non_empty=non_empty)
 
     # get a list of available metrics
-    llm_configs = utils.load_configs(mode="llm_eval")
-    metric_types = list(LLMMetricFactory.metric_classes().keys())
+    llm_configs = utils.load_configs(mode=mode)
+    metric_types = list(ModelFactory.model_classes()[mode].keys())
 
     utils.generate_campaign_index(app)
-    campaign_index = app.db["campaign_index"]["llm_eval"]
+    campaign_index = app.db["campaign_index"][mode]
 
-    default_campaign_id = utils.generate_default_id(campaign_index=campaign_index, prefix="llm-eval")
+    default_campaign_id = utils.generate_default_id(campaign_index=campaign_index, prefix=mode.replace("_", "-"))
 
     return render_template(
-        "llm_eval_new.html",
+        f"llm_campaign_new.html",
+        mode=mode,
         default_campaign_id=default_campaign_id,
         model_outs=model_outs,
         configs=llm_configs,
@@ -561,9 +597,14 @@ def llm_eval_new():
     )
 
 
-@app.route("/llm_eval/run", methods=["POST"])
+@app.route("/llm_campaign/run", methods=["POST"])
 @login_required
-def llm_eval_run():
+def llm_campaign_run():
+    mode = request.args.get("mode")
+
+    if not mode:
+        return "The `mode` argument was not specified", 404
+
     data = request.get_json()
     campaign_id = data.get("campaignId")
 
@@ -573,18 +614,18 @@ def llm_eval_run():
         "running": True,
     }
     utils.generate_campaign_index(app)
-    campaign = app.db["campaign_index"]["llm_eval"][campaign_id]
+    campaign = app.db["campaign_index"][mode][campaign_id]
 
     threads = app.db["threads"]
     datasets = app.db["datasets_obj"]
 
     config = campaign.metadata["config"]
-    metric = LLMMetricFactory.from_config(config)
+    model = ModelFactory.from_config(config, mode=mode)
 
-    return utils.run_llm_eval(campaign_id, announcer, campaign, datasets, metric, threads)
+    return utils.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, threads)
 
 
-@app.route("/llm_eval/progress/<campaign_id>", methods=["GET"])
+@app.route("/llm_campaign/progress/<campaign_id>", methods=["GET"])
 @login_required
 def listen(campaign_id):
     if not app.db["announcers"].get(campaign_id):
@@ -599,14 +640,19 @@ def listen(campaign_id):
     return Response(stream(), mimetype="text/event-stream")
 
 
-@app.route("/llm_eval/pause", methods=["POST"])
+@app.route("/llm_campaign/pause", methods=["POST"])
 @login_required
-def llm_eval_pause():
+def llm_campaign_pause():
+    mode = request.args.get("mode")
+
+    if not mode:
+        return "The `mode` argument was not specified", 404
+
     data = request.get_json()
     campaign_id = data.get("campaignId")
     app.db["threads"][campaign_id]["running"] = False
 
-    campaign = app.db["campaign_index"]["llm_eval"][campaign_id]
+    campaign = app.db["campaign_index"][mode][campaign_id]
     campaign.metadata["status"] = CampaignStatus.IDLE
     campaign.update_metadata()
 
@@ -653,13 +699,27 @@ def save_config():
     mode = data.get("mode")
 
     if mode == "llm_eval":
-        config = utils.parse_llm_config(config)
+        config = utils.parse_llm_eval_config(config)
+    elif mode == "llm_gen":
+        config = utils.parse_llm_gen_config(config)
     elif mode == "crowdsourcing":
         config = utils.parse_crowdsourcing_config(config)
     else:
         return jsonify({"error": f"Invalid mode: {mode}"})
 
     utils.save_config(filename, config, mode=mode)
+
+    return utils.success()
+
+
+@app.route("/save_generation_outputs", methods=["GET", "POST"])
+@login_required
+def save_generation_outputs():
+    data = request.get_json()
+    campaign_id = data.get("campaignId")
+    model_name = data.get("modelName")
+
+    utils.save_generation_outputs(app, campaign_id, model_name)
 
     return utils.success()
 
