@@ -158,7 +158,7 @@ def analyze():
     )
 
 
-@app.route("/analyze_detail", methods=["GET", "POST"])
+@app.route("/analyze/detail", methods=["GET", "POST"])
 @login_required
 def analyze_detail():
     utils.generate_campaign_index(app)
@@ -167,12 +167,13 @@ def analyze_detail():
     campaign = app.db["campaign_index"][source][campaign_id]
 
     datasets = utils.get_dataset_overview(app)
-    stats = analysis.compute_statistics(app, campaign, datasets)
+    statistics = analysis.compute_statistics(app, campaign, datasets)
 
     return render_template(
         "analyze_detail.html",
-        stats=stats,
+        statistics=statistics,
         campaign=campaign,
+        source=source,
         host_prefix=app.config["host_prefix"],
     )
 
