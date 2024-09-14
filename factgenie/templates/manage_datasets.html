@@ -105,5 +105,6 @@
   // variable to be used in factgenie.js
   window.url_prefix = "{{ host_prefix }}";
   window.mode = "datasets";
+  window.datasets = {{ datasets | tojson | safe }};
 </script>
 <script src="{{ host_prefix }}/static/js/manage.js"></script>

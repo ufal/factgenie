@@ -694,7 +694,7 @@ function gatherCampaignData() {
                 for (const output of campaign_outputs) {
                     if (model_outs[dataset][split] !== undefined &&
                         model_outs[dataset][split][output] !== undefined) {
-                        combinations.push({ dataset: dataset, split: split, setup_id: output, example_cnt: model_outs[dataset][split].example_count });
+                        combinations.push({ dataset: dataset, split: split, setup_id: output, example_cnt: datasets[dataset].example_count[split] });
                     }
                 }
             }
@@ -704,7 +704,7 @@ function gatherCampaignData() {
         for (const dataset of campaign_datasets) {
             for (const split of campaign_splits) {
                 if (model_outs[dataset][split] !== undefined) {
-                    combinations.push({ dataset: dataset, split: split, example_cnt: model_outs[dataset][split].example_count });
+                    combinations.push({ dataset: dataset, split: split, example_cnt: datasets[dataset].example_count[split] });
                 }
             }
         }

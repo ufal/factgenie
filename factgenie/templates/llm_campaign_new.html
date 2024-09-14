@@ -287,6 +287,7 @@
   window.url_prefix = "{{ host_prefix }}";
   window.model_outs = {{ model_outs | tojson | safe }};
   window.configs = {{ configs | tojson | safe }};
+  window.datasets = {{ datasets | tojson | safe }};
   window.mode = "{{ mode }}";
 </script>
 <script src="{{ host_prefix }}/static/js/factgenie.js"></script>

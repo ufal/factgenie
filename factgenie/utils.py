@@ -268,8 +268,6 @@ def get_model_outputs_overview(app, datasets, non_empty=False):
             model_outputs[dataset_id][split] = {}
             outputs = dataset.get_generated_outputs_for_split(split)
 
-            model_outputs[dataset_id][split]["example_count"] = dataset.get_example_count(split)
-
             for setup_id, output in outputs.items():
                 output_info = {}
 

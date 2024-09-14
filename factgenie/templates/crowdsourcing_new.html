@@ -279,6 +279,7 @@
   // variable to be used in factgenie.js
   window.url_prefix = "{{ host_prefix }}";
   window.model_outs = {{ model_outs | tojson | safe }};
+  window.datasets = {{ datasets | tojson | safe }};
   window.configs = {{ configs | tojson | safe }};
   window.mode = "crowdsourcing";
 
