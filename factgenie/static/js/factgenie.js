@@ -650,6 +650,7 @@ function updateSelectedDatasets() {
                 <td>${d.split}</td>
                 <td>${d.setup_id}</td>
                 <td>${d.example_cnt}</td>
+                <td><button type="button" class="btn btn-sm btn-secondary" onclick="deleteRow(this);">x</button></td>
             </tr>`
             ).join("\n")
         );
@@ -660,11 +661,30 @@ function updateSelectedDatasets() {
                 <td>${d.dataset}</td>
                 <td>${d.split}</td>
                 <td>${d.example_cnt}</td>
+                <td><button type="button" class="btn btn-sm btn-secondary" onclick="deleteRow(this);">x</button></td>
             </tr>`
             ).join("\n")
         );
     }
 }
+
+function gatherSelectedCombinations() {
+    // read all the rows the remained in #selectedDatasetsContent
+    var selectedData = [];
+    $("#selectedDatasetsContent tr").each(function () {
+        var dataset = $(this).find("td:eq(0)").text();
+        var split = $(this).find("td:eq(1)").text();
+        if (mode != "llm_gen") {
+            var setup_id = $(this).find("td:eq(2)").text();
+            selectedData.push({ dataset: dataset, split: split, setup_id: setup_id });
+        } else {
+            selectedData.push({ dataset: dataset, split: split });
+        }
+    });
+    return selectedData;
+}
+
+
 function gatherCampaignData() {
     var campaign_datasets = [];
     var campaign_splits = [];
@@ -754,7 +774,7 @@ function createLLMCampaign() {
     // const llmConfig = $('#llmConfig').val();
 
     const config = gatherConfig();
-    var campaignData = gatherCampaignData();
+    var campaignData = gatherSelectedCombinations();
 
     // if no datasets are selected, show an alert
     if (campaignData.length == 0) {
@@ -829,7 +849,7 @@ function getOptions() {
 function createHumanCampaign() {
     const campaignId = $('#campaignId').val();
     const config = gatherConfig();
-    var campaignData = gatherCampaignData();
+    var campaignData = gatherSelectedCombinations();
 
     // if no datasets are selected, show an alert
     if (campaignData.length == 0) {
