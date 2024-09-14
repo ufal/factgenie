@@ -83,9 +83,9 @@ def clean_annotations(df, campaign):
     return df
 
 
-def compute_err_counts(df):
+def compute_ann_counts(df):
     """
-    Compute error counts for each annotation type (separately for each dataset, split, setup_id).
+    Compute annotation counts for each annotation type (separately for each dataset, split, setup_id).
     """
     results = []
 
@@ -95,14 +95,14 @@ def compute_err_counts(df):
                 # filter the dataframe
                 df_filtered = df[(df["dataset"] == dataset) & (df["split"] == split) & (df["setup_id"] == setup_id)]
 
-                # compute the error counts
-                errors_counts = df_filtered.groupby("annotation_type").size().reset_index(name="error_count")
+                # compute the annotation counts
+                ann_counts = df_filtered.groupby("annotation_type").size().reset_index(name="ann_count")
 
-                errors_counts["dataset"] = dataset
-                errors_counts["split"] = split
-                errors_counts["setup_id"] = setup_id
+                ann_counts["dataset"] = dataset
+                ann_counts["split"] = split
+                ann_counts["setup_id"] = setup_id
 
-                results.append(errors_counts)
+                results.append(ann_counts)
 
     # concatenate all results into a single dataframe
     results = pd.concat(results, ignore_index=True)
@@ -110,41 +110,41 @@ def compute_err_counts(df):
     return results
 
 
-def compute_avg_error_counts(error_counts, datasets):
-    # for each line in error_counts, find the corresponding dataset in datasets and add the number of examples
-    # then compute the average error count
+def compute_avg_ann_counts(ann_counts, datasets):
+    # for each line in ann_counts, find the corresponding dataset in datasets and add the number of examples
+    # then compute the average annotation count
 
     # add a column with the number of examples for each dataset, split
-    error_counts["example_count"] = 0
+    ann_counts["example_count"] = 0
 
-    for i, row in error_counts.iterrows():
+    for i, row in ann_counts.iterrows():
         dataset = row["dataset"]
         split = row["split"]
         dataset_info = datasets[dataset]
-        error_counts.loc[i, "example_count"] = int(dataset_info["example_count"][split])
+        ann_counts.loc[i, "example_count"] = int(dataset_info["example_count"][split])
 
-    error_counts["avg_count"] = error_counts["error_count"] / error_counts["example_count"]
+    ann_counts["avg_count"] = ann_counts["ann_count"] / ann_counts["example_count"]
 
-    return error_counts
+    return ann_counts
 
 
-def aggregate_error_counts(error_counts, groupby):
+def aggregate_ann_counts(ann_counts, groupby):
     if groupby == "annotation_type":
-        aggregated = error_counts.groupby("annotation_type").agg({"avg_count": "mean", "error_count": "sum"}).to_dict()
+        aggregated = ann_counts.groupby("annotation_type").agg({"avg_count": "mean", "ann_count": "sum"}).to_dict()
 
     elif groupby == "setup_id":
-        # keep individual error categories, but aggregate setup_ids for each dataset, split
+        # keep individual annotation categories, but aggregate setup_ids for each dataset, split
         aggregated = (
-            error_counts.groupby(["dataset", "split", "annotation_type"])
-            .agg({"avg_count": "mean", "error_count": "sum"})
+            ann_counts.groupby(["dataset", "split", "annotation_type"])
+            .agg({"avg_count": "mean", "ann_count": "sum"})
             .to_dict()
         )
 
     elif groupby == "dataset":
-        # keep individual error categories, but aggregate datasets for each split, setup_id
+        # keep individual annotation categories, but aggregate datasets for each split, setup_id
         aggregated = (
-            error_counts.groupby(["split", "setup_id", "annotation_type"])
-            .agg({"avg_count": "mean", "error_count": "sum"})
+            ann_counts.groupby(["split", "setup_id", "annotation_type"])
+            .agg({"avg_count": "mean", "ann_count": "sum"})
             .to_dict()
         )
 
@@ -159,15 +159,15 @@ def compute_statistics(app, campaign, datasets):
     df = load_annotations_for_campaigns([campaign_id])
     df = clean_annotations(df, campaign)
 
-    error_counts = compute_err_counts(df)
-    error_counts = compute_avg_error_counts(error_counts, datasets)
+    annotation_counts = compute_ann_counts(df)
+    annotation_counts = compute_avg_ann_counts(annotation_counts, datasets)
 
-    statistics["error_counts"] = {
-        "full": error_counts.to_dict(orient="records"),
-        "aggregated": {
-            "annotation_type": aggregate_error_counts(error_counts, "annotation_type"),
-            "setup_id": aggregate_error_counts(error_counts, "setup_id"),
-        },
+    statistics["ann_counts"] = {
+        "full": annotation_counts.to_dict(orient="records"),
+        # "aggregated": {
+        #     "annotation_type": aggregate_ann_counts(ann_counts, "annotation_type"),
+        #     "setup_id": aggregate_ann_counts(ann_counts, "setup_id"),
+        # },
     }
 
     return statistics
