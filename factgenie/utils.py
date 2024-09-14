@@ -896,7 +896,7 @@ def generate_options(options):
     if not options:
         return ""
 
-    options_segment = "<div class='mt-2 mb-3'><p><b>Please select from the following:</b></p>"
+    options_segment = "<div class='mt-2 mb-3'>"
     for i, option in enumerate(options):
         if option["type"] == "select":
             options_segment += f"""
