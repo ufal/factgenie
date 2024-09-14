@@ -662,34 +662,21 @@ def llm_campaign_pause():
     return resp
 
 
-@app.route("/datasets", methods=["GET", "POST"])
+@app.route("/manage", methods=["GET", "POST"])
 @login_required
-def manage_datasets():
+def manage():
     datasets = utils.get_dataset_overview(app)
     dataset_classes = list(utils.get_dataset_classes().keys())
 
+    datasets_enabled = {k: v for k, v in datasets.items() if v["enabled"]}
+    model_outputs = utils.get_model_outputs_overview(app, datasets_enabled)
+
     return render_template(
-        "manage_datasets.html",
+        "manage.html",
         datasets=datasets,
         dataset_classes=dataset_classes,
         host_prefix=app.config["host_prefix"],
-    )
-
-
-@app.route("/model_outputs", methods=["GET", "POST"])
-@login_required
-def manage_model_outputs():
-    # utils.generate_annotation_index(app)
-
-    datasets = utils.get_dataset_overview(app)
-    datasets = {k: v for k, v in datasets.items() if v["enabled"]}
-    model_outputs = utils.get_model_outputs_overview(app, datasets)
-
-    return render_template(
-        "manage_model_outputs.html",
-        datasets=datasets,
         model_outputs=model_outputs,
-        host_prefix=app.config["host_prefix"],
     )
 
 
