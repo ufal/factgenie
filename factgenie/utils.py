@@ -161,6 +161,36 @@ def generate_campaign_index(app):
     app.db["campaign_index"] = campaigns
 
 
+def load_annotations_for_campaign(subdir):
+    annotations_campaign = defaultdict(list)
+
+    # find metadata for the campaign
+    metadata_path = ANNOTATIONS_DIR / subdir / "metadata.json"
+    if not metadata_path.exists():
+        return None
+
+    with open(metadata_path) as f:
+        metadata = json.load(f)
+
+    jsonl_files = (ANNOTATIONS_DIR / subdir / "files").glob("*.jsonl")
+
+    for jsonl_file in jsonl_files:
+        with open(jsonl_file) as f:
+            for line in f:
+                annotation = json.loads(line)
+                annotation["metadata"] = metadata
+
+                key = (
+                    slugify(annotation["dataset"]),
+                    slugify(annotation["split"]),
+                    annotation["example_idx"],
+                    slugify(annotation["setup"]["id"]),
+                )
+                annotations_campaign[key].append(annotation)
+
+    return annotations_campaign
+
+
 def generate_annotation_index(app):
     # contains annotations for each generated output
     annotations = defaultdict(list)
@@ -168,34 +198,18 @@ def generate_annotation_index(app):
     # for all subdirectories in ANNOTATIONS_DIR, load content of all the jsonl files
     for subdir in os.listdir(ANNOTATIONS_DIR):
         try:
-            # find metadata for the campaign
-            metadata_path = ANNOTATIONS_DIR / subdir / "metadata.json"
-            if not metadata_path.exists():
+            annotations_campaign = load_annotations_for_campaign(subdir)
+
+            if annotations_campaign is None:
                 continue
 
-            with open(metadata_path) as f:
-                metadata = json.load(f)
-
-            jsonl_files = (ANNOTATIONS_DIR / subdir / "files").glob("*.jsonl")
-
-            for jsonl_file in jsonl_files:
-                with open(jsonl_file) as f:
-                    for line in f:
-                        annotation = json.loads(line)
-                        annotation["metadata"] = metadata
-
-                        key = (
-                            slugify(annotation["dataset"]),
-                            slugify(annotation["split"]),
-                            annotation["example_idx"],
-                            slugify(annotation["setup"]["id"]),
-                        )
-                        annotations[key].append(annotation)
+            for key, annotation_set in annotations_campaign.items():
+                annotations[key].extend(annotation_set)
         except:
             # if app.config["debug"]:
             traceback.print_exc()
             logger.error(f"Error while loading annotations for {subdir}")
-            # raise
+
     app.db["annotation_index"] = annotations
 
     return annotations
