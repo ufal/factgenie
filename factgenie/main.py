@@ -25,17 +25,16 @@ from collections import defaultdict
 import urllib.parse
 from slugify import slugify
 
-from factgenie.campaigns import HumanCampaign, CampaignStatus, ExampleStatus
+from factgenie.campaigns import HumanCampaign, CampaignStatus, ExampleStatus, ANNOTATIONS_DIR, GENERATIONS_DIR
 from factgenie.models import ModelFactory
 import factgenie.utils as utils
+import factgenie.analysis as analysis
 
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 DIR_PATH = os.path.dirname(__file__)
 TEMPLATES_DIR = os.path.join(DIR_PATH, "templates")
 STATIC_DIR = os.path.join(DIR_PATH, "static")
-ANNOTATIONS_DIR = os.path.join(DIR_PATH, "annotations")
-GENERATIONS_DIR = os.path.join(DIR_PATH, "generations")
 
 
 app = Flask("factgenie", template_folder=TEMPLATES_DIR, static_folder=STATIC_DIR)
@@ -137,6 +136,43 @@ def about():
 
     return render_template(
         "about.html",
+        host_prefix=app.config["host_prefix"],
+    )
+
+
+@app.route("/analyze", methods=["GET", "POST"])
+@login_required
+def analyze():
+    logger.info(f"Analysis page loaded")
+
+    utils.generate_campaign_index(app)
+    campaign_index = app.db["campaign_index"]
+
+    campaign_list = [x.metadata for x in campaign_index["llm_eval"].values()]
+    campaign_list += [x.metadata for x in campaign_index["crowdsourcing"].values()]
+
+    return render_template(
+        "analyze.html",
+        campaigns=campaign_list,
+        host_prefix=app.config["host_prefix"],
+    )
+
+
+@app.route("/analyze_detail", methods=["GET", "POST"])
+@login_required
+def analyze_detail():
+    utils.generate_campaign_index(app)
+    campaign_id = request.args.get("campaign")
+    source = request.args.get("source")
+    campaign = app.db["campaign_index"][source][campaign_id]
+
+    datasets = utils.get_dataset_overview(app)
+    stats = analysis.compute_statistics(app, campaign, datasets)
+
+    return render_template(
+        "analyze_detail.html",
+        stats=stats,
+        campaign=campaign,
         host_prefix=app.config["host_prefix"],
     )
 
