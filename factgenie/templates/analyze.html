@@ -5,28 +5,64 @@
   <title>factgenie</title>
   <link rel="stylesheet" media="screen" href="{{ host_prefix }}/static/css/bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="{{ host_prefix }}/static/css/custom.css">
-  <link rel="shortcut icon" href="{{ host_prefix }}/static/img/favicon.ico">
   <link href="{{ host_prefix }}/static/css/font-awesome.css" rel="stylesheet">
+  <link rel="shortcut icon" href="{{ host_prefix }}/static/img/favicon.ico">
   <meta name="viewport" content="width=1024">
   <script src="{{ host_prefix }}/static/js/jquery.min.js"></script>
   <script src="{{ host_prefix }}/static/js/popper.min.js"></script>
   <script src="{{ host_prefix }}/static/js/bootstrap.min.js"></script>
+
 </head>
 
 <body>
   {% include 'navbar.html' %}
 
-  <div class="container w-50 mt-5">
-    <div>
-      <a href="{{ host_prefix }}/" class="btn btn-outline-secondary mt-5">← Main page</a>
+
+  <div class="container w-75 mt-5">
+    <a href="{{ host_prefix }}/" class="btn btn-outline-secondary mb-5">← Main page</a>
+
+    <div class="mt-1">
+
+      <h3><img src="{{ host_prefix }}/static/img/analysis.png" class="heading-img-inline">
+        <b>Statistics</b>
+      </h3>
+      <div id="campaigns">
+
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th scope="col">Id</th>
+              <th scope="col">Created</th>
+              <th scope="col">Status</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for campaign in campaigns %}
+            <tr>
+              <td><a href="{{ host_prefix }}/analyze/detail?campaign={{ campaign.id }}&source={{ campaign.source }}"
+                  class="blue-link">{{
+                  campaign.id }}</a></td>
+              <td>{{ campaign.created }}</td>
+              <td>
+                <a href="{{ host_prefix }}/analyze?campaign={{ campaign.id }}&source={{ campaign.source }}"
+                  class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Preview the crowdsourcing page">
+                  <i class="fa fa-eye"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+
+      </div>
     </div>
 
-
-
+  </div>
 </body>
 <script>
   // variable to be used in factgenie.js
   window.url_prefix = "{{ host_prefix }}";
+  window.campaigns = {{ campaigns | tojson | safe }};
   window.mode = "analyze";
 </script>
-<script src="{{ host_prefix }}/static/js/manage.js"></script>
+<script src="{{ host_prefix }}/static/js/analysis.js"></script>

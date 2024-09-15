@@ -29,6 +29,7 @@
 
   <div class="container w-75 mt-5">
 
+    <a href="{{ host_prefix }}/analyze" class="btn btn-outline-secondary">← Statistics</a>
     <div class="mt-5">
       <!-- <a href="{{ host_prefix }}/analyze" class="btn btn-outline-secondary mb-5">← List of
         campaigns</a> -->
@@ -54,6 +55,16 @@
           </dd>
         </dl>
       </div>
+
+
+      <!-- if we do not have statistics (None), just display an infobox -->
+      {% if not statistics %}
+      <div class="alert alert-info mt-3" role="alert">
+        <i class="fa fa-info"></i>
+        <span>No annotations were yet collected in this campaign.</span>
+      </div>
+      {% endif %}
+
     </div>
 
     <ul class="nav nav-tabs nav-fill mt-5" id="pills-tab" role="tablist">
@@ -77,11 +88,11 @@
           aria-controls="pills-stats-dataset"><img src="{{ host_prefix }}/static/img/stats/stats-dataset.png"
             height="30px" class="heading-img-inline">By datasets</a>
       </li>
-      <li class="nav-item" role="presentation">
+      <!-- <li class="nav-item" role="presentation">
         <a class="nav-link" id="pills-charts-tab" data-bs-toggle="pill" href="#pills-charts" role="tab"
           aria-controls="pills-charts"><img src="{{ host_prefix }}/static/img/stats/stats-charts.png" height="30px"
             class="heading-img-inline">Charts</a>
-      </li>
+      </li> -->
     </ul>
     <div class="tab-content" id="pills-tabContent">
       <div class="tab-pane mb-5 fade show active" id="pills-stats-full" role="tabpanel"
@@ -164,11 +175,11 @@
         </table>
       </div>
     </div>
-    <div class="tab-content" id="pills-tabContent">
+    <!-- <div class="tab-content" id="pills-tabContent">
       <div class="tab-pane mb-5 fade show active" id="pills-charts" role="tabpanel" aria-labelledby="pills-charts-tab">
 
       </div>
-    </div>
+    </div> -->
   </div>
 
 </body>

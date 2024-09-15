@@ -23,11 +23,8 @@ logger = logging.getLogger(__name__)
 coloredlogs.install(level="INFO", logger=logger, fmt="%(asctime)s %(levelname)s %(message)s")
 
 
-def load_annotations(line, campaign_id):
-    j = json.loads(line)
-    annotation_records = []
-
-    r = {
+def get_example_info(j, campaign_id):
+    return {
         "annotator_id": j["annotator_id"],
         "campaign_id": campaign_id,
         "dataset": j["dataset"],
@@ -35,6 +32,13 @@ def load_annotations(line, campaign_id):
         "setup_id": j["setup"]["id"],
         "split": j["split"],
     }
+
+
+def load_annotations(line, campaign_id):
+    j = json.loads(line)
+    annotation_records = []
+
+    r = get_example_info(j, campaign_id)
 
     for annotation in j["annotations"]:
         r["annotation_type"] = annotation["type"]
@@ -50,14 +54,7 @@ def create_example_record(line, campaign_id, annotation_span_categories):
     # a record is created even if there are no annotations
     j = json.loads(line)
 
-    example_record = {
-        "annotator_id": j["annotator_id"],
-        "campaign_id": campaign_id,
-        "dataset": j["dataset"],
-        "example_idx": j["example_idx"],
-        "setup_id": j["setup"]["id"],
-        "split": j["split"],
-    }
+    example_record = get_example_info(j, campaign_id)
 
     for i, category in enumerate(annotation_span_categories):
         example_record["cat_" + str(i)] = 0
@@ -104,6 +101,7 @@ def preprocess_annotations(df, campaign):
 
     # remove annotations with type that is not in the correct range (0 - len(annotation_span_categories))
     annotation_span_categories = campaign.metadata["config"]["annotation_span_categories"]
+
     category_cnt = len(annotation_span_categories)
     df = df[df["annotation_type"].apply(lambda x: x in range(category_cnt))]
 
@@ -239,6 +237,10 @@ def compute_statistics(app, campaign, datasets):
     statistics = {}
 
     annotation_index, example_index = load_annotations_for_campaign(campaign)
+
+    if annotation_index.empty:
+        return None
+
     annotation_index = preprocess_annotations(annotation_index, campaign)
 
     annotation_counts = compute_ann_counts(annotation_index)
