@@ -314,6 +314,7 @@ def crowdsourcing_new():
     return render_template(
         "crowdsourcing_new.html",
         default_campaign_id=default_campaign_id,
+        datasets=datasets,
         model_outs=model_outs,
         configs=configs,
         host_prefix=app.config["host_prefix"],
@@ -589,6 +590,7 @@ def llm_campaign_new():
     return render_template(
         f"llm_campaign_new.html",
         mode=mode,
+        datasets=datasets,
         default_campaign_id=default_campaign_id,
         model_outs=model_outs,
         configs=llm_configs,

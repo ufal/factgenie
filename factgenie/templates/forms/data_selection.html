@@ -1,17 +1,13 @@
 <p>
     {% if mode == 'llm_gen' %}
-    <small class="text-muted">Select the combinations of datasets and splits (only
-        the available
-        combinations will be included in the generation campaign).</small>
-    {% elif mode == 'llm_eval' %}
-    <small class="text-muted">Select the combinations of datasets, splits, and model outputs (only
-        the available
-        combinations will be included in the evaluation campaign).</small>
+    <small class="text-muted">Select the combinations of datasets and splits.</small>
+    {% else %}
+    <small class="text-muted">Select the combinations of datasets, splits, and model outputs.</small>
     {% endif %}
 </p>
 
 <div id="data-select-area" class="row">
-    <div {% if mode=='llm_eval' %} class="col-md-4" {% else %} class="col-md-6" {% endif %}>
+    <div {% if mode!='llm_gen' %} class="col-md-4" {% else %} class="col-md-6" {% endif %}>
         <div class="card">
             <div class="card-header bg-light">
                 Datasets
@@ -31,7 +27,7 @@
             </div>
         </div>
     </div>
-    <div {% if mode=='llm_eval' %} class="col-md-4" {% else %} class="col-md-6" {% endif %} id="splits-column"
+    <div {% if mode!='llm_gen' %} class="col-md-4" {% else %} class="col-md-6" {% endif %} id="splits-column"
         style="display: none;">
         <div class="card">
             <div class="card-header bg-light">
@@ -67,7 +63,7 @@
                 <tr>
                     <th scope="col">Dataset</th>
                     <th scope="col">Split</th>
-                    {% if mode == 'llm_eval' %} <th scope="col">Outputs</th> {% endif %}
+                    {% if mode != 'llm_gen' %} <th scope="col">Outputs</th> {% endif %}
                     <th scope="col">Examples</th>
                 </tr>
             <tbody id="selectedDatasetsContent">

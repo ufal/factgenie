@@ -1,6 +1,6 @@
 const url_prefix = window.url_prefix;
 const modelOutputs = window.model_outputs;
-
+const datasets = window.datasets;
 
 function createUploadDatasetSplitElem() {
     const newSplit = $(`
@@ -56,7 +56,7 @@ function showModelOutputs() {
     // we need to iterate of triple nested dict
     for (const [split, setups] of Object.entries(outputs)) {
         for (const [setup, outputs] of Object.entries(setups)) {
-            const examples = outputs.example_count;
+            const examples = datasets[dataset].example_count[split];
             const row = `<tr>
                 <td>${dataset}</td>
                 <td>${split}</td>

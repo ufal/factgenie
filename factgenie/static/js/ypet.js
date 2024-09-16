@@ -80,7 +80,7 @@ AnnotationList = Backbone.Collection.extend({
 
   initialize: function (options) {
     this.listenTo(this, 'add', function (annotation) {
-      var text = annotation.get('words').map(word => word.get('text') + word.get('space_padding')).join('');
+      var text = annotation.get('words').map(word => word.get('text') + word.get('space_padding')).join('').trim();
       var start = annotation.get('words').first().get('start');
 
       annotation.set('text', text);
