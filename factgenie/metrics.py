@@ -229,46 +229,12 @@ class OllamaMetric(LLMMetric):
             j = self.postprocess_output(annotation_str)
             logger.info(j)
             return self.postprocess_annotations(text=text, model_json=j)
+        except (ConnectionError, requests.exceptions.ConnectionError) as e:
+            # notifiy the user that the API is down
+            logger.error(f"Connection error: {e}")
+            return {"error": str(e)}
         except Exception as e:
-            logger.error(
-                f"Called {msg}\n\n and received\n\t{response=}\n\t{annotation_str=}\n\t{j=}\nbefore the error:{e}"
-            )
+            # ignore occasional problems not to interrupt the annotation process
+            logger.error(f"Received\n\t{response=}\n\t{annotation_str=}\n\t{j=}\nError:{e}")
             traceback.print_exc()
             return []
-
-
-# class LogicNLGMarkdownOllamaMetric(OllamaMetric):
-#     def __init__(self, config):
-#         super().__init__(config)
-#         self._table_str_f = self.config["extra_args"].get("table_str_f", "to_string")
-
-#     def get_required_fields(self):
-#         return {
-#             "type": str,
-#             "annotation_span_categories": list,
-#             "prompt_template": str,
-#             "model": str,
-#             "model_args": dict,
-#             "extra_args": dict,
-#         }
-
-#     def preprocess_data_for_prompt(self, example):
-#         import pandas as pd  # requires tabulate
-
-#         rowlist = example[0]
-#         table_title = example[1]
-#         table = pd.DataFrame(rowlist[1:], columns=rowlist[0])
-
-#         if self._table_str_f == "to_markdown":
-#             table_str = table.to_markdown()
-#         elif self._table_str_f == "to_string":
-#             table_str = table.to_string()
-#         elif self._table_str_f == "to_json":
-#             # List of rows
-#             table_str = table.to_json(orient="records")
-#         else:
-#             raise ValueError(f"Unknown table string function {self._table_str_f}")
-
-#         data2prompt = f"Table title: {table_title}\n{table_str}"
-
-#         return data2prompt

@@ -17,6 +17,18 @@ DIR_PATH = os.path.dirname(__file__)
 CROWDSOURCING_DIR = os.path.join(DIR_PATH, "annotations")
 
 
+class CampaignStatus:
+    IDLE = "idle"
+    RUNNING = "running"
+    FINISHED = "finished"
+
+
+class ExampleStatus:
+    FREE = "free"
+    ASSIGNED = "assigned"
+    FINISHED = "finished"
+
+
 class Campaign:
     @classmethod
     def get_name(cls):
@@ -33,6 +45,16 @@ class Campaign:
 
         with open(self.metadata_path) as f:
             self.metadata = json.load(f)
+
+        # temporary fix for the old campaigns
+        if self.metadata.get("status") in ["new", "paused"]:
+            self.metadata["status"] = CampaignStatus.IDLE
+            self.update_metadata()
+
+        # if the db does not contain the `end` column, add it
+        if "end" not in self.db.columns:
+            self.db["end"] = ""
+            self.update_db(self.db)
 
     def get_finished_examples(self):
         # load all the JSONL files in the "files" subdirectory
@@ -59,6 +81,60 @@ class Campaign:
 
         return batch_stats["status"].value_counts().to_dict()
 
+
+class HumanCampaign(Campaign):
+    def get_examples_for_batch(self, batch_idx):
+        annotator_batch = []
+
+        # find all examples for this batch in self.db
+        batch_examples = self.db[self.db["batch_idx"] == batch_idx]
+
+        for _, row in batch_examples.iterrows():
+            annotator_batch.append(
+                {
+                    "dataset": row["dataset"],
+                    "split": row["split"],
+                    "setup": {"id": row["setup_id"]},
+                    "example_idx": row["example_idx"],
+                }
+            )
+        return annotator_batch
+
+    def get_overview(self):
+        overview_db = self.db.copy()
+        # replace NaN with empty string
+        overview_db = overview_db.where(pd.notnull(overview_db), "")
+
+        # group by batch idx
+        # add a column with the number of examples for each batch
+        # for other columns keep first item
+        overview_db = overview_db.groupby("batch_idx").agg(
+            {
+                "dataset": "first",
+                "split": "first",
+                "example_idx": "count",
+                "setup_id": "first",
+                "status": "first",
+                "start": "first",
+                "end": "first",
+                "annotator_id": "first",
+            }
+        )
+        # add the list of `example_ids` to each batch
+        overview_db["example_ids"] = overview_db.index.map(
+            lambda batch_idx: sorted(list(self.db[self.db["batch_idx"] == batch_idx]["example_idx"]))
+        )
+
+        overview_db = overview_db.rename(columns={"example_idx": "example_cnt"}).reset_index()
+        overview_db = overview_db.to_dict(orient="records")
+
+        return overview_db
+
+
+class ModelCampaign(Campaign):
+    def get_stats(self):
+        return self.db["status"].value_counts().to_dict()
+
     def get_overview(self):
         # pair the examples in db with the finished examples
         # we need to match the examples on (dataset, split, setup, example_idx)
@@ -80,28 +156,6 @@ class Campaign:
             annotations = example.get("annotations", [])
             overview_db.at[i, "annotations"] = str(annotations)
 
+        overview_db = overview_db.to_dict(orient="records")
+
         return overview_db
-
-
-class HumanCampaign(Campaign):
-    def get_examples_for_batch(self, batch_idx):
-        annotator_batch = []
-
-        # find all examples for this batch in self.db
-        batch_examples = self.db[self.db["batch_idx"] == batch_idx]
-
-        for _, row in batch_examples.iterrows():
-            annotator_batch.append(
-                {
-                    "dataset": row["dataset"],
-                    "split": row["split"],
-                    "setup": {"id": row["setup_id"]},
-                    "example_idx": row["example_idx"],
-                }
-            )
-        return annotator_batch
-
-
-class ModelCampaign(Campaign):
-    def get_stats(self):
-        return self.db["status"].value_counts().to_dict()

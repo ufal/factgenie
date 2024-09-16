@@ -53,26 +53,32 @@ function showModelOutputs() {
     const table = $('#model-out-table tbody');
     table.empty();
 
-    for (const setup in outputs) {
-        const examples = outputs[setup].example_count;
-        const split = outputs[setup].split;
-        const row = `<tr>
-            <td>${dataset}</td>
-            <td>${split}</td>
-            <td>${setup}</td>
-            <td>${examples}</td>
-            <td>
-                <a href="${url_prefix}/browse?dataset=${dataset}&split=${split}&example_idx=0" class="btn btn-outline-secondary"
-                    data-bs-toggle="tooltip" title="Show the outputs">
-                    <i class="fa fa-eye"></i>
+    // we need to iterate of triple nested dict
+    for (const [split, setups] of Object.entries(outputs)) {
+        for (const [setup, outputs] of Object.entries(setups)) {
+            const examples = outputs.example_count;
+            const row = `<tr>
+                <td>${dataset}</td>
+                <td>${split}</td>
+                <td>${setup}</td>
+                <td>${examples}</td>
+                <td>
+                    <a href="${url_prefix}/browse?dataset=${dataset}&split=${split}&example_idx=0" class="btn btn-outline-secondary"
+                        data-bs-toggle="tooltip" title="Show the outputs">
+                        <i class="fa fa-eye"></i>
+                    </a>
+                    <a href="${url_prefix}/export_outputs?dataset=${dataset}&split=${split}&setup=${setup}" class="btn btn-outline-secondary"
+                    data-bs-toggle="tooltip" title="Download model outputs">
+                    <i class="fa fa-download"></i>
                 </a>
-                <a onclick="deleteOutput('${dataset}', '${split}', '${setup}')" class="btn btn-outline-danger"
-                data-bs-toggle="tooltip" title="Delete the output">
-                <i class="fa fa-trash"></i>
-                </a>
-            </td>
-        </tr>`;
-        table.append(row);
+                    <a onclick="deleteOutput('${dataset}', '${split}', '${setup}')" class="btn btn-outline-danger"
+                    data-bs-toggle="tooltip" title="Delete the output">
+                    <i class="fa fa-trash"></i>
+                    </a>
+                </td>
+            </tr>`;
+            table.append(row);
+        }
     }
 }
 

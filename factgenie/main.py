@@ -25,7 +25,7 @@ from collections import defaultdict
 import urllib.parse
 from slugify import slugify
 
-from factgenie.campaigns import Campaign, ModelCampaign, HumanCampaign
+from factgenie.campaigns import ModelCampaign, HumanCampaign, CampaignStatus, ExampleStatus
 from factgenie.metrics import LLMMetricFactory
 import factgenie.utils as utils
 
@@ -61,13 +61,22 @@ def timectime(timestamp):
 
 
 @app.template_filter("elapsed")
-def time_elapsed(timestamp):
+def time_elapsed(batch):
+    start_timestamp = batch["start"]
+    end_timestamp = batch["end"]
     try:
-        s = datetime.datetime.fromtimestamp(timestamp)
-        diff = str(datetime.datetime.now() - s)
-        return diff.split(".")[0]
+        if end_timestamp:
+            s = datetime.datetime.fromtimestamp(start_timestamp)
+            e = datetime.datetime.fromtimestamp(end_timestamp)
+            diff = str(e - s)
+            return diff.split(".")[0]
+        else:
+
+            s = datetime.datetime.fromtimestamp(start_timestamp)
+            diff = str(datetime.datetime.now() - s)
+            return diff.split(".")[0]
     except:
-        return timestamp
+        return ""
 
 
 @app.template_filter("annotate_url")
@@ -225,31 +234,17 @@ def crowdsourcing_detail():
     utils.generate_campaign_index(app)
 
     campaign_id = request.args.get("campaign")
-    db = app.db["campaign_index"]["crowdsourcing"][campaign_id].db
-    # replace NaN with empty string
-    db = db.where(pd.notnull(db), "")
+    campaign = app.db["campaign_index"]["crowdsourcing"][campaign_id]
 
-    # group by batch idx
-    # add a column with the number of examples for each batch
-    # for other columns keep first item
-    db = db.groupby("batch_idx").agg(
-        {
-            "dataset": "first",
-            "split": "first",
-            "example_idx": "count",
-            "setup_id": "first",
-            "status": "first",
-            "start": "first",
-            "annotator_id": "first",
-        }
-    )
-    db = db.rename(columns={"example_idx": "example_cnt"}).reset_index()
-    db = db.to_dict(orient="records")
+    overview = campaign.get_overview()
+    finished_examples = [x for x in overview if x["status"] == ExampleStatus.FINISHED]
 
     return render_template(
         "crowdsourcing_detail.html",
         campaign_id=campaign_id,
-        db=db,
+        overview=overview,
+        finished_examples=finished_examples,
+        metadata=campaign.metadata,
         host_prefix=app.config["host_prefix"],
     )
 
@@ -303,7 +298,10 @@ def crowdsourcing_create():
 @app.route("/crowdsourcing/new", methods=["GET", "POST"])
 @login_required
 def crowdsourcing_new():
-    model_outs = utils.get_model_outs(app)
+    datasets = utils.get_dataset_overview(app)
+    datasets = {k: v for k, v in datasets.items() if v["enabled"]}
+
+    model_outs = utils.get_model_outputs_overview(app, datasets, non_empty=True)
 
     utils.generate_campaign_index(app)
     campaign_index = app.db["campaign_index"]["crowdsourcing"]
@@ -433,6 +431,16 @@ def export_dataset():
     return utils.export_dataset(app, dataset_id)
 
 
+@app.route("/export_outputs", methods=["GET", "POST"])
+@login_required
+def export_outputs():
+    dataset_id = request.args.get("dataset")
+    split = request.args.get("split")
+    setup_id = request.args.get("setup")
+
+    return utils.export_outputs(app, dataset_id, split, setup_id)
+
+
 @app.route("/files/<path:filename>", methods=["GET"])
 def download_file(filename):
     # serving external files for datasets
@@ -510,15 +518,12 @@ def llm_eval_detail():
     campaign_id = request.args.get("campaign")
     campaign = app.db["campaign_index"]["llm_eval"][campaign_id]
 
-    if campaign.metadata["status"] == "running" and not app.db["announcers"].get(campaign_id):
-        campaign.metadata["status"] = "paused"
+    if campaign.metadata["status"] == CampaignStatus.RUNNING and not app.db["announcers"].get(campaign_id):
+        campaign.metadata["status"] = CampaignStatus.IDLE
         campaign.update_metadata()
 
     overview = campaign.get_overview()
-    finished_examples = overview[overview["status"] == "finished"]
-
-    overview = overview.to_dict(orient="records")
-    finished_examples = finished_examples.to_dict(orient="records")
+    finished_examples = [x for x in overview if x["status"] == ExampleStatus.FINISHED]
 
     return render_template(
         "llm_eval_detail.html",
@@ -533,7 +538,9 @@ def llm_eval_detail():
 @app.route("/llm_eval/new", methods=["GET", "POST"])
 @login_required
 def llm_eval_new():
-    model_outs = utils.get_model_outs(app)
+    datasets = utils.get_dataset_overview(app)
+    datasets = {k: v for k, v in datasets.items() if v["enabled"]}
+    model_outs = utils.get_model_outputs_overview(app, datasets, non_empty=True)
 
     # get a list of available metrics
     llm_configs = utils.load_configs(mode="llm_eval")
@@ -600,7 +607,7 @@ def llm_eval_pause():
     app.db["threads"][campaign_id]["running"] = False
 
     campaign = app.db["campaign_index"]["llm_eval"][campaign_id]
-    campaign.metadata["status"] = "paused"
+    campaign.metadata["status"] = CampaignStatus.IDLE
     campaign.update_metadata()
 
     resp = jsonify(success=True, status=campaign.metadata["status"])
@@ -678,9 +685,10 @@ def submit_annotations():
             for row in annotation_set:
                 f.write(json.dumps(row) + "\n")
 
-        db.loc[db["batch_idx"] == batch_idx, "status"] = "finished"
+        db.loc[db["batch_idx"] == batch_idx, "status"] = ExampleStatus.FINISHED
+        db.loc[db["batch_idx"] == batch_idx, "end"] = now
 
-        db.to_csv(os.path.join(ANNOTATIONS_DIR, campaign_id, "db.csv"), index=False)
+        campaign.update_db(db)
         logger.info(f"Annotations for {campaign_id} (batch {batch_idx}) saved")
 
     return jsonify({"status": "success"})

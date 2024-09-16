@@ -6,53 +6,68 @@
 
 <div id="data-select-area" class="row">
     <div class="col-md-4">
-        Datasets
-        <div class="form-group mt-1">
-            {% for output in model_outs.datasets %}
-            <div class="form-check form-switch">
-                <input class="form-check-input btn-check-dataset" type="checkbox" role="switch"
-                    id="btn-check-dataset-{{ output }}" data-content="{{ output }}">
-                <label class="form-check-label btn-check-dataset-label" for="btn-check-dataset-{{ output }}">{{
-                    output
-                    }}</label>
+        <div class="card">
+            <div class="card-header bg-light">
+                Datasets
             </div>
-            {% endfor %}
+            <div class="card-body">
+                <div class="form-group mt-1">
+                    {% for dataset, splits in model_outs.items() %}
+                    <div class="form-check form-switch">
+                        <input class="form-check-input btn-check-dataset" type="checkbox" role="switch"
+                            id="btn-check-dataset-{{ dataset }}" data-content="{{ dataset }}">
+                        <label class="form-check-label btn-check-dataset-label" for="btn-check-dataset-{{ dataset }}">{{
+                            dataset
+                            }}</label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-md-4">
-        Splits
-        <div class="form-group mt-1">
-            {% for output in model_outs.splits %}
-            <div class="form-check form-switch">
-                <input class="form-check-input btn-check-split" type="checkbox" role="switch"
-                    id="btn-check-split-{{ output }}" data-content="{{ output }}">
-                <label class="form-check-label btn-check-split-label" for="btn-check-split-{{ output }}">{{
-                    output
-                    }}</label>
+    <div class="col-md-4" id="splits-column" style="display: none;">
+        <div class="card">
+            <div class="card-header bg-light">
+                Splits
             </div>
-            {% endfor %}
+            <div class="card-body">
+                <div class="form-group mt-1" id="splits-container">
+                    <!-- Splits will be dynamically inserted here -->
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-md-4">
-        Outputs
-        <div class="form-group mt-1">
-            {% for output in model_outs.setup_ids %}
-            <div class="form-check form-switch">
-                <input class="form-check-input btn-check-out" type="checkbox" role="switch"
-                    id="btn-check-out-{{ output }}" data-content="{{ output }}">
-                <label class="form-check-label btn-check-out-label" for="btn-check-out-{{ output }}">{{
-                    output
-                    }}</label>
+    <div class="col-md-4" id="outputs-column" style="display: none;">
+        <div class="card">
+            <div class="card-header bg-light">
+                Outputs
             </div>
-            {% endfor %}
-        </div>
-    </div>
-
-    <div class="mt-3">
-        Selected combinations
-        <div id="selectedDatasets">
-            <div class="card card-body small overflow-auto" id="selectedDatasetsContent">
+            <div class="card-body">
+                <div class="form-group mt-1" id="outputs-container">
+                    <!-- Outputs will be dynamically inserted here -->
+                </div>
             </div>
         </div>
     </div>
 </div>
+<div class="card mt-3">
+    <div class="card-header bg-light">
+        Selected combinations
+    </div>
+    <div class="card-body">
+        <table class="table table-hover table-sm">
+            <thead>
+                <tr>
+                    <th scope="col">Dataset</th>
+                    <th scope="col">Split</th>
+                    <th scope="col">Outputs</th>
+                    <th scope="col">Examples</th>
+                </tr>
+            <tbody id="selectedDatasetsContent">
+                <!-- Selected combinations will be dynamically inserted here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="{{ host_prefix }}/static/js/datasets.js"></script>
