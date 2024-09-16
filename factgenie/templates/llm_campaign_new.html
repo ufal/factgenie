@@ -18,11 +18,11 @@
 
 
   <div class="container w-50  mt-5">
-    <a href="{{ host_prefix }}/llm_eval" class="btn btn-outline-secondary mb-5">← LLM evals</a>
+    <a href="{{ host_prefix }}/llm_campaign?mode={{ mode }}" class="btn btn-outline-secondary mb-5">← LLM campaigns</a>
     <div class="mt-1">
 
       <form id="annotation-campaign-form">
-        <h3>New LLM evaluation campaign</h3>
+        <h3>New LLM campaign</h3>
 
         <ul class="nav nav-tabs nav-justified mt-5">
           <li class="nav-item">
@@ -72,7 +72,7 @@
               </div>
               <div class="col-auto">
                 <i class="fa fa-question-circle opacity-25" aria-hidden="true" data-bs-toggle="tooltip" title="Add your custom preset to
-          factgenie/config/llm-eval"></i>
+          factgenie/config/"></i>
               </div>
             </div>
 
@@ -135,15 +135,33 @@
                   <span style="margin-left: 5px; margin-right: 10px;">System message</span>
                   <div class="mb-2">
                     <small class="form-text text-muted">For OpenAI API, this will be sent in the
-                      <code>system_message</code> parameter.
+                      <code>system_message</code> parameter (optional).
                     </small>
                   </div>
                 </div>
 
                 <div class="form-group mt-1">
-                  <textarea class="form-control" id="system-message" name="system-message" rows="2"></textarea>
+                  <textarea class="form-control" id="system-message" name="system-message" rows="3"></textarea>
                 </div>
               </div>
+
+              {% if mode == 'llm_gen' %}
+              <div class="row g-3 mb-3 align-items-center">
+                <div class="col-auto">
+                  <i class="fa fa-play"></i>
+                  <span style="margin-left: 5px; margin-right: 10px;">Start with</span>
+                  <div class="mb-2">
+                    <small class="form-text text-muted">The model will need to start the generated text with this
+                      string (optional).
+                    </small>
+                  </div>
+                </div>
+
+                <div class="form-group mt-1">
+                  <textarea class="form-control" id="start-with" name="start-with" rows="1"></textarea>
+                </div>
+              </div>
+              {% endif %}
 
               <div class="row g-3 mb-3 align-items-center">
                 <div class="col-auto">
@@ -151,7 +169,7 @@
                   <span style=" margin-left: 10px; margin-right: 10px;">API URL</span>
                   <div class="mb-2">
                     <small class="form-text text-muted">For Ollama API, this is the API URL, e.g.
-                      <code>http://my-server.com:11434/api/generate</code>. The parameter is ignored for OpenAI API.
+                      <code>http://my-server.com:11434/api/</code>. The parameter is ignored for OpenAI API.
                     </small>
                   </div>
 
@@ -178,7 +196,9 @@
                 </div>
               </div>
 
+              {% if mode == 'llm_eval' %}
               {% include 'forms/annotation_span_categories.html' %}
+              {% endif %}
 
               <div class="row g-3 mb-3 align-items-center">
                 <div class="col-auto">
@@ -215,7 +235,7 @@
             <div style="text-align: center;">
               <button type="button" class="btn btn-outline-secondary mt-3"
                 onclick='bootstrap.Tab.getOrCreateInstance($("#nav-tabs-config")).show()'>Back</button>
-              <button type="button" class="btn btn-primary mt-3" onclick="createLLMEval();">Create campaign</button>
+              <button type="button" class="btn btn-primary mt-3" onclick="createLLMCampaign();">Create campaign</button>
             </div>
           </div>
         </div>
@@ -252,7 +272,7 @@
           </div>
           <div class="modal-footer">
             <button type="submit" id="save-cfg-submit" class="btn btn-primary mt-3"
-              onclick="saveConfig('llm_eval')">Save
+              onclick="saveConfig('{{ mode }}')">Save
               config</button>
           </div>
         </div>
@@ -267,6 +287,6 @@
   window.url_prefix = "{{ host_prefix }}";
   window.model_outs = {{ model_outs | tojson | safe }};
   window.configs = {{ configs | tojson | safe }};
-  window.mode = "llm_eval";
+  window.mode = "{{ mode }}";
 </script>
 <script src="{{ host_prefix }}/static/js/factgenie.js"></script>

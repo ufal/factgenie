@@ -1,0 +1,23 @@
+<div class="modal fade" id="save-generations-modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="save-generations-modal-label">Save generation outputs</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>
+                    <small class="text-muted">Export the generated outputs to view them in the Browse
+                        interface.</small>
+                </p>
+                <div class="mb-3">
+                    <label for="model-name" class="form-label">Model name</label>
+                    <input type="text" class="form-control" id="save-generations-model-name" name="model_name" value="{{
+                                campaign_id }}-{{ metadata.config.model }}" required></input>
+                </div>
+                <button type="submit" class="btn btn-primary" id="save-generations-submit"
+                    onclick="saveGenerationOutputs('{{ campaign_id }}');">Save</button>
+            </div>
+        </div>
+    </div>
+</div>

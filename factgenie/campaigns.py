@@ -14,7 +14,8 @@ coloredlogs.install(level="INFO", logger=logger, fmt="%(asctime)s %(levelname)s 
 
 
 DIR_PATH = os.path.dirname(__file__)
-CROWDSOURCING_DIR = os.path.join(DIR_PATH, "annotations")
+ANNOTATIONS_DIR = os.path.join(DIR_PATH, "annotations")
+GENERATIONS_DIR = os.path.join(DIR_PATH, "generations")
 
 
 class CampaignStatus:
@@ -34,9 +35,13 @@ class Campaign:
     def get_name(cls):
         return cls.__name__
 
+    @classmethod
+    def get_main_dir(cls):
+        return ANNOTATIONS_DIR
+
     def __init__(self, campaign_id):
         self.campaign_id = campaign_id
-        self.dir = os.path.join(CROWDSOURCING_DIR, campaign_id)
+        self.dir = os.path.join(self.__class__.get_main_dir(), campaign_id)
         self.db_path = os.path.join(self.dir, "db.csv")
         self.metadata_path = os.path.join(self.dir, "metadata.json")
 
@@ -131,10 +136,12 @@ class HumanCampaign(Campaign):
         return overview_db
 
 
-class ModelCampaign(Campaign):
+class LLMCampaign(Campaign):
     def get_stats(self):
         return self.db["status"].value_counts().to_dict()
 
+
+class LLMCampaignEval(LLMCampaign):
     def get_overview(self):
         # pair the examples in db with the finished examples
         # we need to match the examples on (dataset, split, setup, example_idx)
@@ -147,15 +154,39 @@ class ModelCampaign(Campaign):
         }
 
         overview_db = self.db.copy()
-        overview_db["annotations"] = ""
+        overview_db["output"] = ""
 
         for i, row in self.db.iterrows():
             key = (row["dataset"], row["split"], row["setup_id"], row["example_idx"])
             example = ast.literal_eval(example_index.get(key, "{}"))
 
             annotations = example.get("annotations", [])
-            overview_db.at[i, "annotations"] = str(annotations)
+            overview_db.at[i, "output"] = str(annotations)
 
         overview_db = overview_db.to_dict(orient="records")
 
+        return overview_db
+
+
+class LLMCampaignGen(LLMCampaign):
+    @classmethod
+    def get_main_dir(cls):
+        return GENERATIONS_DIR
+
+    def get_overview(self):
+        finished_examples = self.get_finished_examples()
+
+        example_index = {(ex["dataset"], ex["split"], ex["example_idx"]): str(ex) for ex in finished_examples}
+
+        overview_db = self.db.copy()
+        overview_db["output"] = ""
+
+        for i, row in self.db.iterrows():
+            key = (row["dataset"], row["split"], row["example_idx"])
+            example = ast.literal_eval(example_index.get(key, "{}"))
+
+            generated = example.get("generated", {})
+            overview_db.at[i, "output"] = str(generated.get("out", ""))
+
+        overview_db = overview_db.to_dict(orient="records")
         return overview_db

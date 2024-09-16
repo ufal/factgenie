@@ -25,15 +25,15 @@
               <img src="{{ host_prefix }}/static/img/book.png" class="intro-img">
               <h5 class="card-title">Browse</h5>
             </a>
-            <p class="card-text">View data and annotations.</p>
+            <p class="card-text">View data and annotated outputs.</p>
           </div>
         </div>
       </div>
       <div class="col-md-4">
         <div class="card text-center mt-3">
           <div class="card-body">
-            <a href="{{ host_prefix }}/llm_eval">
-              <img src="{{ host_prefix }}/static/img/llm.png" class="intro-img">
+            <a href="{{ host_prefix }}/llm_campaign?mode=llm_eval">
+              <img src="{{ host_prefix }}/static/img/llm_eval.png" class="intro-img">
               <h5 class="card-title">Annotate with LLMs</h5>
             </a>
             <p class="card-text">Collect model annotations.</p>
@@ -44,10 +44,21 @@
         <div class="card text-center mt-3">
           <div class="card-body">
             <a href="{{ host_prefix }}/crowdsourcing">
-              <img src="{{ host_prefix }}/static/img/pencil.png" class="intro-img">
+              <img src="{{ host_prefix }}/static/img/human_eval.png" class="intro-img">
               <h5 class="card-title">Annotate with human annotators</h5>
             </a>
             <p class="card-text">Collect human annotations.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card text-center mt-3">
+          <div class="card-body">
+            <a href="{{ host_prefix }}/llm_campaign?mode=llm_gen">
+              <img src="{{ host_prefix }}/static/img/llm_gen.png" class="intro-img">
+              <h5 class="card-title">Generate with LLMs</h5>
+            </a>
+            <p class="card-text">Generate model outputs.</p>
           </div>
         </div>
       </div>
@@ -73,17 +84,7 @@
           </div>
         </div>
       </div>
-      <div class="col-md-4">
-        <div class="card text-center mt-3">
-          <div class="card-body">
-            <a href="{{ host_prefix }}/about">
-              <img src="{{ host_prefix }}/static/img/info.png" class="intro-img">
-              <h5 class="card-title">About</h5>
-            </a>
-            <p class="card-text">More details.</p>
-          </div>
-        </div>
-      </div>
+
     </div>
 </body>
 

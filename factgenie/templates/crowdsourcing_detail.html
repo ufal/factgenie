@@ -20,7 +20,7 @@
 
     <div class="mt-5">
       <a href="{{ host_prefix }}/crowdsourcing" class="btn btn-outline-secondary mb-5">← List of campaigns</a>
-      <h3><img src="{{ host_prefix }}/static/img/pencil.png" class="inline-icon"> <b>{{ campaign_id }}</b></h3>
+      <h3><img src="{{ host_prefix }}/static/img/human_eval.png" class="inline-icon"> <b>{{ campaign_id }}</b></h3>
       <div id="metadata-block" class="mt-3">
         <hr>
         <dl class="row">
@@ -35,9 +35,9 @@
           </dd>
         </dl>
         <div>
-          <a href="{{ host_prefix }}/export_annotations?campaign={{ campaign_id }}" class="btn btn-outline-secondary"
-            data-bs-toggle="tooltip" id="download-button" title="Export annotations" {% if metadata.status=='idle' %}
-            style="display: none;" {% endif %}>
+          <a href="{{ host_prefix }}/export_campaign_outputs?mode=crowdsourcing&campaign={{ campaign_id }}"
+            class="btn btn-outline-secondary" data-bs-toggle="tooltip" id="download-button" title="Export annotations"
+            {% if metadata.status=='idle' %} style="display: none;" {% endif %}>
             <i class="fa fa-download"></i> Download annotations
           </a>
           <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#config-modal"><i

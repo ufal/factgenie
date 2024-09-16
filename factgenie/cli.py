@@ -25,16 +25,19 @@ def list_datasets():
 @click.option("--campaign_id", required=True, type=str)
 @click.option("--dataset_id", required=True, type=str)
 @click.option("--split", required=True, type=str)
-@click.option("--setup_id", required=True, type=str)
+@click.option("--setup_id", type=str)
+@click.option("--mode", required=True, type=click.Choice(["llm_eval", "llm_gen"]))
 @click.option(
     "--llm_metric_config", required=True, type=str, help="Path to the metric config file or just the metric name."
 )
 @click.option("--overwrite", is_flag=True, default=False, help="Remove existing campaign if it exists.")
-def run_llm_eval(campaign_id: str, dataset_id: str, split: str, setup_id: str, llm_metric_config: str, overwrite: bool):
-    """Runs the LLM evaluation from CLI with no web server."""
+def run_llm_campaign(
+    campaign_id: str, dataset_id: str, split: str, setup_id: str, mode: str, llm_metric_config: str, overwrite: bool
+):
+    """Runs the LLM campaign from CLI with no web server."""
     from slugify import slugify
     from factgenie import utils
-    from factgenie.metrics import LLMMetricFactory
+    from factgenie.models import ModelFactory
 
     campaign_id = slugify(campaign_id)
     campaign_data = [{"dataset": dataset_id, "split": split, "setup_id": setup_id}]
@@ -43,17 +46,20 @@ def run_llm_eval(campaign_id: str, dataset_id: str, split: str, setup_id: str, l
     dataset_config = config["datasets"][dataset_id]
     datasets = {dataset_id: utils.instantiate_dataset(dataset_id, dataset_config)}
 
-    configs = utils.load_configs("llm_eval")  # Loads all metrics configs factgenie/llm-evals/*.yaml
+    if mode == "llm_eval" and not setup_id:
+        raise ValueError("The `setup_id` argument is required for llm_eval mode.")
+
+    configs = utils.load_configs(mode)
     metric_config = configs[llm_metric_config]
-    campaign = utils.llm_eval_new(campaign_id, metric_config, campaign_data, datasets, overwrite=overwrite)
+    campaign = utils.llm_campaign_new(mode, campaign_id, metric_config, campaign_data, datasets, overwrite=overwrite)
 
     # mockup objects useful for interactivity
     threads = {campaign_id: {"running": True}}
     announcer = None
 
-    metric = LLMMetricFactory.from_config(metric_config)
+    model = ModelFactory.from_config(metric_config, mode=mode)
 
-    return utils.run_llm_eval(campaign_id, announcer, campaign, datasets, metric, threads)
+    return utils.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, threads)
 
 
 def create_app(**kwargs):
@@ -96,7 +102,7 @@ def create_app(**kwargs):
     app.config.update(SECRET_KEY=os.urandom(24))
 
     # register CLI commands
-    app.cli.add_command(run_llm_eval)
+    app.cli.add_command(run_llm_campaign)
     app.cli.add_command(list_datasets)
 
     return app

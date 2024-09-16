@@ -10,6 +10,7 @@ var mode = window.mode;
 var examples_cached = {};
 var sizes = mode == "annotate" ? [50, 50] : [66, 33];
 var selected_campaigns = [];
+var model_outs = window.model_outs;
 
 if (mode == "annotate") {
     var annotation_set = window.annotation_set;
@@ -23,11 +24,6 @@ if (mode == "annotate" || mode == "browse") {
         sizes: sizes, gutterSize: 1
     });
 }
-
-if (mode == "crowdsourcing") {
-    var model_outs = window.model_outs;
-}
-
 
 function randInt(max) {
     return Math.floor(Math.random() * max);
@@ -567,12 +563,14 @@ if (mode == "annotate") {
 $(document).keydown(function (event) {
     const key = event.key;
 
-    if (key === "ArrowRight") {
-        event.preventDefault();
-        nextBtn();
-    } else if (key === "ArrowLeft") {
-        event.preventDefault();
-        prevBtn();
+    if (mode == "browse") {
+        if (key === "ArrowRight") {
+            event.preventDefault();
+            nextBtn();
+        } else if (key === "ArrowLeft") {
+            event.preventDefault();
+            prevBtn();
+        }
     }
 });
 
@@ -600,18 +598,30 @@ $(".btn-err-cat").change(function () {
 
 function updateSelectedDatasets() {
     var selectedData = gatherCampaignData();
-    $("#selectedDatasetsContent").html(
-        selectedData.map(d =>
-            `<tr>
-            <td>${d.dataset}</td>
-            <td>${d.split}</td>
-            <td>${d.setup_id}</td>
-            <td>${d.example_cnt}</td>
-          </tr>`
-        ).join("\n")
-    );
-}
 
+    if (mode == 'llm_eval' || mode == 'crowdsourcing') {
+        $("#selectedDatasetsContent").html(
+            selectedData.map(d =>
+                `<tr>
+                <td>${d.dataset}</td>
+                <td>${d.split}</td>
+                <td>${d.setup_id}</td>
+                <td>${d.example_cnt}</td>
+            </tr>`
+            ).join("\n")
+        );
+    } else if (mode == 'llm_gen') {
+        $("#selectedDatasetsContent").html(
+            selectedData.map(d =>
+                `<tr>
+                <td>${d.dataset}</td>
+                <td>${d.split}</td>
+                <td>${d.example_cnt}</td>
+            </tr>`
+            ).join("\n")
+        );
+    }
+}
 function gatherCampaignData() {
     var campaign_datasets = [];
     var campaign_splits = [];
@@ -632,19 +642,31 @@ function gatherCampaignData() {
             campaign_outputs.push($(this).attr("data-content"));
         }
     });
-    // get all available combinations of datasets, splits, and outputs
     var combinations = [];
 
-    for (const dataset of campaign_datasets) {
-        for (const split of campaign_splits) {
-            for (const output of campaign_outputs) {
-                if (model_outs[dataset][split] !== undefined &&
-                    model_outs[dataset][split][output] !== undefined) {
-                    combinations.push({ dataset: dataset, split: split, setup_id: output, example_cnt: model_outs[dataset][split][output].example_count });
+    if (mode == "llm_eval" || mode == "crowdsourcing") {
+        // get all available combinations of datasets, splits, and outputs
+        for (const dataset of campaign_datasets) {
+            for (const split of campaign_splits) {
+                for (const output of campaign_outputs) {
+                    if (model_outs[dataset][split] !== undefined &&
+                        model_outs[dataset][split][output] !== undefined) {
+                        combinations.push({ dataset: dataset, split: split, setup_id: output, example_cnt: model_outs[dataset][split].example_count });
+                    }
+                }
+            }
+        }
+    } else if (mode == "llm_gen") {
+        // get all available combinations of datasets and splits
+        for (const dataset of campaign_datasets) {
+            for (const split of campaign_splits) {
+                if (model_outs[dataset][split] !== undefined) {
+                    combinations.push({ dataset: dataset, split: split, example_cnt: model_outs[dataset][split].example_count });
                 }
             }
         }
     }
+
     return combinations;
 
 }
@@ -663,7 +685,7 @@ function gatherConfig() {
         config.sortOrder = $("#sortOrder").val();
         config.annotationSpanCategories = getAnnotationSpanCategories();
         config.flags = getKeys($("#flags"));
-    } else if (window.mode == "llm_eval") {
+    } else if (window.mode == "llm_eval" || window.mode == "llm_gen") {
         config.metricType = $("#metric-type").val();
         config.modelName = $("#model-name").val();
         config.promptTemplate = $("#prompt-template").val();
@@ -671,13 +693,19 @@ function gatherConfig() {
         config.apiUrl = $("#api-url").val();
         config.modelArguments = getKeysAndValues($("#model-arguments"));
         config.extraArguments = getKeysAndValues($("#extra-arguments"));
-        config.annotationSpanCategories = getAnnotationSpanCategories();
+
+        if (window.mode == "llm_eval") {
+            config.annotationSpanCategories = getAnnotationSpanCategories();
+        }
+        if (window.mode == "llm_gen") {
+            config.startWith = $("#start-with").val();
+        }
     }
     return config;
 }
 
 
-function createLLMEval() {
+function createLLMCampaign() {
     const campaignId = $('#campaignId').val();
     // const llmConfig = $('#llmConfig').val();
 
@@ -691,12 +719,11 @@ function createLLMEval() {
     }
 
     $.post({
-        url: `${url_prefix}/llm_eval/create`,
+        url: `${url_prefix}/llm_campaign/create?mode=${mode}`,
         contentType: 'application/json', // Specify JSON content type
         data: JSON.stringify({
             campaignId: campaignId,
             campaignData: campaignData,
-            // llmConfig: llmConfig,
             config: config
         }),
         success: function (response) {
@@ -705,12 +732,13 @@ function createLLMEval() {
             if (response.success !== true) {
                 alert(response.error);
             } else {
-                // redirect to the campaign list ("/llm_eval")
-                window.location.href = `${url_prefix}/llm_eval`;
+                window.location.href = `${url_prefix}/llm_campaign?mode=${mode}`;
             }
         }
     });
 }
+
+
 
 function getAnnotationSpanCategories() {
     var annotationSpanCategories = [];
@@ -774,20 +802,19 @@ function createHumanCampaign() {
 }
 
 
-function startLLMEvalListener(campaignId) {
-    var source = new EventSource(`${url_prefix}/llm_eval/progress/${campaignId}`);
+function startLLMCampaignListener(campaignId) {
+    var source = new EventSource(`${url_prefix}/llm_campaign/progress/${campaignId}`);
     console.log("Listening for progress events");
 
     source.onmessage = function (event) {
         // update the progress bar
         var payload = JSON.parse(event.data);
         var finished_examples = payload.finished_examples_cnt;
-        var progress = Math.round((finished_examples / window.llm_eval_examples) * 100);
-        $("#llm-eval-progress-bar").css("width", `${progress}%`);
-        $("#llm-eval-progress-bar").attr("aria-valuenow", progress);
-        $("#metadata-example-cnt").html(`${finished_examples} / ${window.llm_eval_examples}`);
+        var progress = Math.round((finished_examples / window.llm_examples) * 100);
+        $("#llm-progress-bar").css("width", `${progress}%`);
+        $("#llm-progress-bar").attr("aria-valuenow", progress);
+        $("#metadata-example-cnt").html(`${finished_examples} / ${window.llm_examples}`);
         console.log(`Received progress: ${progress}%`);
-
 
         // update the annotation button
         const example = payload.annotation;
@@ -800,27 +827,42 @@ function startLLMEvalListener(campaignId) {
         annotation_button.show();
 
         // update the annotation content
-        const annotation_content = example.annotations;
+        const annotation_content = example.output;
         const annotation_div = $(`#annotPre${rowId}`);
-        annotation_div.text(JSON.stringify(annotation_content));
+
+        // if annotation_content is a dict, convert it to a string
+        if (typeof annotation_content === 'object') {
+            annotation_div.text(JSON.stringify(annotation_content));
+        } else {
+            annotation_div.text(annotation_content);
+        }
 
         // update the status
         const status_button = $(`#statusBtn${rowId}`);
         status_button.text("finished");
 
+        if (progress == 100) {
+            source.close();
+            console.log("Closing the connection");
+
+            if (window.mode == "llm_gen") {
+                $("#save-generations-button").show();
+            }
+        }
+
     };
 }
 
-function runLlmEval(campaignId) {
+function runLLMCampaign(campaignId) {
     $("#run-button").hide();
     $("#stop-button").show();
-    $("#llm-eval-progress").show();
+    $("#llm-progress").show();
     $("#metadata-status").html("running");
 
-    startLLMEvalListener(campaignId);
+    startLLMCampaignListener(campaignId);
 
     $.post({
-        url: `${url_prefix}/llm_eval/run`,
+        url: `${url_prefix}/llm_campaign/run?mode=${mode}`,
         contentType: 'application/json',
         data: JSON.stringify({
             campaignId: campaignId
@@ -833,7 +875,7 @@ function runLlmEval(campaignId) {
                 $("#metadata-status").html("error");
                 $("#run-button").show();
                 $("#stop-button").hide();
-                $("#llm-eval-progress").hide();
+                $("#llm-progress").hide();
             } else {
                 console.log(response);
 
@@ -842,7 +884,7 @@ function runLlmEval(campaignId) {
                     $("#run-button").hide();
                     $("#download-button").show();
                     $("#stop-button").hide();
-                    $("#llm-eval-progress").hide();
+                    $("#llm-progress").hide();
 
                     $("#log-area").text(response.final_message);
                 }
@@ -851,14 +893,14 @@ function runLlmEval(campaignId) {
     });
 }
 
-function pauseLlmEval(campaignId) {
+function pauseLLMCampaign(campaignId) {
     $("#run-button").show();
     $("#stop-button").hide();
     $("#download-button").show();
-    $("#llm-eval-progress").hide();
+    $("#llm-progress").hide();
 
     $.post({
-        url: `${url_prefix}/llm_eval/pause`,
+        url: `${url_prefix}/llm_campaign/pause?mode=${mode}`,
         contentType: 'application/json',
         data: JSON.stringify({
             campaignId: campaignId
@@ -880,7 +922,8 @@ function deleteCampaign(campaignId, source) {
         contentType: 'application/json', // Specify JSON content type
         data: JSON.stringify({
             campaignId: campaignId,
-            source: source
+            source: source,
+            mode: window.mode
         }),
         success: function (response) {
             console.log(response);
@@ -945,6 +988,10 @@ function createFlagElem(key) {
 
 
 function createArgElem(key, value) {
+    // escape quotes in the value
+    if (value !== undefined) {
+        value = value.replace(/"/g, "&quot;");
+    }
     const newArg = $(`
         <div class="row mt-1">
         <div class="col-6">
@@ -1031,6 +1078,33 @@ function duplicateEval(inputDuplicateId, campaignId) {
                 // hide the modal and reload the page
                 $('#duplicate-eval-modal').modal('hide');
                 location.reload();
+            }
+        }
+    });
+}
+
+function saveGenerationOutputs(campaignId) {
+    modelName = $("#save-generations-model-name").val();
+
+    $.post({
+        url: `${url_prefix}/save_generation_outputs`,
+        contentType: 'application/json', // Specify JSON content type
+        data: JSON.stringify({
+            campaignId: campaignId,
+            modelName: modelName
+        }),
+        success: function (response) {
+            console.log(response);
+
+            if (response.success !== true) {
+                alert(response.error);
+            } else {
+                // change color of the button save-cfg-submit to green for a second with the label "Saved!", then back to normal
+                $("#save-generations-submit").removeClass("btn-primary").addClass("btn-success").text("Saved!");
+                setTimeout(function () {
+                    $('#save-generations-modal').modal('hide');
+                    $("#save-generations-submit").removeClass("btn-success").addClass("btn-primary").text("Save");
+                }, 1500);
             }
         }
     });
@@ -1139,7 +1213,6 @@ function updateLLMMetricConfig() {
     const system_msg = cfg.system_msg;
     const api_url = cfg.api_url;
     const model_args = cfg.model_args;
-    const annotationSpanCategories = cfg.annotation_span_categories;
     const extra_args = cfg.extra_args;
 
     // for metric, we need to select the appropriate one from the values in the select box
@@ -1161,12 +1234,19 @@ function updateLLMMetricConfig() {
         $("#extra-arguments").append(newArg);
     });
 
-    $("#annotation-span-categories").empty();
+    if (mode == "llm_eval") {
+        const annotationSpanCategories = cfg.annotation_span_categories;
+        $("#annotation-span-categories").empty();
 
-    annotationSpanCategories.forEach((annotationSpanCategory) => {
-        const newCategory = createAnnotationSpanCategoryElem(annotationSpanCategory.name, annotationSpanCategory.color);
-        $("#annotation-span-categories").append(newCategory);
-    });
+        annotationSpanCategories.forEach((annotationSpanCategory) => {
+            const newCategory = createAnnotationSpanCategoryElem(annotationSpanCategory.name, annotationSpanCategory.color);
+            $("#annotation-span-categories").append(newCategory);
+        });
+    }
+    if (mode == "llm_gen") {
+        const start_with = cfg.start_with;
+        $("#start-with").val(start_with);
+    }
 }
 
 

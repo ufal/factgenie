@@ -35,7 +35,7 @@
       </div>
       {% endif %}
 
-      <h3><img src="{{ host_prefix }}/static/img/pencil.png" class="heading-img-inline">
+      <h3><img src="{{ host_prefix }}/static/img/human_eval.png" class="heading-img-inline">
         <b>List of crowdsourcing campaigns</b>
       </h3>
       <div id="campaigns">
@@ -65,7 +65,7 @@
                   class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Preview the crowdsourcing page">
                   <i class="fa fa-eye"></i>
                 </a>
-                <a href="{{ host_prefix }}/export_annotations?campaign={{ campaign.metadata.id }}"
+                <a href="{{ host_prefix }}/export_campaign_outputs?mode=crowdsourcing&campaign={{ campaign.metadata.id }}"
                   class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Export annotations">
                   <i class="fa fa-download"></i>
                 </a>
