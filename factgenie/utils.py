@@ -414,8 +414,8 @@ def generate_campaign_db(app, campaign_data, config):
 
     # current flags:
     # - shuffle-all: shuffle all examples and setups
-    # - group-examples-shuffle-setups: group examples by example_idx, shuffle setups
-    # - group-examples-keep-setups: group examples by example_idx, keep setup order
+    # - sort-example-ids-shuffle-setups: sort examples by example_idx, shuffle setups
+    # - sort-example-ids-keep-setups: sort examples by example_idx, keep the setup order
     # - keep-all: keep all examples and setups in the default order
     # we are also still supporting the old "example-level" and "dataset-level" flags
 
