@@ -125,10 +125,8 @@ class HumanCampaign(Campaign):
                 "annotator_id": "first",
             }
         )
-        # add the list of `example_ids` to each batch
-        overview_db["example_ids"] = overview_db.index.map(
-            lambda batch_idx: sorted(list(self.db[self.db["batch_idx"] == batch_idx]["example_idx"]))
-        )
+
+        overview_db["example_details"] = overview_db.index.map(lambda batch_idx: self.get_examples_for_batch(batch_idx))
 
         overview_db = overview_db.rename(columns={"example_idx": "example_cnt"}).reset_index()
         overview_db = overview_db.to_dict(orient="records")

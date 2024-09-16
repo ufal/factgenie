@@ -67,8 +67,7 @@
           </thead>
           <tbody>
             {% for batch in overview %}
-            {% set rowId = batch.dataset + "-" + batch.split + "-" + batch.setup_id + "-" +
-            (batch.batch_idx|string) %}
+            {% set rowId = (batch.batch_idx|string) %}
             <tr>
               <td>{{ batch.batch_idx }}</td>
               <td>{{ batch.example_cnt }}</td>
@@ -87,11 +86,11 @@
               <td colspan="7">
                 <div class="card card-body" style="display: block !important;">
                   <b>examples:</b>
-                  {% for example_id in batch.example_ids %}
+                  {% for e in batch.example_details %}
                   <!-- link, open in new tab -->
                   <a href="{{ host_prefix }}/browse?dataset={{ batch.dataset }}&split={{ batch.split }}&example_idx={{ example_id }}"
                     class="btn btn-outline-secondary btn-sm" target="_blank">
-                    {{ example_id }}</a>
+                    {{ e.dataset }}-{{ e.split }}-{{ e.setup.id }}-{{ e.example_idx }}</a>
                   {% endfor %}
                 </div>
               </td>
