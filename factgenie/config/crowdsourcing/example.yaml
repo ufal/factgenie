@@ -9,7 +9,7 @@ annotation_span_categories:
     color: "#bbbbbb"
 examples_per_batch: 10
 annotation_granularity: words
-sort_order: dataset-level
+sort_order: sort-example-ids-shuffle-setups
 idle_time: 120
 has_display_overlay: true
 annotator_instructions: |

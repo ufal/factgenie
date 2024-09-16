@@ -139,14 +139,17 @@
               </div>
               <div class="form-group mt-4">
                 <!-- select for sort order -->
-                <label for="sortOrder">Shuffle outputs</label>
+                <label for="sortOrder">Output ordering</label>
                 <div class="mb-2">
-                  <small class="form-text text-muted">How to shuffle examples before batching (model outputs are
-                    shuffled always).</small>
+                  <small class="form-text text-muted">How should the examples and model outputs assigned to annotator
+                    batches.</small>
                 </div>
                 <select class="form-select" id="sortOrder" name="sortOrder">
-                  <option value="dataset-level">Shuffle the examples</option>
-                  <option value="example-level">Keep the order of examples</option>
+                  <option value="shuffle-all">Shuffle all</option>
+                  <option value="sort-example-ids-shuffle-setups">Sort by example id, shuffle model outputs</option>
+                  <option value="sort-example-ids-keep-setups">Sort by example id, keep the order of model outputs
+                  </option>
+                  <option value="keep-all">Keep the default order</option>
                 </select>
               </div>
               <div class="form-group mt-4">

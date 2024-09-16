@@ -410,18 +410,27 @@ def generate_campaign_db(app, campaign_data, config):
                 }
             )
 
-    if sort_order == "example-level":
-        random.seed(42)
+    random.seed(42)
+
+    # current flags:
+    # - shuffle-all: shuffle all examples and setups
+    # - group-examples-shuffle-setups: group examples by example_idx, shuffle setups
+    # - group-examples-keep-setups: group examples by example_idx, keep setup order
+    # - keep-all: keep all examples and setups in the default order
+    # we are also still supporting the old "example-level" and "dataset-level" flags
+
+    if sort_order == "dataset-level" or sort_order == "shuffle-all":
         random.shuffle(all_examples)
-        # group outputs by example ids, dataset and split
+    elif sort_order == "example-level" or sort_order == "sort-example-ids-shuffle-setups":
+        random.shuffle(all_examples)
         all_examples = sorted(all_examples, key=lambda x: (x["example_idx"], x["dataset"], x["split"]))
-    elif sort_order == "dataset-level":
-        random.seed(42)
-        random.shuffle(all_examples)
-    elif sort_order == "default":
+    elif sort_order == "sort-example-ids-keep-setups":
+        all_examples = sorted(all_examples, key=lambda x: (x["example_idx"], x["dataset"], x["split"]))
+    elif sort_order == "keep-all":
         pass
     else:
         raise ValueError(f"Unknown sort order {sort_order}")
+
     df = pd.DataFrame.from_records(all_examples)
 
     # create a column for batch index and assign each example to a batch
