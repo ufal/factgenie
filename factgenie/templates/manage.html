@@ -17,7 +17,7 @@
   {% include 'navbar.html' %}
 
   <div class="container">
-    <div>
+    <div class="mb-5">
       <a href="{{ host_prefix }}/" class="btn btn-outline-secondary mt-5">← Main page</a>
       <a type="button" class="btn btn-primary mt-5" data-bs-toggle="modal" data-bs-target="#add-dataset-modal">Add
         dataset</a>
@@ -26,7 +26,10 @@
         outputs</a>
     </div>
 
-    <ul class="nav nav-tabs nav-fill mt-5" id="pills-tab" role="tablist">
+    <h3><img src="{{ host_prefix }}/static/img/manage.png" class="heading-img-inline">
+      <b>Data management</b>
+    </h3>
+    <ul class="nav nav-tabs nav-fill mt-4" id="pills-tab" role="tablist">
       <li class="nav-item" role="presentation">
         <a class="nav-link active" id="pills-datasets-tab" data-bs-toggle="pill" href="#pills-datasets" role="tab"
           aria-controls="pills-datasets"><img src="{{ host_prefix }}/static/img/datasets.png" height="30px"

@@ -148,12 +148,13 @@ def analyze():
     utils.generate_campaign_index(app)
     campaign_index = app.db["campaign_index"]
 
-    campaign_list = [x.metadata for x in campaign_index["llm_eval"].values()]
-    campaign_list += [x.metadata for x in campaign_index["crowdsourcing"].values()]
+    campaigns = list(campaign_index["llm_eval"].values()) + list(campaign_index["crowdsourcing"].values())
+    campaigns.sort(key=lambda x: x.metadata["created"], reverse=True)
+    campaigns = [{"metadata": c.metadata, "stats": c.get_stats()} for c in campaigns]
 
     return render_template(
         "analyze.html",
-        campaigns=campaign_list,
+        campaigns=campaigns,
         host_prefix=app.config["host_prefix"],
     )
 
