@@ -22,6 +22,39 @@ function gatherSelectedCombinations() {
     return selectedData;
 }
 
+function showAgreement(data) {
+}
+
+function computeAgreement() {
+    // get the selected campaigns and ask the backend
+    const selectedCombinations = gatherSelectedCombinations();
+    const selectedCampaigns = getSelectedCampaigns();
+
+    if (selectedCombinations.length == 0) {
+        alert("Please select some data for comparison.");
+        return;
+    }
+
+    $.post({
+        url: `${url_prefix}/compute_agreement`,
+        contentType: 'application/json', // Specify JSON content type
+        data: JSON.stringify({
+            selectedCampaigns: selectedCampaigns,
+            combinations: selectedCombinations,
+        }),
+        success: function (response) {
+            console.log(response);
+
+            if (response.success !== true) {
+                alert(response.error);
+            } else {
+                showAgreement(response.data);
+            }
+        }
+    });
+}
+
+
 
 function populateTable(tableId, data, columns) {
     var table = $(`#${tableId} tbody`);

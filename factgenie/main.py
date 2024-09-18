@@ -362,6 +362,27 @@ def crowdsourcing_new():
     )
 
 
+@app.route("/compute_agreement", methods=["POST"])
+@login_required
+def compute_agreement():
+    data = request.get_json()
+    combinations = data.get("combinations")
+    selected_campaigns = data.get("selectedCampaigns")
+    utils.generate_campaign_index(app)
+
+    campaigns = app.db["campaign_index"]
+    # flatten the campaigns
+    campaigns = {k: v for source in campaigns.values() for k, v in source.items()}
+
+    datasets = utils.get_dataset_overview(app)
+
+    results = analysis.compute_agreement(
+        app, selected_campaigns=selected_campaigns, combinations=combinations, campaigns=campaigns, datasets=datasets
+    )
+
+    return jsonify(results)
+
+
 @app.route("/delete_campaign", methods=["POST"])
 @login_required
 def delete_campaign():

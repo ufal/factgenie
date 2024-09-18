@@ -50,7 +50,7 @@ def load_annotations(line, campaign_id):
     return annotation_records
 
 
-def create_example_record(line, campaign_id, annotation_span_categories):
+def create_example_record(line, campaign_id, annotation_span_categories, annotation_records):
     # a record is created even if there are no annotations
     j = json.loads(line)
 
@@ -62,6 +62,15 @@ def create_example_record(line, campaign_id, annotation_span_categories):
         for annotation in j["annotations"]:
             if int(annotation["type"]) == i:
                 example_record["cat_" + str(i)] += 1
+
+    example_record["annotations"] = [
+        {
+            "annotation_type": r["annotation_type"],
+            "annotation_start": r["annotation_start"],
+            "annotation_text": r["annotation_text"],
+        }
+        for r in annotation_records
+    ]
 
     return example_record
 
@@ -83,7 +92,9 @@ def load_annotations_for_campaign(campaign):
                 annotation_records = load_annotations(line, campaign_id)
                 annotation_index += annotation_records
 
-                example_record = create_example_record(line, campaign_id, annotation_span_categories)
+                example_record = create_example_record(
+                    line, campaign_id, annotation_span_categories, annotation_records
+                )
                 example_index.append(example_record)
             except Exception as e:
                 logger.error(f"Error while processing line: {line}")
@@ -245,7 +256,6 @@ def compute_statistics(app, campaign, datasets):
 
     annotation_counts = compute_ann_counts(annotation_index)
     annotation_counts = compute_avg_ann_counts(annotation_counts, example_index)
-
     annotation_counts = compute_prevalence(annotation_counts, example_index)
 
     statistics["ann_counts"] = {
@@ -256,3 +266,102 @@ def compute_statistics(app, campaign, datasets):
     }
 
     return statistics
+
+
+def compute_dataset_level_agreement(annotations_for_comparison, datasets):
+    breakpoint()
+
+
+def compute_agreement(app, selected_campaigns, combinations, campaigns, datasets):
+    # compute inter-annotator agreement
+    combinations = [(c["dataset"], c["split"], c["setup_id"]) for c in combinations]
+
+    # gather a list of all examples with some annotations
+    example_index = pd.DataFrame()
+
+    for campaign_id in selected_campaigns:
+        campaign = campaigns[campaign_id]
+
+        _, ei = load_annotations_for_campaign(campaign)
+        example_index = pd.concat([example_index, ei], ignore_index=True)
+
+    # a combination is a tuple (dataset, split, setup_id)
+    # leave only examples in example_index that are in the combinations selected by the user
+    example_index = example_index[
+        example_index.apply(lambda x: (x["dataset"], x["split"], x["setup_id"]) in combinations, axis=1)
+    ]
+
+    # get the number of annotators we are considering
+    annotator_count = example_index["annotator_id"].nunique()
+
+    # group examples by dataset, split, setup_id, example_idx
+    # aggregate annotations, annotator_ids, and counts for each category into a list
+    aggregations = {"annotations": list, "annotator_id": list}
+    cat_columns = [x for x in example_index.columns if x.startswith("cat_")]
+
+    for c in cat_columns:
+        aggregations[c] = list
+
+    example_index = (
+        example_index.groupby(["dataset", "split", "setup_id", "example_idx"]).agg(aggregations).reset_index()
+    )
+    # remove all examples that do not have annotations from all annotators
+    example_index = example_index[example_index["annotator_id"].apply(lambda x: len(x) == annotator_count)]
+
+    # compute setup-level agreement
+    # for each annotator, compute the average number of errors for each category
+
+    # we have the absolute counts in lists cat_0, cat_1, ... for each record in example_index
+    # we need to compute the average number of errors for each category for each annotator
+
+    dataset_level_counts = [[] for _ in range(annotator_count)]
+    example_level_counts = [[] for _ in range(annotator_count)]
+
+    for dataset, split, setup_id in combinations:
+        example_index_subset = example_index[
+            (example_index["dataset"] == dataset)
+            & (example_index["split"] == split)
+            & (example_index["setup_id"] == setup_id)
+        ]
+
+        error_counts = [{"cat_" + str(i): [] for i in range(len(cat_columns))} for _ in range(annotator_count)]
+
+        for i, row in example_index_subset.iterrows():
+            for a in range(annotator_count):
+                for j, c in enumerate(cat_columns):
+                    error_counts[a]["cat_" + str(j)].append(row[c][a])
+
+        # for each pair of annotators, compute the Pearson correlation coefficient between the average number of errors for each category
+
+        for a in range(annotator_count):
+            for j, c in enumerate(cat_columns):
+                if len(error_counts[a][c]) > 0:
+                    avg = sum(error_counts[a][c]) / len(error_counts[a][c])
+                else:
+                    avg = 0
+
+                dataset_level_counts[a].append(avg)
+                example_level_counts[a] += error_counts[a][c]
+
+    results = []
+
+    for a in range(annotator_count):
+        for b in range(a + 1, annotator_count):
+            r_data, _ = pearsonr(dataset_level_counts[a], dataset_level_counts[b])
+            logger.info(f"Annotators {a} and {b} have a dataset-level Pearson correlation coefficient of {r_data:.3f}")
+
+            r_example, _ = pearsonr(example_level_counts[a], example_level_counts[b])
+            logger.info(
+                f"Annotators {a} and {b} have an example-level Pearson correlation coefficient of {r_example:.3f}"
+            )
+
+            results.append(
+                {
+                    "annotator_a": a,
+                    "annotator_b": b,
+                    "dataset_level_pearson_r": r_data,
+                    "example_level_pearson_r": r_example,
+                }
+            )
+
+    return results
