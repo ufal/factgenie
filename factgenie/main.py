@@ -150,7 +150,10 @@ def analyze():
 
     campaigns = list(campaign_index["llm_eval"].values()) + list(campaign_index["crowdsourcing"].values())
     campaigns.sort(key=lambda x: x.metadata["created"], reverse=True)
-    campaigns = [{"metadata": c.metadata, "stats": c.get_stats()} for c in campaigns]
+    campaigns = {
+        c.metadata["id"]: {"metadata": c.metadata, "stats": c.get_stats(), "data": c.db.to_dict(orient="records")}
+        for c in campaigns
+    }
 
     return render_template(
         "analyze.html",
