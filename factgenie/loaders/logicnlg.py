@@ -6,7 +6,7 @@ from datasets import load_dataset
 
 logger = logging.getLogger(__name__)
 from factgenie.loaders.dataset import Dataset
-from factgenie import OUTPUT_DIR
+from factgenie.loaders.dataset import OUTPUT_DIR
 
 from tinyhtml import h
 from collections import defaultdict
@@ -22,12 +22,12 @@ class LogicNLG(Dataset):
         # we support only test split
         if split != "test":
             return []
-        
+
         # just use the first json and assume the rest use the same tables
-        needed_table_ids = OUTPUT_DIR / "logicnlg"/ "test"/ "GPT4-direct-2shotCoT.json"
+        needed_table_ids = Path(OUTPUT_DIR) / "logicnlg" / "test" / "GPT4-direct-2shotCoT.json"
         with open(needed_table_ids) as f:
             needed_table_ids = json.load(f)
-        
+
         table_ids = [out["table_id"] for out in needed_table_ids["generated"]]
 
         tables = {}
