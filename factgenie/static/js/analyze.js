@@ -22,11 +22,44 @@ function gatherSelectedCombinations() {
     return selectedData;
 }
 
-function showAgreement(data) {
+function showAgreement(response) {
     // uncover `agreement-modal`, fill the `agreement-area` with the data
 
     $("#agreement-spinner").hide();
-    $('#agreement-area').html("<pre>" + JSON.stringify(data, null, 2) + "</pre>");
+
+    var content = '';
+    // iterate over the objects in the `response` list
+    for (const data of response) {
+        const agreement = `
+            <h5><code>${data.first_annotator}</code> vs. <code>${data.second_annotator}</code></h5>
+            <hr>
+            <b>Dataset-level agreement</b>
+            <p><small class="text-muted">Pearson <i>r</i> between the annotators computed over a list of average error counts, one number for each (dataset, split, setup_id) combination.</small></p>
+            <dl class="row">
+            <dt class="col-sm-5">Pearson r (macro)</dt>
+                <dd class="col-sm-7">${data.dataset_level_pearson_r_macro.toFixed(2)} (avg. of [${data.dataset_level_pearson_r_macro_categories}])</dd>
+                <p><small class="text-muted"> An average of coefficients computed separately for each category.</small></p>
+                <dt class="col-sm-5">Pearson r (micro)</dt>
+                <dd class="col-sm-7">${data.dataset_level_pearson_r_micro.toFixed(2)}</dd>
+                <p><small class="text-muted"> Computed over concatenated results from all the categories.</small></p>
+                </dl>
+            <hr>
+            <b>Example-level agreement</b>
+            <p><small class="text-muted">Pearson <i>r</i> between the annotators computed over a list of error counts, one number for each example.</small></p>
+            <dl class="row">
+                <dt class="col-sm-5">Pearson r (macro)</dt>
+                <dd class="col-sm-7">${data.example_level_pearson_r_macro.toFixed(2)} (avg. of [${data.example_level_pearson_r_macro_categories}])</dd>
+                <p><small class="text-muted"> An average of coefficients computed separately for each category.</small></p>
+                <dt class="col-sm-5">Pearson r (micro)</dt>
+                <dd class="col-sm-7">${data.example_level_pearson_r_micro.toFixed(2)}</dd>
+                 <p><small class="text-muted"> Computed over concatenated results from all the categories.</small></p>
+            </dl>
+            <hr>
+        `;
+        content += agreement;
+    }
+
+    $('#agreement-area').html(content);
     $('#agreement-modal').modal('show');
 }
 

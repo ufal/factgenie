@@ -269,6 +269,27 @@ def compute_statistics(app, campaign, datasets):
     return statistics
 
 
+def compute_pearson_macro_average(counts, first_ann_idx, second_ann_idx):
+    # compute the Pearson correlation coefficient separately for each category and then average the results
+    coefficients = []
+
+    for c, cat_counts in counts.items():
+        r, _ = pearsonr(cat_counts[first_ann_idx], cat_counts[second_ann_idx])
+        coefficients.append(r)
+
+    return round(sum(coefficients) / len(coefficients), 2), [round(coeff, 2) for coeff in coefficients]
+
+
+def compute_pearson_micro_average(counts, first_ann_idx, second_ann_idx):
+    # flatten the list of counts for each category, keeping only a single list for each annotator
+    first_ann_counts = [count for cat_counts in counts.values() for count in cat_counts[first_ann_idx]]
+    second_ann_counts = [count for cat_counts in counts.values() for count in cat_counts[second_ann_idx]]
+
+    r, _ = pearsonr(first_ann_counts, second_ann_counts)
+
+    return round(r, 2)
+
+
 def compute_pearson_correlation(dataset_level_counts, example_level_counts, annotator_count, annotator_group_ids):
     results = []
 
@@ -277,22 +298,26 @@ def compute_pearson_correlation(dataset_level_counts, example_level_counts, anno
             a_group_id = annotator_group_ids[a]
             b_group_id = annotator_group_ids[b]
 
-            r_data, _ = pearsonr(dataset_level_counts[a], dataset_level_counts[b])
-            logger.info(
-                f"Annotators {a_group_id} and {b_group_id} have a dataset-level Pearson correlation coefficient of {r_data:.3f}"
+            r_data_macro, r_data_list = compute_pearson_macro_average(
+                dataset_level_counts, first_ann_idx=a, second_ann_idx=b
+            )
+            r_example_macro, r_example_list = compute_pearson_macro_average(
+                example_level_counts, first_ann_idx=a, second_ann_idx=b
             )
 
-            r_example, _ = pearsonr(example_level_counts[a], example_level_counts[b])
-            logger.info(
-                f"Annotators {a_group_id} and {b_group_id} have an example-level Pearson correlation coefficient of {r_example:.3f}"
-            )
+            r_data_micro = compute_pearson_micro_average(dataset_level_counts, first_ann_idx=a, second_ann_idx=b)
+            r_example_micro = compute_pearson_micro_average(example_level_counts, first_ann_idx=a, second_ann_idx=b)
 
             results.append(
                 {
                     "first_annotator": a_group_id,
                     "second_annotator": b_group_id,
-                    "dataset_level_pearson_r": r_data,
-                    "example_level_pearson_r": r_example,
+                    "dataset_level_pearson_r_macro": r_data_macro,
+                    "dataset_level_pearson_r_macro_categories": r_data_list,
+                    "example_level_pearson_r_macro": r_example_macro,
+                    "example_level_pearson_r_macro_categories": r_example_list,
+                    "dataset_level_pearson_r_micro": r_data_micro,
+                    "example_level_pearson_r_micro": r_example_micro,
                 }
             )
 
@@ -300,8 +325,9 @@ def compute_pearson_correlation(dataset_level_counts, example_level_counts, anno
 
 
 def compute_span_counts(example_index, annotator_count, combinations, cat_columns):
-    dataset_level_counts = [[] for _ in range(annotator_count)]
-    example_level_counts = [[] for _ in range(annotator_count)]
+    # create a list for span counts from each annotator (do this separately for each error category)
+    dataset_level_counts = {c: [[] for _ in range(annotator_count)] for c in cat_columns}
+    example_level_counts = {c: [[] for _ in range(annotator_count)] for c in cat_columns}
 
     for dataset, split, setup_id in combinations:
         example_index_subset = example_index[
@@ -318,7 +344,6 @@ def compute_span_counts(example_index, annotator_count, combinations, cat_column
                     error_counts[a]["cat_" + str(j)].append(row[c][a])
 
         # for each pair of annotators, compute the Pearson correlation coefficient between the average number of errors for each category
-
         for a in range(annotator_count):
             for j, c in enumerate(cat_columns):
                 if len(error_counts[a][c]) > 0:
@@ -326,8 +351,8 @@ def compute_span_counts(example_index, annotator_count, combinations, cat_column
                 else:
                     avg = 0
 
-                dataset_level_counts[a].append(avg)
-                example_level_counts[a] += error_counts[a][c]
+                dataset_level_counts[c][a].append(avg)
+                example_level_counts[c][a] += error_counts[a][c]
 
     return dataset_level_counts, example_level_counts
 
