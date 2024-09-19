@@ -39,10 +39,20 @@ LLM_GEN_CONFIG_DIR = PACKAGE_DIR / "config" / "llm-gen"
 CROWDSOURCING_CONFIG_DIR = PACKAGE_DIR / "config" / "crowdsourcing"
 
 DATASET_CONFIG_PATH = PACKAGE_DIR / "loaders" / "datasets.yml"
+if not DATASET_CONFIG_PATH.exists():
+    raise ValueError(
+        f"Invalid path to datasets.yml {DATASET_CONFIG_PATH=}. "
+        "Please rename datasets_TEMPLATE.yml to datasets.yml. "
+        "Update the list of datasets you want to use, "
+        "update the ollama API url, etc."
+    )
 MAIN_CONFIG = PACKAGE_DIR / "config.yml"
-assert (
-    MAIN_CONFIG.exists()
-), f"Invalid path to config.yml {MAIN_CONFIG=}. Please rename config_TEMPLATE.yml to config.yml. Change the password, update the host prefix, etc."
+if not MAIN_CONFIG.exists():
+    raise ValueError(
+        f"Invalid path to config.yml {MAIN_CONFIG=}. "
+        "Please rename config_TEMPLATE.yml to config.yml. "
+        "Change the password, update the host prefix, etc."
+    )
 
 file_handler = logging.FileHandler("error.log")
 file_handler.setLevel(logging.ERROR)
@@ -729,8 +739,10 @@ def generate_default_id(campaign_index, prefix):
 def check_login(app, username, password):
     c_username = app.config["login"]["username"]
     c_password = app.config["login"]["password"]
-    assert isinstance(c_username, str) and isinstance(c_password, str), "Invalid login credentials 'username' and 'password' should be strings. Escape them with quotes in the yaml config."
-    return username == c_username and password == c_password 
+    assert isinstance(c_username, str) and isinstance(
+        c_password, str
+    ), "Invalid login credentials 'username' and 'password' should be strings. Escape them with quotes in the yaml config."
+    return username == c_username and password == c_password
 
 
 def save_annotation(annotator_id, campaign_id, dataset_id, split, setup_id, example_idx, annotation_set, start_time):
