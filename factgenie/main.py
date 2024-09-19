@@ -376,7 +376,7 @@ def compute_agreement():
 
     datasets = utils.get_dataset_overview(app)
 
-    results = analysis.compute_agreement(
+    results = analysis.compute_inter_annotator_agreement(
         app, selected_campaigns=selected_campaigns, combinations=combinations, campaigns=campaigns, datasets=datasets
     )
 

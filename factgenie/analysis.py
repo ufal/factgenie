@@ -26,6 +26,7 @@ coloredlogs.install(level="INFO", logger=logger, fmt="%(asctime)s %(levelname)s 
 def get_example_info(j, campaign_id):
     return {
         "annotator_id": j["annotator_id"],
+        "annotator_group": j.get("annotator_group", 0),
         "campaign_id": campaign_id,
         "dataset": j["dataset"],
         "example_idx": j["example_idx"],
@@ -268,52 +269,37 @@ def compute_statistics(app, campaign, datasets):
     return statistics
 
 
-def compute_dataset_level_agreement(annotations_for_comparison, datasets):
-    breakpoint()
+def compute_pearson_correlation(dataset_level_counts, example_level_counts, annotator_count, annotator_group_ids):
+    results = []
+
+    for a in range(annotator_count):
+        for b in range(a + 1, annotator_count):
+            a_group_id = annotator_group_ids[a]
+            b_group_id = annotator_group_ids[b]
+
+            r_data, _ = pearsonr(dataset_level_counts[a], dataset_level_counts[b])
+            logger.info(
+                f"Annotators {a_group_id} and {b_group_id} have a dataset-level Pearson correlation coefficient of {r_data:.3f}"
+            )
+
+            r_example, _ = pearsonr(example_level_counts[a], example_level_counts[b])
+            logger.info(
+                f"Annotators {a_group_id} and {b_group_id} have an example-level Pearson correlation coefficient of {r_example:.3f}"
+            )
+
+            results.append(
+                {
+                    "first_annotator": a_group_id,
+                    "second_annotator": b_group_id,
+                    "dataset_level_pearson_r": r_data,
+                    "example_level_pearson_r": r_example,
+                }
+            )
+
+    return results
 
 
-def compute_agreement(app, selected_campaigns, combinations, campaigns, datasets):
-    # compute inter-annotator agreement
-    combinations = [(c["dataset"], c["split"], c["setup_id"]) for c in combinations]
-
-    # gather a list of all examples with some annotations
-    example_index = pd.DataFrame()
-
-    for campaign_id in selected_campaigns:
-        campaign = campaigns[campaign_id]
-
-        _, ei = load_annotations_for_campaign(campaign)
-        example_index = pd.concat([example_index, ei], ignore_index=True)
-
-    # a combination is a tuple (dataset, split, setup_id)
-    # leave only examples in example_index that are in the combinations selected by the user
-    example_index = example_index[
-        example_index.apply(lambda x: (x["dataset"], x["split"], x["setup_id"]) in combinations, axis=1)
-    ]
-
-    # get the number of annotators we are considering
-    annotator_count = example_index["annotator_id"].nunique()
-
-    # group examples by dataset, split, setup_id, example_idx
-    # aggregate annotations, annotator_ids, and counts for each category into a list
-    aggregations = {"annotations": list, "annotator_id": list}
-    cat_columns = [x for x in example_index.columns if x.startswith("cat_")]
-
-    for c in cat_columns:
-        aggregations[c] = list
-
-    example_index = (
-        example_index.groupby(["dataset", "split", "setup_id", "example_idx"]).agg(aggregations).reset_index()
-    )
-    # remove all examples that do not have annotations from all annotators
-    example_index = example_index[example_index["annotator_id"].apply(lambda x: len(x) == annotator_count)]
-
-    # compute setup-level agreement
-    # for each annotator, compute the average number of errors for each category
-
-    # we have the absolute counts in lists cat_0, cat_1, ... for each record in example_index
-    # we need to compute the average number of errors for each category for each annotator
-
+def compute_span_counts(example_index, annotator_count, combinations, cat_columns):
     dataset_level_counts = [[] for _ in range(annotator_count)]
     example_level_counts = [[] for _ in range(annotator_count)]
 
@@ -343,25 +329,67 @@ def compute_agreement(app, selected_campaigns, combinations, campaigns, datasets
                 dataset_level_counts[a].append(avg)
                 example_level_counts[a] += error_counts[a][c]
 
-    results = []
+    return dataset_level_counts, example_level_counts
 
-    for a in range(annotator_count):
-        for b in range(a + 1, annotator_count):
-            r_data, _ = pearsonr(dataset_level_counts[a], dataset_level_counts[b])
-            logger.info(f"Annotators {a} and {b} have a dataset-level Pearson correlation coefficient of {r_data:.3f}")
 
-            r_example, _ = pearsonr(example_level_counts[a], example_level_counts[b])
-            logger.info(
-                f"Annotators {a} and {b} have an example-level Pearson correlation coefficient of {r_example:.3f}"
-            )
+def prepare_example_index(combinations, selected_campaigns, campaigns):
+    # gather a list of all examples with some annotations
+    example_index = pd.DataFrame()
 
-            results.append(
-                {
-                    "annotator_a": a,
-                    "annotator_b": b,
-                    "dataset_level_pearson_r": r_data,
-                    "example_level_pearson_r": r_example,
-                }
-            )
+    for campaign_id in selected_campaigns:
+        campaign = campaigns[campaign_id]
+
+        _, ei = load_annotations_for_campaign(campaign)
+        example_index = pd.concat([example_index, ei], ignore_index=True)
+
+    # a combination is a tuple (dataset, split, setup_id)
+    # leave only examples in example_index that are in the combinations selected by the user
+    example_index = example_index[
+        example_index.apply(lambda x: (x["dataset"], x["split"], x["setup_id"]) in combinations, axis=1)
+    ]
+
+    # add a column "annotator_group_id" to example_index, concatenating the campaign_id with str(annotator_group)
+    example_index["annotator_group_id"] = (
+        example_index["campaign_id"] + "-anngroup-" + example_index["annotator_group"].astype(str)
+    )
+
+    # get the number of annotators we are considering
+    annotator_group_ids = list(example_index["annotator_group_id"].unique())
+    annotator_count = len(annotator_group_ids)
+
+    # group examples by dataset, split, setup_id, example_idx
+    # aggregate annotations, annotator_ids, and counts for each category into a list
+    aggregations = {"annotations": list, "annotator_group_id": list}
+    cat_columns = [x for x in example_index.columns if x.startswith("cat_")]
+
+    for c in cat_columns:
+        aggregations[c] = list
+
+    example_index = (
+        example_index.groupby(["dataset", "split", "setup_id", "example_idx"]).agg(aggregations).reset_index()
+    )
+    # remove all examples that do not have annotations from all annotators
+    example_index = example_index[example_index["annotator_group_id"].apply(lambda x: len(x) == annotator_count)]
+
+    return example_index, annotator_count, annotator_group_ids, cat_columns
+
+
+def compute_inter_annotator_agreement(app, selected_campaigns, combinations, campaigns, datasets):
+    combinations = [(c["dataset"], c["split"], c["setup_id"]) for c in combinations]
+
+    example_index, annotator_count, annotator_group_ids, cat_columns = prepare_example_index(
+        combinations=combinations, selected_campaigns=selected_campaigns, campaigns=campaigns
+    )
+
+    dataset_level_counts, example_level_counts = compute_span_counts(
+        example_index=example_index, annotator_count=annotator_count, combinations=combinations, cat_columns=cat_columns
+    )
+
+    results = compute_pearson_correlation(
+        dataset_level_counts=dataset_level_counts,
+        example_level_counts=example_level_counts,
+        annotator_count=annotator_count,
+        annotator_group_ids=annotator_group_ids,
+    )
 
     return results

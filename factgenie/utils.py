@@ -398,6 +398,7 @@ def generate_llm_campaign_db(mode, datasets: Dict[str, Dataset], campaign_id, ca
     df = pd.DataFrame.from_records(all_examples)
 
     # create a column for batch index and assign each example to a batch
+    df["annotator_group"] = 0
     df["annotator_id"] = ""
     df["status"] = ExampleStatus.FREE
     df["start"] = ""
@@ -440,6 +441,7 @@ def generate_campaign_db(app, campaign_data, config):
 
     # create a column for batch index and assign each example to a batch
     df["batch_idx"] = df.index // examples_per_batch
+    df["annotator_group"] = 0
     df["annotator_id"] = ""
     df["status"] = ExampleStatus.FREE
     df["start"] = ""
@@ -739,6 +741,7 @@ def save_annotation(annotator_id, campaign_id, dataset_id, split, setup_id, exam
     os.makedirs(save_dir, exist_ok=True)
 
     annotation = {
+        "annotator_group": 0,
         "annotator_id": annotator_id,
         "dataset": dataset_id,
         "setup": {"id": setup_id, "model": setup_id},

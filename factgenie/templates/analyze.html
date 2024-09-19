@@ -109,15 +109,15 @@
           <div class="col-md-6" id="comparison-column">
             <div class="card">
               <div class="card-header bg-light">
-                Comparison
+                Comparable assets
               </div>
               <div class="card-body">
                 <div class="form-group mt-1" id="comparison-container">
 
                   <dl class="row">
-                    <dt class="col-sm-4"> Comparable labels </dt>
+                    <dt class="col-sm-4"> Span categories </dt>
                     <dd class="col-sm-8" id="common-categories"> None </dd>
-                    <dt class="col-sm-4"> Comparable examples </dt>
+                    <dt class="col-sm-4"> Examples </dt>
                     <dd class="col-sm-8" id="common-examples"> 0 </dd>
                   </dl>
                 </div>
@@ -145,12 +145,20 @@
           </div>
         </div>
         <div class="justify-content-center d-flex">
-          <button type="submit" class="btn btn-primary mt-3" onclick="computeAgreement();">Compute inter-annotator
+          <button type="submit" id="agreement-btn" class="btn btn-primary mt-3 disabled"
+            onclick="computeAgreement();">Compute
+            inter-annotator
             agrement</button>
+        </div>
+        <div class="justify-content-center d-flex mt-3">
+          <div id="agreement-spinner" class="spinner-border" role="status" style="display: none">
+            <span class="sr-only"></span>
+          </div>
         </div>
       </div>
     </div>
   </div>
+  {% include 'forms/agreement_modal.html' %}
 </body>
 <script>
   // variable to be used in factgenie.js

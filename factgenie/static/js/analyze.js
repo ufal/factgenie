@@ -23,6 +23,11 @@ function gatherSelectedCombinations() {
 }
 
 function showAgreement(data) {
+    // uncover `agreement-modal`, fill the `agreement-area` with the data
+
+    $("#agreement-spinner").hide();
+    $('#agreement-area').html("<pre>" + JSON.stringify(data, null, 2) + "</pre>");
+    $('#agreement-modal').modal('show');
 }
 
 function computeAgreement() {
@@ -35,6 +40,8 @@ function computeAgreement() {
         return;
     }
 
+    $("#agreement-spinner").show();
+
     $.post({
         url: `${url_prefix}/compute_agreement`,
         contentType: 'application/json', // Specify JSON content type
@@ -45,10 +52,10 @@ function computeAgreement() {
         success: function (response) {
             console.log(response);
 
-            if (response.success !== true) {
+            if (response.error !== undefined) {
                 alert(response.error);
             } else {
-                showAgreement(response.data);
+                showAgreement(response);
             }
         }
     });
@@ -84,6 +91,8 @@ function updateComparisonData() {
 
     $('#common-categories').html("None");
     $('#common-examples').html("0");
+    $("#selectedDatasetsContent").empty();
+    $("#agreement-btn").addClass("disabled")
 
     if (selectedCampaigns.length < 2) {
         // TODO make it also work for multiple annotators within the same campaign
@@ -131,6 +140,7 @@ function updateComparisonData() {
     );
 
     $('#common-examples').html(finishedExamples.length);
+    $("#agreement-btn").removeClass("disabled");
 
     return combinations;
 }
