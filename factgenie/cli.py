@@ -69,12 +69,16 @@ def create_app(**kwargs):
     import os
     from factgenie.main import app
     from factgenie import utils
+    from factgenie.utils import ROOT_DIR, MAIN_CONFIG, check_login
 
-    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.yml")) as f:
+    with open(MAIN_CONFIG) as f:
         config = yaml.safe_load(f)
 
     app.config.update(config)
-    app.config["root_dir"] = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir)
+    app.config["root_dir"] = ROOT_DIR
+
+    assert check_login(app, config["login"]["username"], config["login"]["password"]), "Login should pass for valid user"
+    assert not check_login(app, "dummy_non_user_name", "dummy_bad_password"), "Login should fail for dummy user"
 
     app.db["datasets_obj"] = utils.instantiate_datasets()
 
