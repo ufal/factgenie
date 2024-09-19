@@ -28,17 +28,18 @@ from factgenie.campaigns import HumanCampaign, LLMCampaignEval, LLMCampaignGen, 
 from factgenie.loaders.dataset import Dataset, DATA_DIR, OUTPUT_DIR
 from jinja2 import Template
 
-DIR_PATH = Path(__file__).parent
-TEMPLATES_DIR = DIR_PATH / "templates"
-STATIC_DIR = DIR_PATH / "static"
-ANNOTATIONS_DIR = DIR_PATH / "annotations"
-GENERATIONS_DIR = DIR_PATH / "generations"
-LLM_EVAL_CONFIG_DIR = DIR_PATH / "config" / "llm-eval"
-LLM_GEN_CONFIG_DIR = DIR_PATH / "config" / "llm-gen"
-CROWDSOURCING_CONFIG_DIR = DIR_PATH / "config" / "crowdsourcing"
+PACKAGE_DIR = Path(__file__).parent
+ROOT_DIR = PACKAGE_DIR.parent
+TEMPLATES_DIR = PACKAGE_DIR / "templates"
+STATIC_DIR = PACKAGE_DIR / "static"
+ANNOTATIONS_DIR = PACKAGE_DIR / "annotations"
+GENERATIONS_DIR = PACKAGE_DIR / "generations"
+LLM_EVAL_CONFIG_DIR = PACKAGE_DIR / "config" / "llm-eval"
+LLM_GEN_CONFIG_DIR = PACKAGE_DIR / "config" / "llm-gen"
+CROWDSOURCING_CONFIG_DIR = PACKAGE_DIR / "config" / "crowdsourcing"
 
-DATASET_CONFIG_PATH = DIR_PATH / "loaders" / "datasets.yml"
-MAIN_CONFIG = DIR_PATH / "config.yml"
+DATASET_CONFIG_PATH = PACKAGE_DIR / "loaders" / "datasets.yml"
+MAIN_CONFIG = PACKAGE_DIR / "config.yml"
 assert (
     MAIN_CONFIG.exists()
 ), f"Invalid path to config.yml {MAIN_CONFIG=}. Please rename config_TEMPLATE.yml to config.yml. Change the password, update the host prefix, etc."
@@ -726,7 +727,10 @@ def generate_default_id(campaign_index, prefix):
 
 
 def check_login(app, username, password):
-    return username == app.config["login"]["username"] and password == app.config["login"]["password"]
+    c_username = app.config["login"]["username"]
+    c_password = app.config["login"]["password"]
+    assert isinstance(c_username, str) and isinstance(c_password, str), "Invalid login credentials 'username' and 'password' should be strings. Escape them with quotes in the yaml config."
+    return username == c_username and password == c_password 
 
 
 def save_annotation(annotator_id, campaign_id, dataset_id, split, setup_id, example_idx, annotation_set, start_time):

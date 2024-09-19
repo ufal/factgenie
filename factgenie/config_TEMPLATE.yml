@@ -4,5 +4,5 @@ host_prefix: ""
 logging_level: INFO
 login:
   active: true
-  username: admin
-  password: factgenie
+  username: "admin"
+  password: "factgenie"
