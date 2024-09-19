@@ -12,7 +12,6 @@ datasets:
       dataset.
     enabled: true
     splits:
-    - validation
     - test
     type: table
   quintd1-gsmarena:
