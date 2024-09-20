@@ -6,11 +6,14 @@
 <!-- ![PyPI](https://img.shields.io/pypi/v/factgenie) -->
 <!-- ![PyPI downloads](https://img.shields.io/pypi/dm/factgenie) -->
 
-Visualize and annotate LLM outputs 🌈
+Generate and annotate LLM outputs in a lightweight, self-hosted web application 🌈
 
 <img src="factgenie/static/img/github/browse.png" width="100%" alt="Main screen" />
 
 ## 📢  News
+- **19/09/2024** - On the Analytics page, you can now see detailed statics about annotations and compute inter-annotator agreement 📈
+- **16/09/2024** - You can now collect extra inputs from the annotators for each example using sliders and selectboxes. 
+- **16/09/2024** - We added an option to generate outputs for the inputs with LLMs directly within factgenie! 🦾
 - **10/09/2024** - We improved UX for the annotation and browsing interfaces. See the summary of changes [here](https://github.com/ufal/factgenie/pull/71).
 - **09/08/2024** - Instructions for the annotators can be now configured directly in the web interace and in the configuration file – no need for coding HTML!
 - **31/07/2024** - We updated and expanded the README into a set of tutorials. The tutorials are available on our [Github wiki](../../wiki/).
@@ -58,19 +61,29 @@ See the following **wiki pages** that that will guide you through various use-ca
 We provide multiple examples for you to get inspired when preparing your own experiments. In simple cases, you can even get without writing Python code completely!
 
 ## 💬 Cite us
-You can find our paper on [arXiv](https://arxiv.org/abs/2407.17863).
 
-The paper is also accepted for INLG 2024 System Demonstrations.
+[Our paper](https://aclanthology.org/2024.inlg-demos.5/) is accepted for INLG 2024 System Demonstrations!
+
+You can also find it on [arXiv](https://arxiv.org/abs/2407.17863).
 
 For citing us, please use the following BibTeX entry:
 ```bibtex
-@misc{kasner2024factgenie,
-      title     = {factgenie: A Framework for Span-based Evaluation of Generated Texts}, 
-      author    = {Zdeněk Kasner and Ondřej Plátek and Patrícia Schmidtová and Simone Balloccu and Ondřej Dušek},
-      year      = {2024},
-      booktitle = {Proceedings of the 17th International Natural Language Generation Conference (System Demonstrations)},
-      note      = {To appear},
-      url       = {https://arxiv.org/abs/2407.17863}, 
+@inproceedings{kasner2024factgenie,
+    title = "factgenie: A Framework for Span-based Evaluation of Generated Texts",
+    author = "Kasner, Zden{\v{e}}k  and
+      Platek, Ondrej  and
+      Schmidtova, Patricia  and
+      Balloccu, Simone  and
+      Dusek, Ondrej",
+    editor = "Mahamood, Saad  and
+      Minh, Nguyen Le  and
+      Ippolito, Daphne",
+    booktitle = "Proceedings of the 17th International Natural Language Generation Conference: System Demonstrations",
+    year = "2024",
+    address = "Tokyo, Japan",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.inlg-demos.5",
+    pages = "13--15",
 }
 ```
 
