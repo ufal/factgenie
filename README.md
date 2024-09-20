@@ -6,7 +6,7 @@
 <!-- ![PyPI](https://img.shields.io/pypi/v/factgenie) -->
 <!-- ![PyPI downloads](https://img.shields.io/pypi/dm/factgenie) -->
 
-Generate and annotate LLM outputs in a lightweight, self-hosted web application 🌈
+Annotate LLM outputs with a lightweight, self-hosted web application 🌈
 
 <img src="factgenie/static/img/github/browse.png" width="100%" alt="Main screen" />
 
@@ -33,7 +33,7 @@ Factgenie can provide you:
 3. **A visualization interface** for visualizing the data and inspecting the annotated outputs.
 
 ---
-*What does factgenie **not help with** is collecting the data or model outputs (we assume that you already have these), starting the crowdsourcing campaign (for that, you need to use a service such as [Prolific.com](https://prolific.com)) or running the LLM evaluators (for that, you need a local framework such as [Ollama](https://ollama.com) or a proprietary API).*
+*What does factgenie **not help with** is collecting the data (we assume that you already have these), starting the crowdsourcing campaign (for that, you need to use a service such as [Prolific.com](https://prolific.com)) or running the LLM evaluators (for that, you need a local framework such as [Ollama](https://ollama.com) or a proprietary API).*
 
 ## 🏃 Quickstart
 Make sure you have Python 3 installed (the project is tested with Python 3.10).
