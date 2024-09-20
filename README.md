@@ -11,7 +11,7 @@ Generate and annotate LLM outputs in a lightweight, self-hosted web application 
 <img src="factgenie/static/img/github/browse.png" width="100%" alt="Main screen" />
 
 ## 📢  News
-- **19/09/2024** - On the Analytics page, you can now see detailed statics about annotations and compute inter-annotator agreement 📈
+- **19/09/2024** - On the Analytics page, you can now see detailed statistics about annotations and compute inter-annotator agreement 📈
 - **16/09/2024** - You can now collect extra inputs from the annotators for each example using sliders and selectboxes. 
 - **16/09/2024** - We added an option to generate outputs for the inputs with LLMs directly within factgenie! 🦾
 - **10/09/2024** - We improved UX for the annotation and browsing interfaces. See the summary of changes [here](https://github.com/ufal/factgenie/pull/71).
@@ -55,7 +55,8 @@ See the following **wiki pages** that that will guide you through various use-ca
 | 🗂️ [Data Management](../../wiki/02-Data-Management)                     | How to manage datasets and model outputs.         |
 | 🤖 [LLM Annotations](../../wiki/03-LLM-Annotations)                     | How to annotate outputs using LLMs.               |
 | 👥 [Crowdsourcing Annotations](../../wiki/04-Crowdsourcing-Annotations) | How to annotate outputs using human crowdworkers. |
-| 🧑‍💻 [Developer Notes](../../wiki/05-Developer-Notes)                     | How to contribute to the framework.               |
+| ✍️  [Generating Outputs](../../wiki/05-Generating-Outputs)              | How to generate outputs using LLMs.               |
+| 🧑‍💻 [Developer Notes](../../wiki/06-Developer-Notes)                     | How to contribute to the framework.               |
 
  
 We provide multiple examples for you to get inspired when preparing your own experiments. In simple cases, you can even get without writing Python code completely!
