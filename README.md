@@ -49,14 +49,15 @@ factgenie run --host=127.0.0.1 --port 5000
 
 See the following **wiki pages** that that will guide you through various use-cases of factgenie:
 
-| Topic                                                                  | Description                                       |
-| ---------------------------------------------------------------------- | ------------------------------------------------- |
-| 🔧 [Setup](../../wiki/01-Setup)                                         | How to install factgenie.                         |
-| 🗂️ [Data Management](../../wiki/02-Data-Management)                     | How to manage datasets and model outputs.         |
-| 🤖 [LLM Annotations](../../wiki/03-LLM-Annotations)                     | How to annotate outputs using LLMs.               |
-| 👥 [Crowdsourcing Annotations](../../wiki/04-Crowdsourcing-Annotations) | How to annotate outputs using human crowdworkers. |
-| ✍️  [Generating Outputs](../../wiki/05-Generating-Outputs)              | How to generate outputs using LLMs.               |
-| 🧑‍💻 [Developer Notes](../../wiki/06-Developer-Notes)                     | How to contribute to the framework.               |
+| Topic                                                                  | Description                                        |
+| ---------------------------------------------------------------------- | -------------------------------------------------- |
+| 🔧 [Setup](../../wiki/01-Setup)                                         | How to install factgenie.                          |
+| 🗂️ [Data Management](../../wiki/02-Data-Management)                     | How to manage datasets and model outputs.          |
+| 🤖 [LLM Annotations](../../wiki/03-LLM-Annotations)                     | How to annotate outputs using LLMs.                |
+| 👥 [Crowdsourcing Annotations](../../wiki/04-Crowdsourcing-Annotations) | How to annotate outputs using human crowdworkers.  |
+| ✍️  [Generating Outputs](../../wiki/05-Generating-Outputs)              | How to generate outputs using LLMs.                |
+| 📊 [Analyzing Annotations](../../wiki/06-Analyzing-Annotations)         | How to obtain statistics on collected annotations. |
+| 🧑‍💻 [Developer Notes](../../wiki/07-Developer-Notes)                     | How to contribute to the framework.                |
 
  
 We provide multiple examples for you to get inspired when preparing your own experiments. In simple cases, you can even get without writing Python code completely!
