@@ -575,10 +575,9 @@ def llm_campaign_create():
 
     try:
         utils.llm_campaign_new(mode, campaign_id, config, campaign_data, datasets)
+        utils.load_campaign(app, campaign_id=campaign_id, mode=mode)
     except Exception as e:
         return utils.error(f"Error while creating campaign: {e}")
-
-    utils.load_campaign(app, campaign_id=campaign_id, mode=mode)
 
     return utils.success()
 
