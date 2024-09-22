@@ -366,11 +366,18 @@ def compute_agreement():
 
     datasets = utils.get_dataset_overview(app)
 
-    results = analysis.compute_inter_annotator_agreement(
-        app, selected_campaigns=selected_campaigns, combinations=combinations, campaigns=campaigns, datasets=datasets
-    )
-
-    return jsonify(results)
+    try:
+        results = analysis.compute_inter_annotator_agreement(
+            app,
+            selected_campaigns=selected_campaigns,
+            combinations=combinations,
+            campaigns=campaigns,
+            datasets=datasets,
+        )
+        return jsonify(results)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": f"Error while computing agreement: {e}"})
 
 
 @app.route("/delete_campaign", methods=["POST"])
