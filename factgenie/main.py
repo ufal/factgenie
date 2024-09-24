@@ -232,6 +232,12 @@ def browse():
     datasets = utils.get_dataset_overview(app)
     datasets = {k: v for k, v in datasets.items() if v["enabled"]}
 
+    if not datasets:
+        return render_template(
+            "no_datasets.html",
+            host_prefix=app.config["host_prefix"],
+        )
+
     return render_template(
         "browse.html",
         display_example=display_example,
