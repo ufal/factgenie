@@ -1,4 +1,7 @@
-# factgenie
+<div align="center">
+<img src="factgenie/static/img/factgenie.png" width=80px" alt="logo" />
+
+<h1> factgenie </h1>
 
 ![GitHub](https://img.shields.io/github/license/kasnerz/factgenie)
 ![GitHub issues](https://img.shields.io/github/issues/kasnerz/factgenie)
@@ -8,9 +11,12 @@
 
 Annotate LLM outputs with a lightweight, self-hosted web application 🌈
 
-<img src="factgenie/static/img/github/browse.png" width="100%" alt="Main screen" />
+![factgenie](https://github.com/user-attachments/assets/1d074588-ada1-4974-a42a-0d2195c65283)
+
+</div>
 
 ## 📢  News
+- **24/09/2024** - We introduced a brand new factgenie logo!
 - **19/09/2024** - On the Analytics page, you can now see detailed statistics about annotations and compute inter-annotator agreement 📈
 - **16/09/2024** - You can now collect extra inputs from the annotators for each example using sliders and selectboxes. 
 - **16/09/2024** - We added an option to generate outputs for the inputs with LLMs directly within factgenie! 🦾
