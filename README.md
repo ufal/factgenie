@@ -16,6 +16,7 @@ Annotate LLM outputs with a lightweight, self-hosted web application 🌈
 </div>
 
 ## 📢  News
+- **24/09/2024** - We introduced a brand new factgenie logo!
 - **19/09/2024** - On the Analytics page, you can now see detailed statistics about annotations and compute inter-annotator agreement 📈
 - **16/09/2024** - You can now collect extra inputs from the annotators for each example using sliders and selectboxes. 
 - **16/09/2024** - We added an option to generate outputs for the inputs with LLMs directly within factgenie! 🦾
