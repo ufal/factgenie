@@ -1,4 +1,7 @@
-# factgenie
+<div align="center">
+<img src="factgenie/static/img/factgenie.png" width=80px" alt="logo" />
+
+<h1> factgenie </h1>
 
 ![GitHub](https://img.shields.io/github/license/kasnerz/factgenie)
 ![GitHub issues](https://img.shields.io/github/issues/kasnerz/factgenie)
@@ -9,6 +12,7 @@
 Annotate LLM outputs with a lightweight, self-hosted web application 🌈
 
 <img src="factgenie/static/img/github/browse.png" width="100%" alt="Main screen" />
+</div>
 
 ## 📢  News
 - **19/09/2024** - On the Analytics page, you can now see detailed statistics about annotations and compute inter-annotator agreement 📈
