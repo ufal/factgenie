@@ -11,10 +11,10 @@ from flask.cli import FlaskGroup
 @click.command()
 def list_datasets():
     import yaml
-    from factgenie.utils import DATASET_CONFIG_PATH
+    from factgenie.utils import DATASET_LOCAL_CONFIG_PATH
 
     """List all available datasets."""
-    with open(DATASET_CONFIG_PATH) as f:
+    with open(DATASET_LOCAL_CONFIG_PATH) as f:
         config = yaml.safe_load(f)
 
     for dataset_id, _ in config["datasets"].items():
@@ -42,7 +42,7 @@ def run_llm_campaign(
     campaign_id = slugify(campaign_id)
     campaign_data = [{"dataset": dataset_id, "split": split, "setup_id": setup_id}]
 
-    config = utils.load_dataset_config()
+    config = utils.load_dataset_local_config()
     dataset_config = config["datasets"][dataset_id]
     datasets = {dataset_id: utils.instantiate_dataset(dataset_id, dataset_config)}
 
@@ -69,13 +69,30 @@ def create_app(**kwargs):
     import os
     from factgenie.main import app
     from factgenie import utils
-    from factgenie.utils import ROOT_DIR, MAIN_CONFIG, check_login, GENERATIONS_DIR, ANNOTATIONS_DIR
+    from factgenie.utils import ROOT_DIR, MAIN_CONFIG_PATH, check_login, GENERATIONS_DIR, ANNOTATIONS_DIR
+    from factgenie.loaders.dataset import DATA_DIR
 
-    with open(MAIN_CONFIG) as f:
+    logger = logging.getLogger(__name__)
+
+    # --- compatibility with older versions ---
+    from factgenie.utils import OLD_DATASET_CONFIG_PATH, OLD_MAIN_CONFIG_PATH, DATASET_CONFIG_PATH, MAIN_CONFIG_PATH
+    import shutil
+
+    if OLD_DATASET_CONFIG_PATH.exists():
+        logger.debug("Factgenie updated: moving loaders/datasets.yml to config/datasets_local.yml")
+        shutil.move(OLD_DATASET_CONFIG_PATH, DATASET_CONFIG_PATH)
+
+    if OLD_MAIN_CONFIG_PATH.exists():
+        logger.debug("Factgenie updated: moving config.yml to config/config.yml")
+        shutil.move(OLD_MAIN_CONFIG_PATH, MAIN_CONFIG_PATH)
+    # --- end of compatibility with older versions ---
+
+    with open(MAIN_CONFIG_PATH) as f:
         config = yaml.safe_load(f)
 
     os.makedirs(GENERATIONS_DIR, exist_ok=True)
-    os.makedirs(ANNOTATIONS_DIR, exist_ok=True)
+    os.makedirs(GENERATIONS_DIR, exist_ok=True)
+    os.makedirs(DATA_DIR, exist_ok=True)
 
     app.config.update(config)
     app.config["root_dir"] = ROOT_DIR
@@ -90,7 +107,6 @@ def create_app(**kwargs):
     if config["debug"] is False:
         logging.getLogger("werkzeug").disabled = True
 
-    logger = logging.getLogger(__name__)
     logger.info("Application ready")
 
     file_handler = logging.FileHandler("error.log")

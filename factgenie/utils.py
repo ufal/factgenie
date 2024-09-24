@@ -38,18 +38,16 @@ LLM_EVAL_CONFIG_DIR = PACKAGE_DIR / "config" / "llm-eval"
 LLM_GEN_CONFIG_DIR = PACKAGE_DIR / "config" / "llm-gen"
 CROWDSOURCING_CONFIG_DIR = PACKAGE_DIR / "config" / "crowdsourcing"
 
-DATASET_CONFIG_PATH = PACKAGE_DIR / "loaders" / "datasets.yml"
-if not DATASET_CONFIG_PATH.exists():
+DATASET_CONFIG_PATH = PACKAGE_DIR / "config" / "datasets.yml"
+DATASET_LOCAL_CONFIG_PATH = PACKAGE_DIR / "config" / "datasets_local.yml"
+
+OLD_DATASET_CONFIG_PATH = PACKAGE_DIR / "loaders" / "datasets.yml"
+OLD_MAIN_CONFIG_PATH = PACKAGE_DIR / "config.yml"
+
+MAIN_CONFIG_PATH = PACKAGE_DIR / "config" / "config.yml"
+if not MAIN_CONFIG_PATH.exists():
     raise ValueError(
-        f"Invalid path to datasets.yml {DATASET_CONFIG_PATH=}. "
-        "Please rename datasets_TEMPLATE.yml to datasets.yml. "
-        "Update the list of datasets you want to use, "
-        "update the ollama API url, etc."
-    )
-MAIN_CONFIG = PACKAGE_DIR / "config.yml"
-if not MAIN_CONFIG.exists():
-    raise ValueError(
-        f"Invalid path to config.yml {MAIN_CONFIG=}. "
+        f"Invalid path to config.yml {MAIN_CONFIG_PATH=}. "
         "Please rename config_TEMPLATE.yml to config.yml. "
         "Change the password, update the host prefix, etc."
     )
@@ -493,20 +491,24 @@ def generate_campaign_db(app, campaign_data, config):
     return df
 
 
-def load_dataset_config():
-    with open(DATASET_CONFIG_PATH) as f:
+def load_dataset_local_config():
+    if not DATASET_LOCAL_CONFIG_PATH.exists():
+        with open(DATASET_LOCAL_CONFIG_PATH, "w") as f:
+            f.write("datasets: {}\n")
+
+    with open(DATASET_LOCAL_CONFIG_PATH) as f:
         config = yaml.safe_load(f)
 
     return config
 
 
-def save_dataset_config(config):
-    with open(DATASET_CONFIG_PATH, "w") as f:
+def save_dataset_local_config(config):
+    with open(DATASET_LOCAL_CONFIG_PATH, "w") as f:
         yaml.dump(config, f, indent=2, allow_unicode=True)
 
 
 def set_dataset_enabled(app, dataset_id, enabled):
-    config = load_dataset_config()
+    config = load_dataset_local_config()
     config["datasets"][dataset_id]["enabled"] = enabled
 
     if enabled:
@@ -515,11 +517,11 @@ def set_dataset_enabled(app, dataset_id, enabled):
     else:
         app.db["datasets_obj"].pop(dataset_id, None)
 
-    save_dataset_config(config)
+    save_dataset_local_config(config)
 
 
 def get_dataset_overview(app):
-    config = load_dataset_config()
+    config = load_dataset_local_config()
     overview = {}
 
     for dataset_id, dataset_config in config["datasets"].items():
@@ -571,9 +573,9 @@ def get_dataset_classes():
 
 
 def delete_dataset(app, dataset_id):
-    config = load_dataset_config()
+    config = load_dataset_local_config()
     config["datasets"].pop(dataset_id, None)
-    save_dataset_config(config)
+    save_dataset_local_config(config)
 
     # remove the data directory
     shutil.rmtree(f"factgenie/data/{dataset_id}", ignore_errors=True)
@@ -633,8 +635,9 @@ def instantiate_dataset(dataset_id, dataset_config):
 
 
 def instantiate_datasets():
-    config = load_dataset_config()
+    config = load_dataset_local_config()
     datasets = {}
+
     for dataset_id, dataset_config in config["datasets"].items():
         is_enabled = dataset_config.get("enabled", True)
 
@@ -671,7 +674,7 @@ def upload_dataset(dataset_id, dataset_description, dataset_format, dataset_data
                 zip_ref.extractall(f"{data_dir}/{split}")
 
     # add an entry in the dataset config
-    config = load_dataset_config()
+    config = load_dataset_local_config()
     config["datasets"][dataset_id] = {
         "class": params[dataset_format]["class"],
         "description": dataset_description,
@@ -679,7 +682,7 @@ def upload_dataset(dataset_id, dataset_description, dataset_format, dataset_data
         "splits": list(dataset_data.keys()),
         "enabled": False,
     }
-    save_dataset_config(config)
+    save_dataset_local_config(config)
 
 
 def upload_model_outputs(dataset, split, setup_id, model_outputs):
