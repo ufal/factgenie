@@ -21,3 +21,6 @@ factgenie/generations
 factgenie/outputs
 factgenie/templates/campaigns/*
 !factgenie/templates/campaigns/*.*
+factgenie/config/llm-eval
+factgenie/config/llm-gen
+factgenie/config/crowdsourcing
