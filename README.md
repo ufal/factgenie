@@ -11,9 +11,7 @@
 
 Annotate LLM outputs with a lightweight, self-hosted web application 🌈
 
-
-![factgenie](https://github.com/user-attachments/assets/f9db19b1-3bfe-46c1-bdc7-5e5242bb6e42)
-
+![factgenie](https://github.com/user-attachments/assets/1d074588-ada1-4974-a42a-0d2195c65283)
 
 </div>
 
