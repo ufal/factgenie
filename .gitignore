@@ -1,5 +1,3 @@
-# factgenie/config.yml
-# factgenie/loaders/datasets.yml
 __pycache__/
 *.py[cod]
 # data
@@ -21,6 +19,8 @@ factgenie/generations
 factgenie/outputs
 factgenie/templates/campaigns/*
 !factgenie/templates/campaigns/*.*
+factgenie/config/config.yml
+factgenie/config/datasets_local.yml
 factgenie/config/llm-eval
 factgenie/config/llm-gen
 factgenie/config/crowdsourcing
