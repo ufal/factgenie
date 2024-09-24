@@ -11,7 +11,10 @@
 
 Annotate LLM outputs with a lightweight, self-hosted web application 🌈
 
-<img src="factgenie/static/img/github/browse.png" width="100%" alt="Main screen" />
+
+![factgenie](https://github.com/user-attachments/assets/f9db19b1-3bfe-46c1-bdc7-5e5242bb6e42)
+
+
 </div>
 
 ## 📢  News
