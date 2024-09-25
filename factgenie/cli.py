@@ -11,7 +11,6 @@ from flask.cli import FlaskGroup
 @click.command()
 def list_datasets():
     import yaml
-    from factgenie.utils import DATASET_LOCAL_CONFIG_PATH
 
     """List all available datasets."""
     with open(DATASET_LOCAL_CONFIG_PATH) as f:
@@ -68,14 +67,14 @@ def create_app(**kwargs):
     import coloredlogs
     import os
     from factgenie.main import app
+    from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, GENERATIONS_DIR, ANNOTATIONS_DIR, DATA_DIR, OUTPUT_DIR
     from factgenie import utils
-    from factgenie.utils import ROOT_DIR, MAIN_CONFIG_PATH, check_login, GENERATIONS_DIR, ANNOTATIONS_DIR
-    from factgenie.loaders.dataset import DATA_DIR
+    from factgenie.utils import check_login
 
     logger = logging.getLogger(__name__)
 
     # --- compatibility with older versions ---
-    from factgenie.utils import OLD_DATASET_CONFIG_PATH, OLD_MAIN_CONFIG_PATH, DATASET_CONFIG_PATH, MAIN_CONFIG_PATH
+    from factgenie import OLD_DATASET_CONFIG_PATH, OLD_MAIN_CONFIG_PATH, DATASET_CONFIG_PATH, MAIN_CONFIG_PATH
     import shutil
 
     if OLD_DATASET_CONFIG_PATH.exists():
@@ -90,9 +89,10 @@ def create_app(**kwargs):
     with open(MAIN_CONFIG_PATH) as f:
         config = yaml.safe_load(f)
 
-    os.makedirs(GENERATIONS_DIR, exist_ok=True)
+    os.makedirs(ANNOTATIONS_DIR, exist_ok=True)
     os.makedirs(GENERATIONS_DIR, exist_ok=True)
     os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     app.config.update(config)
     app.config["root_dir"] = ROOT_DIR

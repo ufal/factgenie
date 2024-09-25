@@ -6,11 +6,9 @@ from collections import defaultdict
 from slugify import slugify
 from abc import ABC, abstractmethod
 
-logger = logging.getLogger(__name__)
+from factgenie import DATA_DIR, OUTPUT_DIR
 
-BASE_DIR = "factgenie"
-DATA_DIR = f"{BASE_DIR}/data"
-OUTPUT_DIR = f"{BASE_DIR}/outputs"
+logger = logging.getLogger(__name__)
 
 
 class Dataset(ABC):
@@ -20,8 +18,8 @@ class Dataset(ABC):
 
     def __init__(self, dataset_id, **kwargs):
         self.id = dataset_id
-        self.data_path = f"{DATA_DIR}/{self.id}"
-        self.output_path = f"{OUTPUT_DIR}/{self.id}"
+        self.data_path = DATA_DIR / self.id
+        self.output_path = OUTPUT_DIR / self.id
 
         self.splits = kwargs.get("splits", ["train", "dev", "test"])
         self.description = kwargs.get("description", "")

@@ -25,32 +25,21 @@ from flask import jsonify, make_response
 from collections import defaultdict
 from pathlib import Path
 from factgenie.campaigns import HumanCampaign, LLMCampaignEval, LLMCampaignGen, CampaignStatus, ExampleStatus
-from factgenie.loaders.dataset import Dataset, DATA_DIR, OUTPUT_DIR
 from jinja2 import Template
 
-PACKAGE_DIR = Path(__file__).parent
-ROOT_DIR = PACKAGE_DIR.parent
-TEMPLATES_DIR = PACKAGE_DIR / "templates"
-STATIC_DIR = PACKAGE_DIR / "static"
-ANNOTATIONS_DIR = PACKAGE_DIR / "annotations"
-GENERATIONS_DIR = PACKAGE_DIR / "generations"
-LLM_EVAL_CONFIG_DIR = PACKAGE_DIR / "config" / "llm-eval"
-LLM_GEN_CONFIG_DIR = PACKAGE_DIR / "config" / "llm-gen"
-CROWDSOURCING_CONFIG_DIR = PACKAGE_DIR / "config" / "crowdsourcing"
+from factgenie.loaders.dataset import Dataset
 
-DATASET_CONFIG_PATH = PACKAGE_DIR / "config" / "datasets.yml"
-DATASET_LOCAL_CONFIG_PATH = PACKAGE_DIR / "config" / "datasets_local.yml"
-
-OLD_DATASET_CONFIG_PATH = PACKAGE_DIR / "loaders" / "datasets.yml"
-OLD_MAIN_CONFIG_PATH = PACKAGE_DIR / "config.yml"
-
-MAIN_CONFIG_PATH = PACKAGE_DIR / "config" / "config.yml"
-if not MAIN_CONFIG_PATH.exists():
-    raise ValueError(
-        f"Invalid path to config.yml {MAIN_CONFIG_PATH=}. "
-        "Please rename config_TEMPLATE.yml to config.yml. "
-        "Change the password, update the host prefix, etc."
-    )
+from factgenie import (
+    ANNOTATIONS_DIR,
+    GENERATIONS_DIR,
+    OUTPUT_DIR,
+    DATA_DIR,
+    LLM_EVAL_CONFIG_DIR,
+    LLM_GEN_CONFIG_DIR,
+    CROWDSOURCING_CONFIG_DIR,
+    DATASET_CONFIG_PATH,
+    DATASET_LOCAL_CONFIG_PATH,
+)
 
 file_handler = logging.FileHandler("error.log")
 file_handler.setLevel(logging.ERROR)
@@ -585,7 +574,7 @@ def delete_dataset(app, dataset_id):
 
 def export_dataset(app, dataset_id):
     zip_buffer = BytesIO()
-    data_path = f"{DATA_DIR}/{dataset_id}"
+    data_path = DATA_DIR / dataset_id
 
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         for root, dirs, files in os.walk(data_path):
@@ -605,7 +594,7 @@ def export_dataset(app, dataset_id):
 
 def export_outputs(app, dataset_id, split, setup_id):
     zip_buffer = BytesIO()
-    output_path = f"{OUTPUT_DIR}/{dataset_id}/{split}"
+    output_path = OUTPUT_DIR / dataset_id / split
 
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         for root, dirs, files in os.walk(output_path):
@@ -1132,15 +1121,15 @@ def save_generation_outputs(app, campaign_id, model_name):
     metadata = campaign.metadata
 
     # load the metadata
-    with open(os.path.join(GENERATIONS_DIR, campaign_id, "metadata.json")) as f:
+    with open(GENERATIONS_DIR / campaign_id / "metadata.json") as f:
         metadata = json.load(f)
 
     # load the outputs
     outputs = defaultdict(list)
 
-    for file in os.listdir(os.path.join(GENERATIONS_DIR, campaign_id, "files")):
+    for file in os.listdir(GENERATIONS_DIR / campaign_id / "files"):
         if file.endswith(".jsonl"):
-            with open(os.path.join(GENERATIONS_DIR, campaign_id, "files", file)) as f:
+            with open(GENERATIONS_DIR / campaign_id / "files" / file) as f:
                 for line in f:
                     record = json.loads(line)
                     key = (record["dataset"], record["split"])
@@ -1152,12 +1141,12 @@ def save_generation_outputs(app, campaign_id, model_name):
 
     # save the outputs
     for (dataset_id, split), examples in outputs.items():
-        path = os.path.join(OUTPUT_DIR, dataset_id, split)
+        path = OUTPUT_DIR / dataset_id / split
         os.makedirs(path, exist_ok=True)
 
         generated = [e["generated"] for e in examples]
 
-        with open(os.path.join(path, f"{model_name}.json"), "w") as f:
+        with open(path / f"{model_name}.json", "w") as f:
             json.dump({"dataset": dataset_id, "setup": setup, "generated": generated}, f, indent=4)
 
     return success()
