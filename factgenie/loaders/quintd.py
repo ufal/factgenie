@@ -6,11 +6,12 @@ import traceback
 import zipfile
 import os
 from slugify import slugify
+from factgenie.loaders.dataset import Dataset
 
 logger = logging.getLogger(__name__)
 
 
-class QuintdDataset:
+class QuintdDataset(Dataset):
     @classmethod
     def postprocess_output(cls, output):
         output["setup"]["id"] = slugify(output["model"])

@@ -23,9 +23,6 @@
   <div class="container">
     <div class="mb-5">
       <a href="{{ host_prefix }}/" class="btn btn-outline-secondary mt-5">← Main page</a>
-      <a type="button" class="btn btn-primary mt-5" data-bs-toggle="modal" data-bs-target="#uploadModal">Add
-        model
-        outputs</a>
     </div>
 
     <h3><img src="{{ host_prefix }}/static/img/manage.png" class="heading-img-inline">
@@ -55,10 +52,11 @@
           <table id="table-download" data-toggle="table" data-search="true" data-pagination="true" data-page-size="10"
             data-detail-view-icon="false" data-search-align="left" data-detail-view="true"
             data-detail-formatter="detailFormatter" data-detail-view-by-click="true" data-show-search-button="true"
-            data-pagination-parts="['pageList', 'pageSize']" data-classes="table table-hover table-datasets">
+            data-search-time-out="500" data-search-on-enter-key="true" data-pagination-parts="['pageList', 'pageSize']"
+            data-searchable="false" data-classes="table table-hover table-datasets">
             <thead>
               <tr>
-                <th data-sortable="true" scope="col">Dataset</th>
+                <th data-searchable="true" data-sortable="true" scope="col">Dataset</th>
                 <th scope="col">Splits</th>
                 <th scope="col">Outputs</th>
                 <th scope="col">Source</th>
@@ -164,7 +162,7 @@
                 </td>
                 <td>
                   <a href="{{ host_prefix }}/export_dataset?dataset_id={{ dataset_id }}"
-                    class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Download the dataset">
+                    class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Export the dataset">
                     <i class="fa fa-download"></i>
                   </a>
                   <a onclick="deleteDataset('{{ dataset_id }}')" class="btn btn-outline-danger" data-bs-toggle="tooltip"
@@ -185,42 +183,46 @@
               {% endfor %}
             </tbody>
           </table>
-          <div class="text-center">
+          <div class="text-center mb-5">
             <a type="button" class="btn btn-primary mt-2 mb-4" data-bs-toggle="modal"
               data-bs-target="#add-dataset-modal">Add
               dataset</a>
           </div>
         </div>
         <div class="tab-pane fade show" id="pills-outputs" role="tabpanel" aria-labelledby="pills-outputs-tab">
-          <div class="mt-5">
-            <div class="row g-3 mb-3 mt-3 align-items-center">
-              <div class="col-auto">
-                <span style="margin-left: 5px;">Dataset</span>
-              </div>
-              <div class="col-auto">
-                <select id="dataset-select-overview" class="form-select form-select-sm"
-                  style="display: inline-block; margin-right: 10px; max-width: 250px;">
-                  {% for name, dataset in datasets.items() %}
-                  <option value="{{ name }}">{{ name }}</option>
-                  {% endfor %}
-                </select>
-              </div>
+          <div class="row g-3 mb-3 mt-3 align-items-center">
+            <div class="col-auto">
+              <span style="margin-left: 5px;">Dataset</span>
             </div>
+            <div class="col-auto">
+              <select id="dataset-select-overview" class="form-select form-select-sm"
+                style="display: inline-block; margin-right: 10px; max-width: 250px;">
+                {% for name, dataset in datasets.items() %}
+                <option value="{{ name }}">{{ name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
 
-            <table class="table table-hover" id="model-out-table">
-              <thead>
-                <tr>
-                  <th scope="col">Dataset</th>
-                  <th scope="col">Split</th>
-                  <th scope="col">Source</th>
-                  <th scope="col">Examples</th>
-                  <th scope="col">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-              </tbody>
-            </table>
-
+          <table id="model-out-table" data-toggle="table" data-search="false" data-pagination="true" data-page-size="10"
+            data-detail-view-icon="false" data-pagination-parts="['pageList', 'pageSize']"
+            data-classes="table table-hover">
+            <thead>
+              <tr>
+                <th scope="col">Dataset</th>
+                <th scope="col">Split</th>
+                <th scope="col">Source</th>
+                <th scope="col">Examples</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+            </tbody>
+          </table>
+          <div class="text-center mb-5">
+            <a type="button" class="btn btn-primary mt-5" data-bs-toggle="modal" data-bs-target="#uploadModal">Add
+              model
+              outputs</a>
           </div>
         </div>
       </div>

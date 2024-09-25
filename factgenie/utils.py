@@ -576,7 +576,7 @@ def download_dataset(app, dataset_id):
         data_download_dir=download_dir,
         out_download_dir=output_dir,
         splits=dataset_config["splits"],
-        outputs=dataset_config["outputs"],
+        outputs=dataset_config.get("outputs", []),
     )
 
     # add an entry in the dataset config
@@ -584,7 +584,7 @@ def download_dataset(app, dataset_id):
 
     config["datasets"][dataset_id] = {
         "class": dataset_config["class"],
-        "description": dataset_config["description"],
+        "description": dataset_config.get("description", ""),
         "splits": dataset_config["splits"],
         "enabled": True,
     }
