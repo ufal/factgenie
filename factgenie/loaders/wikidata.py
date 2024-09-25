@@ -2,7 +2,7 @@
 import logging
 
 logger = logging.getLogger(__name__)
-from factgenie.loaders.base import JSONDataset
+from factgenie.loaders.basic import JSONDataset
 from factgenie.loaders.quintd import QuintdDataset
 from tinyhtml import h
 

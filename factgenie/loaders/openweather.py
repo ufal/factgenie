@@ -4,7 +4,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 import json
-from factgenie.loaders.base import JSONDataset
+from factgenie.loaders.basic import JSONDataset
 from factgenie.loaders.quintd import QuintdDataset
 import dateutil.parser
 from datetime import datetime

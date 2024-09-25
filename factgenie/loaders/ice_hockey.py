@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 from datetime import datetime
 from tinyhtml import h
-from factgenie.loaders.base import JSONDataset
+from factgenie.loaders.basic import JSONDataset
 from factgenie.loaders.quintd import QuintdDataset
 import json
 from pathlib import Path
