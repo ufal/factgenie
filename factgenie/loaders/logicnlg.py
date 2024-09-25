@@ -12,13 +12,14 @@ from tinyhtml import h
 
 class LogicNLG(HFDataset):
     @classmethod
-    def download(cls, dataset_id, data_download_dir, out_download_dir, splits, outputs):
+    def download(cls, dataset_id, data_download_dir, out_download_dir, splits, outputs, dataset_config, **kwargs):
         super().download(
             dataset_id=dataset_id,
             data_download_dir=data_download_dir,
             out_download_dir=out_download_dir,
             splits=splits,
             outputs=outputs,
+            dataset_config=dataset_config,
             hf_id="kasnerz/logicnlg",
         )
         # we support only the test split

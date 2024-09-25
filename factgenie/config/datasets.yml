@@ -1,13 +1,15 @@
 datasets:
   easy-vqa:
-    class: base.HTMLDataset
-    description: ''
+    class: basic.HTMLDataset
+    description: 'A toy visual question answering dataset. Provided as an example dataset loaded by the <code>base.HTMLDataset</code> class.'
+    data-link: https://owncloud.cesnet.cz/index.php/s/3JbbbAxSqX8PSNJ/download
+    source: https://github.com/vzhou842/easy-VQA
     splits:
     - test
-  logicnlg:
+  logicnlg-100:
     class: logicnlg.LogicNLG
     description: Sample of 100 examples from the  <a href="https://github.com/wenhuchen/LogicNLG">LogicNLG</a>
-      dataset.
+      dataset. Provided as an example dataset loaded from Huggingface, including post-processing with custom outputs.
     source: https://huggingface.co/datasets/kasnerz/logicnlg
     splits:
     - test
@@ -92,14 +94,14 @@ datasets:
     - mistral
     - zephyr
     - gpt-3.5
-  xsum:
-    class: base.PlainTextDataset
-    description: Sample of 100 examples from the <a href="https://github.com/EdinburghNLP/XSum">XSum</a>
-      dataset.
-    splits:
-    - test
   xsum-debug:
-    class: base.PlainTextDataset
-    description: ''
+    class: basic.PlainTextDataset
+    description: Sample of 5 examples from the <a href="https://github.com/EdinburghNLP/XSum">XSum</a>
+      dataset.
+    data-link: "https://owncloud.cesnet.cz/index.php/s/W3eYWbEfCyKqHEl/download"
+    outputs-link: "https://owncloud.cesnet.cz/index.php/s/fbQGSTaMohfhShs/download"
+    source: https://github.com/EdinburghNLP/XSum
     splits:
     - test
+    outputs:
+    - gold

@@ -22,7 +22,7 @@ class QuintdDataset(Dataset):
         return output
 
     @classmethod
-    def download(cls, dataset_id, data_download_dir, out_download_dir, splits, outputs, **kwargs):
+    def download(cls, dataset_id, data_download_dir, out_download_dir, splits, outputs, dataset_config, **kwargs):
         dataset_id = dataset_id.removeprefix("quintd1-")
 
         if dataset_id == "owid":

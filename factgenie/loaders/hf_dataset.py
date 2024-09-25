@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class HFDataset(Dataset):
     @classmethod
-    def download(cls, dataset_id, data_download_dir, out_download_dir, splits, outputs, **kwargs):
+    def download(cls, dataset_id, data_download_dir, out_download_dir, splits, outputs, dataset_config, **kwargs):
         hf_id = kwargs.get("hf_id", dataset_id)
         out_column = kwargs.get("out_column", None)
 

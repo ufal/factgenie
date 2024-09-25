@@ -577,6 +577,7 @@ def download_dataset(app, dataset_id):
         out_download_dir=output_dir,
         splits=dataset_config["splits"],
         outputs=dataset_config.get("outputs", []),
+        dataset_config=dataset_config
     )
 
     # add an entry in the dataset config
@@ -701,10 +702,10 @@ def instantiate_datasets():
 
 def upload_dataset(dataset_id, dataset_description, dataset_format, dataset_data):
     params = {
-        "text": {"suffix": "txt", "class": "base.PlainTextDataset", "type": "default"},
-        "jsonl": {"suffix": "jsonl", "class": "base.JSONLDataset", "type": "json"},
-        "csv": {"suffix": "csv", "class": "base.CSVDataset", "type": "table"},
-        "html": {"suffix": "zip", "class": "base.HTMLDataset", "type": "default"},
+        "text": {"suffix": "txt", "class": "basic.PlainTextDataset", "type": "default"},
+        "jsonl": {"suffix": "jsonl", "class": "basic.JSONLDataset", "type": "json"},
+        "csv": {"suffix": "csv", "class": "basic.CSVDataset", "type": "table"},
+        "html": {"suffix": "zip", "class": "basic.HTMLDataset", "type": "default"},
     }
     dataset_id = slugify(dataset_id)
     data_dir = f"factgenie/data/{dataset_id}"

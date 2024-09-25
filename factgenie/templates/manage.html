@@ -77,6 +77,9 @@
                   {% endfor %}
                 </td>
                 <td>
+                  {% if not dataset.outputs %}
+                  -
+                  {% endif %}
                   {% for output in dataset.outputs %}
                   <a class="badge bg-light text-dark">{{ output }}</a>
                   {% endfor %}
