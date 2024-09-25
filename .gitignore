@@ -1,6 +1,6 @@
 __pycache__/
 *.py[cod]
-# data
+data
 *.egg-info
 export/datasets
 tmp
