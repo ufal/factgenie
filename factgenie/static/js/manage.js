@@ -170,6 +170,39 @@ function uploadDataset() {
     });
 }
 
+
+function downloadDataset(datasetId) {
+    $(`#btn-download-${datasetId}`).hide();
+    // add a loading spinner
+    $(`#row-actions-${datasetId}`).append(`
+        <div class="spinner-border text-secondary" role="status" id="spinner-download-${datasetId}">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    `);
+
+    $.post({
+        url: `${url_prefix}/download_dataset`,
+        contentType: 'application/json', // Specify JSON content type
+        data: JSON.stringify({
+            datasetId: datasetId,
+        }),
+        success: function (response) {
+            console.log(response);
+
+            if (response.success !== true) {
+                alert(response.error);
+                $(`#spinner-download-${datasetId}`).remove();
+                $(`#btn-download-${datasetId}`).show();
+            } else {
+                // remove the spinner
+                $(`#spinner-download-${datasetId}`).remove();
+                $(`#check-downloaded-${datasetId}`).show();
+            }
+        }
+    });
+
+}
+
 function deleteDataset(datasetId) {
     // ask for confirmation
     if (!confirm(`Are you sure you want to delete the dataset ${datasetId}? All the data will be lost!`)) {
@@ -256,6 +289,11 @@ function setDatasetEnabled(name, enabled) {
             }
         }
     });
+}
+
+function detailFormatter(index, row) {
+    // uncover #desc-{{ loop.index }}
+    return $(`#desc-${index + 1}`).html();
 }
 
 

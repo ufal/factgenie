@@ -5,6 +5,8 @@ body {
 a {
     color: rgb(6, 6, 6);
     --bs-pagination-color: black;
+    --bs-pagination-active-bg: #0175ac;
+    --bs-pagination-active-border-color: #0175ac;
     text-decoration: none;
 }
 
@@ -914,5 +916,9 @@ a:hover {
 }
 
 .card-header-collapse {
+    cursor: pointer;
+}
+
+.table-datasets {
     cursor: pointer;
 }
