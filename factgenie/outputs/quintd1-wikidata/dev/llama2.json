@@ -39,7 +39,7 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nDuchy of Savoy\n---\n- capital: Turin\n- category for people born here: Naissance dans le duch\u00e9 de Savoie\n- category of associated people: Personnalit\u00e9 du duch\u00e9 de Savoie\n- described by source: Armenian Soviet Encyclopedia\n- instance of: state in the Holy Roman Empire\n- instance of: historical country\n- official language: French\n- official language: Latin\n- official language: Franco-Proven\u00e7al\n- topic's main category: Duchy of Savoy\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "in": "Based on the given data:\n```\nDuchy of Savoy\n---\n- capital: Turin\n- category for people born here: Naissance dans le duché de Savoie\n- category of associated people: Personnalité du duché de Savoie\n- described by source: Armenian Soviet Encyclopedia\n- instance of: state in the Holy Roman Empire\n- instance of: historical country\n- official language: French\n- official language: Latin\n- official language: Franco-Provençal\n- topic's main category: Duchy of Savoy\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
             "out": "The Duchy of Savoy was a historical state in the Alps, in what is now southeastern France and northwestern Italy. It was founded in 1003 and lasted until 1796, when it was annexed by France during the French Revolutionary Wars.",
             "tokens": {
                 "in": 187,
@@ -71,16 +71,16 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nPovilas \u0160ilas\n---\n- given name: Povilas\n- instance of: human\n- occupation: police officer\n- sex or gender: male\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Povilas \u0160ilas is a Lithuanian police officer who has been in the force for over 20 years. He is a male and has been working in the police department for a long time.",
+            "in": "Based on the given data:\n```\nPovilas Šilas\n---\n- given name: Povilas\n- instance of: human\n- occupation: police officer\n- sex or gender: male\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Povilas Šilas is a Lithuanian police officer who has been in the force for over 20 years. He is a male and has been working in the police department for a long time.",
             "tokens": {
                 "in": 111,
                 "out": 45
             }
         },
         {
-            "in": "Based on the given data:\n```\nAnzengruberst\u00fcberl des ehem. Gasthauses Anzengruberhof\n---\n- country: Austria\n- heritage designation: Denkmalgesch\u00fctztes Objekt\n- instance of: Gasthaus\n- located in the administrative territorial entity: Wolkersdorf im Weinviertel\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Anzengruberst\u00fcberl is a historic inn located in Wolkersdorf im Weinviertel, Austria. It was built in the 19th century and has been designated as a protected cultural heritage site.",
+            "in": "Based on the given data:\n```\nAnzengruberstüberl des ehem. Gasthauses Anzengruberhof\n---\n- country: Austria\n- heritage designation: Denkmalgeschütztes Objekt\n- instance of: Gasthaus\n- located in the administrative territorial entity: Wolkersdorf im Weinviertel\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Anzengruberstüberl is a historic inn located in Wolkersdorf im Weinviertel, Austria. It was built in the 19th century and has been designated as a protected cultural heritage site.",
             "tokens": {
                 "in": 140,
                 "out": 48
@@ -119,7 +119,7 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nVermont Republic\n---\n- capital: Windsor\n- capital: Windsor\n- category for people born here: Naissance dans la r\u00e9publique du Vermont\n- flag: flag of Vermont\n- instance of: proto-state\n- official language: English\n- participant of: American Revolutionary War\n- replaced by: Vermont\n- replaces: Province of New Hampshire\n- replaces: Province of New York\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "in": "Based on the given data:\n```\nVermont Republic\n---\n- capital: Windsor\n- capital: Windsor\n- category for people born here: Naissance dans la république du Vermont\n- flag: flag of Vermont\n- instance of: proto-state\n- official language: English\n- participant of: American Revolutionary War\n- replaced by: Vermont\n- replaces: Province of New Hampshire\n- replaces: Province of New York\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
             "out": "Vermont Republic was a short-lived proto-state that existed from 1777 to 1791 in the area that is now the U.S. state of Vermont. It was created during the American Revolutionary War as a result of the Treaty of Westminster, which recognized American independence and granted the United States control over the area that is now Vermont. The Vermont Republic was governed by a council of safety, which was made up of representatives from the towns in the area. The council of safety was responsible for making laws and governing the territory. The Vermont Republic was not recognized by any other country, and it was eventually replaced by the State of Vermont in 1791.",
             "tokens": {
                 "in": 169,
@@ -183,8 +183,8 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nForlagshuset Vigmostad & Bj\u00f8rke\n---\n- country: Norway\n- instance of: publisher\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Forlagshuset Vigmostad & Bj\u00f8rke is a Norwegian publisher of books, magazines, and newspapers.",
+            "in": "Based on the given data:\n```\nForlagshuset Vigmostad & Bjørke\n---\n- country: Norway\n- instance of: publisher\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Forlagshuset Vigmostad & Bjørke is a Norwegian publisher of books, magazines, and newspapers.",
             "tokens": {
                 "in": 102,
                 "out": 31
@@ -223,8 +223,8 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nThe Legend of Frenchie King\n---\n- cast member: Luis Induni\n- cast member: Michael J. Pollard\n- cast member: Micheline Presle\n- cast member: Riccardo Salvino\n- cast member: Emma Cohen\n- cast member: Val\u00e9ry Inkijinoff\n- cast member: Teresa Rabal\n- cast member: L\u00e9opoldo Franc\u00e8s\n- cast member: France Dougnac\n- composer: Francis Lai\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "The Legend of Frenchie King is a 1971 French drama film directed by Jean-Pierre Bastid and starring Luis Induni, Michael J. Pollard, Micheline Presle, Riccardo Salvino, Emma Cohen, Val\u00e9ry Inkijinoff, Teresa Rabal, and L\u00e9opoldo Franc\u00e8s. The film was written by France Dougnac and composed by Francis Lai.",
+            "in": "Based on the given data:\n```\nThe Legend of Frenchie King\n---\n- cast member: Luis Induni\n- cast member: Michael J. Pollard\n- cast member: Micheline Presle\n- cast member: Riccardo Salvino\n- cast member: Emma Cohen\n- cast member: Valéry Inkijinoff\n- cast member: Teresa Rabal\n- cast member: Léopoldo Francès\n- cast member: France Dougnac\n- composer: Francis Lai\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "The Legend of Frenchie King is a 1971 French drama film directed by Jean-Pierre Bastid and starring Luis Induni, Michael J. Pollard, Micheline Presle, Riccardo Salvino, Emma Cohen, Valéry Inkijinoff, Teresa Rabal, and Léopoldo Francès. The film was written by France Dougnac and composed by Francis Lai.",
             "tokens": {
                 "in": 178,
                 "out": 92
@@ -247,8 +247,8 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nRoter Tod\n---\n- cast member: Sesede Terziyan\n- cast member: Ulrike Folkerts\n- cast member: Andreas Hoppe\n- cast member: Petra Welteroth\n- cast member: Ana Kerezovic\n- cast member: Andreas Schmidt\n- commissioned by: S\u00fcdwestrundfunk\n- film editor: Olga Barthel\n- original language of film or TV show: German\n- production company: Maran Film GmbH\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Roter Tod is a German television series that was broadcast on the S\u00fcdwestrundfunk network from 1993 to 1996. The series was created by Olga Barthel and directed by Andreas Schmidt. It starred Sesede Terziyan, Ulrike Folkerts, Andreas Hoppe, Petra Welteroth, Ana Kerezovic, and Andreas Schmidt. The series was commissioned by S\u00fcdwestrundfunk and produced by Maran Film GmbH.",
+            "in": "Based on the given data:\n```\nRoter Tod\n---\n- cast member: Sesede Terziyan\n- cast member: Ulrike Folkerts\n- cast member: Andreas Hoppe\n- cast member: Petra Welteroth\n- cast member: Ana Kerezovic\n- cast member: Andreas Schmidt\n- commissioned by: Südwestrundfunk\n- film editor: Olga Barthel\n- original language of film or TV show: German\n- production company: Maran Film GmbH\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Roter Tod is a German television series that was broadcast on the Südwestrundfunk network from 1993 to 1996. The series was created by Olga Barthel and directed by Andreas Schmidt. It starred Sesede Terziyan, Ulrike Folkerts, Andreas Hoppe, Petra Welteroth, Ana Kerezovic, and Andreas Schmidt. The series was commissioned by Südwestrundfunk and produced by Maran Film GmbH.",
             "tokens": {
                 "in": 177,
                 "out": 105
@@ -287,8 +287,8 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nFirst Brazilian Republic\n---\n- anthem: Brazilian National Anthem\n- basic form of government: republic\n- capital: S\u00e3o Carlos\n- capital: Rio de Janeiro\n- instance of: historical country\n- topic's main category: Rep\u00fablica Velha\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Brazilian Republic was a historical country that existed from 1889 to 1930. It was a republican form of government that was established after the abolition of the monarchy in Brazil. The country's capital was S\u00e3o Carlos, and its capital was Rio de Janeiro. The Brazilian National Anthem was the official anthem of the country.",
+            "in": "Based on the given data:\n```\nFirst Brazilian Republic\n---\n- anthem: Brazilian National Anthem\n- basic form of government: republic\n- capital: São Carlos\n- capital: Rio de Janeiro\n- instance of: historical country\n- topic's main category: República Velha\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Brazilian Republic was a historical country that existed from 1889 to 1930. It was a republican form of government that was established after the abolition of the monarchy in Brazil. The country's capital was São Carlos, and its capital was Rio de Janeiro. The Brazilian National Anthem was the official anthem of the country.",
             "tokens": {
                 "in": 129,
                 "out": 77
@@ -303,16 +303,16 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nUncle Br\u00e4sig\n---\n- cast member: Heinrich Schroth\n- cast member: Kristina S\u00f6derbaum\n- cast member: Elga Brink\n- cast member: Robert Leffler\n- cast member: Hans Richter\n- cast member: Paul Westermeier\n- cast member: Otto Wernicke\n- director: Erich Waschneck\n- distributed by: Universum Film AG\n- producer: Erich Waschneck\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Uncle Br\u00e4sig is a 1936 German comedy film directed by Erich Waschneck and produced by Erich Waschneck. The film stars Heinrich Schroth, Kristina S\u00f6derbaum, Elga Brink, Robert Leffler, Hans Richter, Paul Westermeier, and Otto Wernicke. The film was distributed by Universum Film AG.",
+            "in": "Based on the given data:\n```\nUncle Bräsig\n---\n- cast member: Heinrich Schroth\n- cast member: Kristina Söderbaum\n- cast member: Elga Brink\n- cast member: Robert Leffler\n- cast member: Hans Richter\n- cast member: Paul Westermeier\n- cast member: Otto Wernicke\n- director: Erich Waschneck\n- distributed by: Universum Film AG\n- producer: Erich Waschneck\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Uncle Bräsig is a 1936 German comedy film directed by Erich Waschneck and produced by Erich Waschneck. The film stars Heinrich Schroth, Kristina Söderbaum, Elga Brink, Robert Leffler, Hans Richter, Paul Westermeier, and Otto Wernicke. The film was distributed by Universum Film AG.",
             "tokens": {
                 "in": 174,
                 "out": 83
             }
         },
         {
-            "in": "Based on the given data:\n```\nMemet Varol\n---\n- educated at: F\u0131rat University\n- employer: Malatya Turgut \u00d6zal University\n- instance of: human\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Memet Varol is a Turkish academic and politician who is currently a professor of political science at Malatya Turgut \u00d6zal University. He is also the mayor of the city of Malatya, Turkey.",
+            "in": "Based on the given data:\n```\nMemet Varol\n---\n- educated at: Fırat University\n- employer: Malatya Turgut Özal University\n- instance of: human\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Memet Varol is a Turkish academic and politician who is currently a professor of political science at Malatya Turgut Özal University. He is also the mayor of the city of Malatya, Turkey.",
             "tokens": {
                 "in": 110,
                 "out": 46
@@ -352,7 +352,7 @@
         },
         {
             "in": "Based on the given data:\n```\nIreland\n---\n- contains administrative territorial entity: County Limerick\n- contains administrative territorial entity: County Meath\n- contains administrative territorial entity: County Kerry\n- described by source: Small Brockhaus and Efron Encyclopedic Dictionary\n- diplomatic relation: Holy See\n- instance of: sovereign state\n- language used: Irish Sign Language\n- located in time zone: 00\n- member of: European Union\n- member of: World Trade Organization\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Ireland (/ \u02c8\u026arl\u0259nd /) is a sovereign state in north-western Europe. Its capital and largest city is Dublin, which is located on the country's eastern coast. With a population of approximately 4.8 million, it is the second-most populous island of the British Isles, after Great Britain. It is separated from Great Britain to the east by the North Channel, the Irish Sea, and St George's Channel. Its area is about 84,421 square kilometres (32,649 square miles).",
+            "out": "Ireland (/ ˈɪrlənd /) is a sovereign state in north-western Europe. Its capital and largest city is Dublin, which is located on the country's eastern coast. With a population of approximately 4.8 million, it is the second-most populous island of the British Isles, after Great Britain. It is separated from Great Britain to the east by the North Channel, the Irish Sea, and St George's Channel. Its area is about 84,421 square kilometres (32,649 square miles).",
             "tokens": {
                 "in": 177,
                 "out": 120
@@ -367,16 +367,16 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nS\u00e5dan er s\u00f8skende - Jennis stores\u00f8ster\n---\n- Medier\u00e5det rating: Suitable for a general audience\n- country of origin: Denmark\n- director: Max Kestner\n- director of photography: Max Kestner\n- film editor: Per K. Kirkegaard\n- instance of: film\n- part of the series: S\u00e5dan er s\u00f8skende\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "S\u00e5dan er s\u00f8skende - Jennis stores\u00f8ster\" is a Danish film directed by Max Kestner and released in 2018. The film is rated suitable for a general audience and is part of the series \"S\u00e5dan er s\u00f8skende\". The director of photography is Per K. Kirkegaard and the film editor is Per K. Kirkegaard.",
+            "in": "Based on the given data:\n```\nSådan er søskende - Jennis storesøster\n---\n- Medierådet rating: Suitable for a general audience\n- country of origin: Denmark\n- director: Max Kestner\n- director of photography: Max Kestner\n- film editor: Per K. Kirkegaard\n- instance of: film\n- part of the series: Sådan er søskende\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Sådan er søskende - Jennis storesøster\" is a Danish film directed by Max Kestner and released in 2018. The film is rated suitable for a general audience and is part of the series \"Sådan er søskende\". The director of photography is Per K. Kirkegaard and the film editor is Per K. Kirkegaard.",
             "tokens": {
                 "in": 163,
                 "out": 86
             }
         },
         {
-            "in": "Based on the given data:\n```\nAi que Vida!\n---\n- color: color\n- country of origin: Brazil\n- director: C\u00edcero Filho\n- genre: comedy-drama\n- instance of: film\n- original language of film or TV show: Portuguese\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Ai que Vida! is a 2019 Brazilian comedy-drama film directed by C\u00edcero Filho. The film stars Marcos Caruso, Mariana Ximenes, and Marcos Caruso. It was released in Brazil on August 23, 2019.",
+            "in": "Based on the given data:\n```\nAi que Vida!\n---\n- color: color\n- country of origin: Brazil\n- director: Cícero Filho\n- genre: comedy-drama\n- instance of: film\n- original language of film or TV show: Portuguese\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Ai que Vida! is a 2019 Brazilian comedy-drama film directed by Cícero Filho. The film stars Marcos Caruso, Mariana Ximenes, and Marcos Caruso. It was released in Brazil on August 23, 2019.",
             "tokens": {
                 "in": 129,
                 "out": 67
@@ -391,15 +391,15 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nKinas kvinder b\u00e6rer den halve himmel\n---\n- country of origin: Denmark\n- genre: documentary film\n- instance of: film\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Kinas kvinder\" is a Danish documentary film that explores the lives of women in the Middle East. The film is directed by Lotte Buch and produced by Lotte Buch and S\u00f8ren Kragh-Jacobsen. It was released in 2016 and has been screened in several countries. The film is a powerful and thought-provoking look at the challenges faced by women in the Middle East, and it highlights the resilience and strength of these women in the face of adversity.",
+            "in": "Based on the given data:\n```\nKinas kvinder bærer den halve himmel\n---\n- country of origin: Denmark\n- genre: documentary film\n- instance of: film\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Kinas kvinder\" is a Danish documentary film that explores the lives of women in the Middle East. The film is directed by Lotte Buch and produced by Lotte Buch and Søren Kragh-Jacobsen. It was released in 2016 and has been screened in several countries. The film is a powerful and thought-provoking look at the challenges faced by women in the Middle East, and it highlights the resilience and strength of these women in the face of adversity.",
             "tokens": {
                 "in": 109,
                 "out": 112
             }
         },
         {
-            "in": "Based on the given data:\n```\nMalawi\n---\n- anthem: Mulungu dalitsa Mala\u0175i\n- culture: culture of Malawi\n- language used: Nyakyusa language\n- language used: nyika\n- lowest point: Shire River\n- member of: World Trade Organization\n- member of: International Centre for Settlement of Investment Disputes\n- member of: African Union\n- office held by head of government: President of Malawi\n- studied by: Malawian studies\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "in": "Based on the given data:\n```\nMalawi\n---\n- anthem: Mulungu dalitsa Malaŵi\n- culture: culture of Malawi\n- language used: Nyakyusa language\n- language used: nyika\n- lowest point: Shire River\n- member of: World Trade Organization\n- member of: International Centre for Settlement of Investment Disputes\n- member of: African Union\n- office held by head of government: President of Malawi\n- studied by: Malawian studies\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
             "out": "Malawi is a landlocked country in southeast Africa. It is bordered by Zimbabwe to the north, Tanzania to the northeast, and Mozambique to the east and south. The country has a population of approximately 18 million people and an area of 115,755 square kilometers. The official language is English, and the main ethnic groups are the Chewa, Nyanja, and Yao. The capital and largest city is Lilongwe, which is located in the central region of the country.",
             "tokens": {
                 "in": 186,
@@ -407,16 +407,16 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nRivi\u00e8re aux cerises\n---\n- country of origin: Canada\n- director: Chantal duPont\n- instance of: film\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Rivi\u00e8re aux cerises is a 1993 Canadian film directed by Chantal duPont.",
+            "in": "Based on the given data:\n```\nRivière aux cerises\n---\n- country of origin: Canada\n- director: Chantal duPont\n- instance of: film\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Rivière aux cerises is a 1993 Canadian film directed by Chantal duPont.",
             "tokens": {
                 "in": 104,
                 "out": 23
             }
         },
         {
-            "in": "Based on the given data:\n```\nTaurusMediaTechnik\n---\n- country: Germany\n- headquarters location: Unterf\u00f6hring\n- instance of: business\n- legal form: GmbH\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "TaurusMediaTechnik is a German company that specializes in media and technology solutions. The company is headquartered in Unterf\u00f6hring, Germany, and is a limited liability company (GmbH).",
+            "in": "Based on the given data:\n```\nTaurusMediaTechnik\n---\n- country: Germany\n- headquarters location: Unterföhring\n- instance of: business\n- legal form: GmbH\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "TaurusMediaTechnik is a German company that specializes in media and technology solutions. The company is headquartered in Unterföhring, Germany, and is a limited liability company (GmbH).",
             "tokens": {
                 "in": 110,
                 "out": 48
@@ -447,8 +447,8 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nSeerestaurant Belv\u00e9d\u00e8re\n---\n- award received: Michelin star\n- country: Switzerland\n- instance of: restaurant\n- located in the administrative territorial entity: Hergiswil\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Seerestaurant Belv\u00e9d\u00e8re is a Michelin-starred restaurant located in Hergiswil, Switzerland.",
+            "in": "Based on the given data:\n```\nSeerestaurant Belvédère\n---\n- award received: Michelin star\n- country: Switzerland\n- instance of: restaurant\n- located in the administrative territorial entity: Hergiswil\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Seerestaurant Belvédère is a Michelin-starred restaurant located in Hergiswil, Switzerland.",
             "tokens": {
                 "in": 117,
                 "out": 27
@@ -471,8 +471,8 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nQilakitsoq - De gr\u00f8nlandske mumier\n---\n- country of origin: Denmark\n- genre: documentary film\n- instance of: film\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Qilakitsoq - De gr\u00f8nlandske mumier\" is a documentary film from Denmark that explores the discovery of ancient mummies in Greenland. The film is a comprehensive account of the archaeological findings and the cultural significance of the mummies, providing a unique glimpse into the history and heritage of the region.",
+            "in": "Based on the given data:\n```\nQilakitsoq - De grønlandske mumier\n---\n- country of origin: Denmark\n- genre: documentary film\n- instance of: film\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Qilakitsoq - De grønlandske mumier\" is a documentary film from Denmark that explores the discovery of ancient mummies in Greenland. The film is a comprehensive account of the archaeological findings and the cultural significance of the mummies, providing a unique glimpse into the history and heritage of the region.",
             "tokens": {
                 "in": 113,
                 "out": 80
@@ -487,16 +487,16 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nNapol\u00e9on II l'Aiglon\n---\n- cast member: Jacques Fabbri\n- cast member: Liliane Patrick\n- cast member: Marianne Koch\n- cast member: Raymond G\u00e9r\u00f4me\n- cast member: Jean Marais\n- cast member: Sabine Sinjen\n- cast member: Jean-Marc Thibault\n- director: Claude Boissol\n- director of photography: Roger Fellous\n- original language of film or TV show: French\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Napol\u00e9on II l'Aiglon\" is a 1966 French television film directed by Claude Boissol and starring Jean Marais, Sabine Sinjen, and Raymond G\u00e9r\u00f4me. The film is based on the life of Napol\u00e9on II, the son of Napol\u00e9on Bonaparte and his first wife, Marie Louise of Austria. The cast also includes Jacques Fabbri, Liliane Patrick, and Marianne Koch. The film was shot in black and white and was directed by Roger Fellous.",
+            "in": "Based on the given data:\n```\nNapoléon II l'Aiglon\n---\n- cast member: Jacques Fabbri\n- cast member: Liliane Patrick\n- cast member: Marianne Koch\n- cast member: Raymond Gérôme\n- cast member: Jean Marais\n- cast member: Sabine Sinjen\n- cast member: Jean-Marc Thibault\n- director: Claude Boissol\n- director of photography: Roger Fellous\n- original language of film or TV show: French\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Napoléon II l'Aiglon\" is a 1966 French television film directed by Claude Boissol and starring Jean Marais, Sabine Sinjen, and Raymond Gérôme. The film is based on the life of Napoléon II, the son of Napoléon Bonaparte and his first wife, Marie Louise of Austria. The cast also includes Jacques Fabbri, Liliane Patrick, and Marianne Koch. The film was shot in black and white and was directed by Roger Fellous.",
             "tokens": {
                 "in": 179,
                 "out": 112
             }
         },
         {
-            "in": "Based on the given data:\n```\nFederico Orcajo Acu\u00f1a\n---\n- country of citizenship: Uruguay\n- given name: Federico\n- instance of: human\n- occupation: painter\n- occupation: writer\n- sex or gender: male\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Federico Orcajo Acu\u00f1a is a Uruguayan painter and writer.",
+            "in": "Based on the given data:\n```\nFederico Orcajo Acuña\n---\n- country of citizenship: Uruguay\n- given name: Federico\n- instance of: human\n- occupation: painter\n- occupation: writer\n- sex or gender: male\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Federico Orcajo Acuña is a Uruguayan painter and writer.",
             "tokens": {
                 "in": 123,
                 "out": 17
@@ -511,8 +511,8 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nNetherlands Antilles\n---\n- basic form of government: constitutional monarchy\n- category for people born here: Naissance aux Antilles n\u00e9erlandaises\n- category for people who died here: \u0423\u043c\u0435\u0440\u0448\u0438\u0435 \u043d\u0430 \u041d\u0438\u0434\u0435\u0440\u043b\u0430\u043d\u0434\u0441\u043a\u0438\u0445 \u0410\u043d\u0442\u0438\u043b\u044c\u0441\u043a\u0438\u0445 \u043e\u0441\u0442\u0440\u043e\u0432\u0430\u0445\n- coat of arms: Coat of arms of the Netherlands Antilles\n- contains administrative territorial entity: Sint Eustatius\n- instance of: historical country\n- instance of: country of the Kingdom of the Netherlands\n- located on terrain feature: Caribbean\n- official language: Papiamento\n- on focus list of Wikimedia project: Wiki goes Caribbean\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "The Netherlands Antilles was a constituent country of the Kingdom of the Netherlands that existed between 1954 and 2010. It was a group of eight Caribbean islands in the Leeward Antilles in the Lesser Antilles chain, located in the Caribbean Sea. The country was a federation of the islands of Aruba, Bonaire, Cura\u00e7ao, Saba, Sint Eustatius, Sint Maarten, and the islands of the former Dutch Guiana: the mainland territory of Suriname.",
+            "in": "Based on the given data:\n```\nNetherlands Antilles\n---\n- basic form of government: constitutional monarchy\n- category for people born here: Naissance aux Antilles néerlandaises\n- category for people who died here: Умершие на Нидерландских Антильских островах\n- coat of arms: Coat of arms of the Netherlands Antilles\n- contains administrative territorial entity: Sint Eustatius\n- instance of: historical country\n- instance of: country of the Kingdom of the Netherlands\n- located on terrain feature: Caribbean\n- official language: Papiamento\n- on focus list of Wikimedia project: Wiki goes Caribbean\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "The Netherlands Antilles was a constituent country of the Kingdom of the Netherlands that existed between 1954 and 2010. It was a group of eight Caribbean islands in the Leeward Antilles in the Lesser Antilles chain, located in the Caribbean Sea. The country was a federation of the islands of Aruba, Bonaire, Curaçao, Saba, Sint Eustatius, Sint Maarten, and the islands of the former Dutch Guiana: the mainland territory of Suriname.",
             "tokens": {
                 "in": 213,
                 "out": 118
@@ -567,8 +567,8 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nAutonomous Albanian Republic of Kor\u00e7\u00eb\n---\n- capital: Kor\u00e7\u00eb\n- instance of: republic\n- instance of: historical country\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "The Autonomous Albanian Republic of Kor\u00e7\u00eb was a short-lived Albanian state that existed from 1920 to 1921. It was established in the city of Kor\u00e7\u00eb, which is located in the south of Albania. The republic was established as a result of the Albanian War of Independence, which had been fought against the Ottoman Empire from 1912 to 1913. The republic was led by the Albanian National Council, which was a group of Albanian nationalists who had been fighting for independence from the Ottoman Empire. The republic was short-lived, as it was soon overrun by the Greek army in 1921.",
+            "in": "Based on the given data:\n```\nAutonomous Albanian Republic of Korçë\n---\n- capital: Korçë\n- instance of: republic\n- instance of: historical country\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "The Autonomous Albanian Republic of Korçë was a short-lived Albanian state that existed from 1920 to 1921. It was established in the city of Korçë, which is located in the south of Albania. The republic was established as a result of the Albanian War of Independence, which had been fought against the Ottoman Empire from 1912 to 1913. The republic was led by the Albanian National Council, which was a group of Albanian nationalists who had been fighting for independence from the Ottoman Empire. The republic was short-lived, as it was soon overrun by the Greek army in 1921.",
             "tokens": {
                 "in": 106,
                 "out": 152
@@ -591,8 +591,8 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nWhere No One Knows Us\n---\n- cast member: Rainer W\u00f6ss\n- cast member: Christine Ostermayer\n- cast member: Sonja Romei\n- country of origin: Austria\n- director of photography: Enzo Brandner\n- film editor: Julia Drack\n- instance of: film\n- producer: Veit Heiduschka\n- producer: Michael Katz\n- screenwriter: Arash T. Riahi\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Where No One Knows Us\" is a 2018 Austrian film directed by Enzo Brandner and produced by Veit Heiduschka and Michael Katz. The film stars Rainer W\u00f6ss, Christine Ostermayer, and Sonja Romei and was shot by director of photography Enzo Brandner. The film was edited by Julia Drack and written by Arash T. Riahi. The film is an Austrian production and was released in 2018.",
+            "in": "Based on the given data:\n```\nWhere No One Knows Us\n---\n- cast member: Rainer Wöss\n- cast member: Christine Ostermayer\n- cast member: Sonja Romei\n- country of origin: Austria\n- director of photography: Enzo Brandner\n- film editor: Julia Drack\n- instance of: film\n- producer: Veit Heiduschka\n- producer: Michael Katz\n- screenwriter: Arash T. Riahi\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Where No One Knows Us\" is a 2018 Austrian film directed by Enzo Brandner and produced by Veit Heiduschka and Michael Katz. The film stars Rainer Wöss, Christine Ostermayer, and Sonja Romei and was shot by director of photography Enzo Brandner. The film was edited by Julia Drack and written by Arash T. Riahi. The film is an Austrian production and was released in 2018.",
             "tokens": {
                 "in": 172,
                 "out": 107
@@ -623,8 +623,8 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nLockende Sterne\n---\n- FSK film rating: FSK 12\n- color: black-and-white\n- composer: Friedrich Schr\u00f6der\n- country of origin: Germany\n- director: Hans M\u00fcller\n- director of photography: Albert Benitz\n- genre: drama film\n- instance of: film\n- narrative location: Hamburg\n- original language of film or TV show: German\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Lockende Sterne is a 1931 German drama film directed by Hans M\u00fcller and starring Friedrich Schr\u00f6der. The film is set in Hamburg and features a black-and-white cinematography by Albert Benitz. It has a FSK rating of FSK 12 and is a film about a man's struggle to find meaning and purpose in his life.",
+            "in": "Based on the given data:\n```\nLockende Sterne\n---\n- FSK film rating: FSK 12\n- color: black-and-white\n- composer: Friedrich Schröder\n- country of origin: Germany\n- director: Hans Müller\n- director of photography: Albert Benitz\n- genre: drama film\n- instance of: film\n- narrative location: Hamburg\n- original language of film or TV show: German\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Lockende Sterne is a 1931 German drama film directed by Hans Müller and starring Friedrich Schröder. The film is set in Hamburg and features a black-and-white cinematography by Albert Benitz. It has a FSK rating of FSK 12 and is a film about a man's struggle to find meaning and purpose in his life.",
             "tokens": {
                 "in": 162,
                 "out": 79
@@ -639,8 +639,8 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nPork and Milk\n---\n- CNC film rating (France): no age restriction (U)\n- country of origin: France\n- director: Val\u00e9rie Mr\u00e9jen\n- director of photography: C\u00e9line Bozon\n- genre: documentary film\n- instance of: film\n- original language of film or TV show: Hebrew\n- screenwriter: Val\u00e9rie Mr\u00e9jen\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Pork and Milk\" is a 2018 French documentary film directed by Val\u00e9rie Mr\u00e9jen. The film has no age restriction and is suitable for all audiences. It was shot in France and is in Hebrew. The film's screenwriter is Val\u00e9rie Mr\u00e9jen.",
+            "in": "Based on the given data:\n```\nPork and Milk\n---\n- CNC film rating (France): no age restriction (U)\n- country of origin: France\n- director: Valérie Mréjen\n- director of photography: Céline Bozon\n- genre: documentary film\n- instance of: film\n- original language of film or TV show: Hebrew\n- screenwriter: Valérie Mréjen\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Pork and Milk\" is a 2018 French documentary film directed by Valérie Mréjen. The film has no age restriction and is suitable for all audiences. It was shot in France and is in Hebrew. The film's screenwriter is Valérie Mréjen.",
             "tokens": {
                 "in": 159,
                 "out": 65
@@ -655,8 +655,8 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nPetru T\u0103m\u0103ian\n---\n- country of citizenship: Romania\n- instance of: human\n- occupation: priest\n- participant of: Great National Assembly of Alba Iulia\n- sex or gender: male\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Petru T\u0103m\u0103ian was a Romanian priest and politician who participated in the Great National Assembly of Alba Iulia in 1918, which declared the independence of Romania from the Ottoman Empire.",
+            "in": "Based on the given data:\n```\nPetru Tămăian\n---\n- country of citizenship: Romania\n- instance of: human\n- occupation: priest\n- participant of: Great National Assembly of Alba Iulia\n- sex or gender: male\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Petru Tămăian was a Romanian priest and politician who participated in the Great National Assembly of Alba Iulia in 1918, which declared the independence of Romania from the Ottoman Empire.",
             "tokens": {
                 "in": 126,
                 "out": 48
@@ -671,8 +671,8 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nS\u00e9bastien Populaire\n---\n- country of citizenship: France\n- family name: Populaire\n- given name: S\u00e9bastien\n- instance of: human\n- occupation: engineer\n- occupation: politician\n- position held: conseiller municipal de Touillon-et-Loutelet\n- position held: Mayor of Touillon-et-Loutelet\n- sex or gender: male\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "S\u00e9bastien Populaire is a French engineer and politician who has served as the mayor of Touillon-et-Loutelet since 2008.",
+            "in": "Based on the given data:\n```\nSébastien Populaire\n---\n- country of citizenship: France\n- family name: Populaire\n- given name: Sébastien\n- instance of: human\n- occupation: engineer\n- occupation: politician\n- position held: conseiller municipal de Touillon-et-Loutelet\n- position held: Mayor of Touillon-et-Loutelet\n- sex or gender: male\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Sébastien Populaire is a French engineer and politician who has served as the mayor of Touillon-et-Loutelet since 2008.",
             "tokens": {
                 "in": 163,
                 "out": 36
@@ -687,15 +687,15 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nJan Franti\u0161ek \u0160tyvar\n---\n- given name: Jan\n- given name: Franti\u0161ek\n- instance of: human\n- manner of death: homicide\n- occupation: writer\n- occupation: parson\n- place of birth: P\u0159\u00edbor\n- place of death: Uhersk\u00fd Brod\n- sex or gender: male\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Jan Franti\u0161ek \u0160tyvar was a Czech writer and parson who was murdered in 1942.",
+            "in": "Based on the given data:\n```\nJan František Štyvar\n---\n- given name: Jan\n- given name: František\n- instance of: human\n- manner of death: homicide\n- occupation: writer\n- occupation: parson\n- place of birth: Příbor\n- place of death: Uherský Brod\n- sex or gender: male\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Jan František Štyvar was a Czech writer and parson who was murdered in 1942.",
             "tokens": {
                 "in": 154,
                 "out": 27
             }
         },
         {
-            "in": "Based on the given data:\n```\nFrancia\n---\n- capital: Aachen\n- capital: Tournai\n- described by source: Brockhaus and Efron Encyclopedic Dictionary\n- different from: Fransi\u00e4\n- follows: Germania Secunda\n- language used: Latin\n- official language: Frankish\n- official religion: Christianity\n- religion: Catholic Church\n- replaces: Germania Secunda\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "in": "Based on the given data:\n```\nFrancia\n---\n- capital: Aachen\n- capital: Tournai\n- described by source: Brockhaus and Efron Encyclopedic Dictionary\n- different from: Fransiä\n- follows: Germania Secunda\n- language used: Latin\n- official language: Frankish\n- official religion: Christianity\n- religion: Catholic Church\n- replaces: Germania Secunda\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
             "out": "Francia was a medieval kingdom that existed from the 4th to the 10th century AD. It was founded by the Franks, a Germanic tribe that had settled in the area of modern-day France, Belgium, and the Netherlands. Francia was initially a small territory, but it grew in size over time through conquest and alliances. The kingdom was ruled by a series of Frankish kings, including Clovis I, who converted to Christianity in 496 AD. Francia was later divided into three parts: Francia Media, Francia Aquitania, and Francia Orientalis, which were ruled by the Carolingian dynasty.",
             "tokens": {
                 "in": 157,
@@ -703,8 +703,8 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nD\u02bfmt\n---\n- basic form of government: monarchy\n- capital: Yeha\n- continent: Africa\n- instance of: kingdom\n- instance of: historical country\n- topic's main category: D\u02bfmt\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "D\u02bfmt was an ancient kingdom that existed in the present-day Ethiopian region of Yeha from around the 4th century BC to the 1st century AD. It was a powerful and influential kingdom that played a significant role in the history of the region.",
+            "in": "Based on the given data:\n```\nDʿmt\n---\n- basic form of government: monarchy\n- capital: Yeha\n- continent: Africa\n- instance of: kingdom\n- instance of: historical country\n- topic's main category: Dʿmt\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Dʿmt was an ancient kingdom that existed in the present-day Ethiopian region of Yeha from around the 4th century BC to the 1st century AD. It was a powerful and influential kingdom that played a significant role in the history of the region.",
             "tokens": {
                 "in": 123,
                 "out": 58
@@ -743,16 +743,16 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nUni\u00f3n A\u00e9rea Espa\u00f1ola\n---\n- country: Spain\n- instance of: transport company\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Uni\u00f3n A\u00e9rea Espa\u00f1ola is a Spanish airline that operates domestic and international flights. It was founded in 1929 and is headquartered in Madrid, Spain.",
+            "in": "Based on the given data:\n```\nUnión Aérea Española\n---\n- country: Spain\n- instance of: transport company\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Unión Aérea Española is a Spanish airline that operates domestic and international flights. It was founded in 1929 and is headquartered in Madrid, Spain.",
             "tokens": {
                 "in": 95,
                 "out": 42
             }
         },
         {
-            "in": "Based on the given data:\n```\nFonko\n---\n- director: G\u00f6ran Olsson\n- director: Lars Lov\u00e9n\n- director: Lamin Daniel Jadama\n- film editor: Lamin Daniel Jadama\n- film editor: Lars Lov\u00e9n\n- film editor: G\u00f6ran Olsson\n- genre: documentary film\n- instance of: film\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Fonko is a 2018 Swedish documentary film directed by G\u00f6ran Olsson, Lars Lov\u00e9n, and Lamin Daniel Jadama. The film was edited by Lamin Daniel Jadama and Lars Lov\u00e9n, and produced by G\u00f6ran Olsson. It is a documentary film that explores the life and work of the Swedish artist Lars Vilks.",
+            "in": "Based on the given data:\n```\nFonko\n---\n- director: Göran Olsson\n- director: Lars Lovén\n- director: Lamin Daniel Jadama\n- film editor: Lamin Daniel Jadama\n- film editor: Lars Lovén\n- film editor: Göran Olsson\n- genre: documentary film\n- instance of: film\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Fonko is a 2018 Swedish documentary film directed by Göran Olsson, Lars Lovén, and Lamin Daniel Jadama. The film was edited by Lamin Daniel Jadama and Lars Lovén, and produced by Göran Olsson. It is a documentary film that explores the life and work of the Swedish artist Lars Vilks.",
             "tokens": {
                 "in": 145,
                 "out": 78
@@ -783,8 +783,8 @@
             }
         },
         {
-            "in": "Based on the given data:\n```\nVincent Manago\n---\n- country of citizenship: France\n- educated at: Acad\u00e9mie Julian\n- family name: Manago\n- given name: Vincent\n- instance of: human\n- movement: Orientalism\n- occupation: painter\n- place of birth: Catania\n- place of death: Paris\n- sex or gender: male\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
-            "out": "Vincent Manago was a French painter who was educated at the Acad\u00e9mie Julian and was a member of the Orientalism movement. He was born in Catania, Italy, and died in Paris, France.",
+            "in": "Based on the given data:\n```\nVincent Manago\n---\n- country of citizenship: France\n- educated at: Académie Julian\n- family name: Manago\n- given name: Vincent\n- instance of: human\n- movement: Orientalism\n- occupation: painter\n- place of birth: Catania\n- place of death: Paris\n- sex or gender: male\n```\n\nYour task is to write a brief, fluent, and coherent single-paragraph entity description in natural language. The text should be balanced and neutral. Make sure that all the facts mentioned in the text can be derived from the input data, do *not* add any extra information.",
+            "out": "Vincent Manago was a French painter who was educated at the Académie Julian and was a member of the Orientalism movement. He was born in Catania, Italy, and died in Paris, France.",
             "tokens": {
                 "in": 149,
                 "out": 42
