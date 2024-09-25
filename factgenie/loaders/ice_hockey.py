@@ -6,11 +6,12 @@ logger = logging.getLogger(__name__)
 from datetime import datetime
 from tinyhtml import h
 from factgenie.loaders.base import JSONDataset
+from factgenie.loaders.quintd import QuintdDataset
 import json
 from pathlib import Path
 
 
-class IceHockey(JSONDataset):
+class IceHockey(QuintdDataset, JSONDataset):
     def postprocess_data(self, examples):
         # recursively remove any references to images: `logo` and `flag` keys
         def recursive_remove_key(data, key_to_remove):

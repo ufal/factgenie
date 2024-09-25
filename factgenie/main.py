@@ -169,7 +169,7 @@ def analyze_detail():
 
     campaign = utils.load_campaign(app, campaign_id=campaign_id, mode=source)
 
-    datasets = utils.get_dataset_overview(app)
+    datasets = utils.get_local_dataset_overview(app)
     statistics = analysis.compute_statistics(app, campaign, datasets)
 
     return render_template(
@@ -229,7 +229,7 @@ def browse():
     else:
         display_example = None
 
-    datasets = utils.get_dataset_overview(app)
+    datasets = utils.get_local_dataset_overview(app)
     datasets = {k: v for k, v in datasets.items() if v["enabled"]}
 
     if not datasets:
@@ -339,7 +339,7 @@ def crowdsourcing_create():
 @app.route("/crowdsourcing/new", methods=["GET", "POST"])
 @login_required
 def crowdsourcing_new():
-    datasets = utils.get_dataset_overview(app)
+    datasets = utils.get_local_dataset_overview(app)
     datasets = {k: v for k, v in datasets.items() if v["enabled"]}
 
     model_outs = utils.get_model_outputs_overview(app, datasets, non_empty=True)
@@ -370,7 +370,7 @@ def compute_agreement():
     # flatten the campaigns
     campaigns = {k: v for source in campaign_index.values() for k, v in source.items()}
 
-    datasets = utils.get_dataset_overview(app)
+    datasets = utils.get_local_dataset_overview(app)
 
     try:
         results = analysis.compute_inter_annotator_agreement(
@@ -430,6 +430,21 @@ def delete_model_outputs():
 
     dataset = app.db["datasets_obj"][dataset_id]
     utils.delete_model_outputs(dataset, split, setup)
+
+    return utils.success()
+
+
+@app.route("/download_dataset", methods=["POST"])
+@login_required
+def download_dataset():
+    data = request.get_json()
+    dataset_id = data.get("datasetId")
+
+    try:
+        utils.download_dataset(app, dataset_id)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": f"Error while downloading dataset: {e}"})
 
     return utils.success()
 
@@ -633,7 +648,7 @@ def llm_campaign_new():
     if not mode:
         return "The `mode` argument was not specified", 404
 
-    datasets = utils.get_dataset_overview(app)
+    datasets = utils.get_local_dataset_overview(app)
     datasets = {k: v for k, v in datasets.items() if v["enabled"]}
 
     non_empty = True if mode == "llm_eval" else False
@@ -722,16 +737,23 @@ def llm_campaign_pause():
 @app.route("/manage", methods=["GET", "POST"])
 @login_required
 def manage():
-    datasets = utils.get_dataset_overview(app)
+    datasets = utils.get_local_dataset_overview(app)
     dataset_classes = list(utils.get_dataset_classes().keys())
 
     datasets_enabled = {k: v for k, v in datasets.items() if v["enabled"]}
     model_outputs = utils.get_model_outputs_overview(app, datasets_enabled)
 
+    datasets_for_download = utils.get_datasets_for_download(app)
+
+    # set as `downloaded` the datasets that are already downloaded
+    for dataset_id in datasets_for_download.keys():
+        datasets_for_download[dataset_id]["downloaded"] = dataset_id in datasets
+
     return render_template(
         "manage.html",
         datasets=datasets,
         dataset_classes=dataset_classes,
+        datasets_for_download=datasets_for_download,
         host_prefix=app.config["host_prefix"],
         model_outputs=model_outputs,
     )

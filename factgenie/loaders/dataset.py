@@ -78,6 +78,29 @@ class Dataset(ABC):
         """
         pass
 
+    @classmethod
+    @abstractmethod
+    def download(cls, dataset_id, data_download_dir, out_download_dir, splits, outputs, **kwargs):
+        """
+        Download the dataset from an external source.
+
+        Does not need to be implemented if the dataset is already present in the `data` directory.
+
+        Parameters
+        ----------
+        dataset_id : str
+            ID of the dataset.
+        data_download_dir : str
+            Path to the directory where the dataset should be downloaded.
+        out_download_dir : str
+            Path to the directory where the outputs should be downloaded.
+        splits : list
+            List of splits to download.
+        outputs : list
+            List of outputs to download.
+        """
+        pass
+
     # --------------------------------
     # end TODO
     # --------------------------------

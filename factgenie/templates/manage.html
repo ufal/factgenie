@@ -19,8 +19,6 @@
   <div class="container">
     <div class="mb-5">
       <a href="{{ host_prefix }}/" class="btn btn-outline-secondary mt-5">← Main page</a>
-      <a type="button" class="btn btn-primary mt-5" data-bs-toggle="modal" data-bs-target="#add-dataset-modal">Add
-        dataset</a>
       <a type="button" class="btn btn-primary mt-5" data-bs-toggle="modal" data-bs-target="#uploadModal">Add
         model
         outputs</a>
@@ -29,11 +27,16 @@
     <h3><img src="{{ host_prefix }}/static/img/manage.png" class="heading-img-inline">
       <b>Data management</b>
     </h3>
-    <ul class="nav nav-tabs nav-fill mt-4" id="pills-tab" role="tablist">
+    <ul class="nav nav-pills nav-fill mt-4" id="pills-tab" role="tablist">
       <li class="nav-item" role="presentation">
-        <a class="nav-link active" id="pills-datasets-tab" data-bs-toggle="pill" href="#pills-datasets" role="tab"
+        <a class="nav-link active" id="pills-datasets-tab" data-bs-toggle="pill" href="#pills-download" role="tab"
+          aria-controls="pills-download"><img src="{{ host_prefix }}/static/img/download.png" height="30px"
+            class="heading-img-inline">Datasets for download</a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a class="nav-link" id="pills-datasets-tab" data-bs-toggle="pill" href="#pills-datasets" role="tab"
           aria-controls="pills-datasets"><img src="{{ host_prefix }}/static/img/datasets.png" height="30px"
-            class="heading-img-inline">Datasets</a>
+            class="heading-img-inline">Local datasets</a>
       </li>
       <li class="nav-item" role="presentation">
         <a class="nav-link" id="pills-outputs-tab" data-bs-toggle="pill" href="#pills-outputs" role="tab"
@@ -42,111 +45,184 @@
       </li>
     </ul>
     <div class="tab-content" id="pills-tabContent">
-      <div class="tab-pane fade show active mt-3" id="pills-datasets" role="tabpanel"
-        aria-labelledby="pills-datasets-tab">
-        <table class="table table-hover">
-          <thead>
-            <tr>
-              <th scope="col" width="5%"></th>
-              <th scope="col" width="12%">Dataset</th>
-              <th scope="col" width="22%">Class</th>
-              <th scope="col" width="8%">Splits</th>
-              <th scope="col" width="8%">Examples</th>
-              <th scope="col" width="5%">Loaded</th>
-              <th scope="col" width="10%">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for dataset_id, dataset in datasets.items() %}
-            <tr>
-              <td><img src="{{ host_prefix }}/static/img/datatypes/{{ dataset.type }}.png" class="intro-img"></td>
-              <td>
-                {% if dataset.enabled %}
-                <a href="{{ host_prefix }}/browse?dataset={{ dataset_id }}&split={{ dataset.splits[0] }}&example_idx=0"
-                  class="blue-link">
-                  {{ dataset_id
-                  }}</a>
-                {% else %}
-                <span class="text-muted"><i>{{ dataset_id }}</i></span>
-                {% endif %}
-              </td>
-              <td>{{ dataset.class }}</td>
-              <!-- <td class="underline-link">{{ dataset.description | safe }}</td> -->
-              <td>
-                {% for split in dataset.splits %}
-                <div class="sub-row"><a
-                    href="{{ host_prefix }}/browse?dataset={{ dataset_id }}&split={{ split }}&example_idx=0">{{ split
-                    }}</a>
-                </div>
-                {% endfor %}
-              </td>
-              <td>
-                {% for split in dataset.splits %}
-                {{ dataset.example_count[split] }}<br>
-                {% endfor %}
-              </td>
-              <td>
-                <div class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault" {% if dataset.enabled %}
-                    checked {% endif %} onclick="setDatasetEnabled('{{ dataset_id }}', this.checked)">
-                </div>
-              </td>
-              <td>
-                <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
-                  data-bs-target="#dataset-info-modal-{{ dataset_id }}">
-                  <i class="fa fa-info-circle"></i>
-                </a>
-                <a href="{{ host_prefix }}/export_dataset?dataset_id={{ dataset_id }}" class="btn btn-outline-secondary"
-                  data-bs-toggle="tooltip" title="Download the dataset">
-                  <i class="fa fa-download"></i>
-                </a>
-                <a onclick="deleteDataset('{{ dataset_id }}')" class="btn btn-outline-danger" data-bs-toggle="tooltip"
-                  title="Delete the dataset">
-                  <i class="fa fa-trash"></i>
-                </a>
-              </td>
-            </tr>
-            {% include 'forms/dataset_info_modal.html' %}
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      <div class="tab-pane fade show" id="pills-outputs" role="tabpanel" aria-labelledby="pills-outputs-tab">
-        <div class="mt-5">
-          <div class="row g-3 mb-3 mt-3 align-items-center">
-            <div class="col-auto">
-              <span style="margin-left: 5px;">Dataset</span>
-            </div>
-            <div class="col-auto">
-              <select id="dataset-select-overview" class="form-select form-select-sm"
-                style="display: inline-block; margin-right: 10px; max-width: 250px;">
-                {% for name, dataset in datasets.items() %}
-                <option value="{{ name }}">{{ name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-          </div>
-
-          <table class="table table-hover" id="model-out-table">
+      <div class="tab-content" id="pills-tabContent">
+        <div class="tab-pane fade mt-3 mb-5 show active" id="pills-download" role="tabpanel"
+          aria-labelledby="pills-download-tab">
+          <table id="table-download" data-toggle="table" data-search="true" data-pagination="true" data-page-size="10"
+            data-detail-view-icon="false" data-search-align="left" data-detail-view="true"
+            data-detail-formatter="detailFormatter" data-detail-view-by-click="true" data-show-search-button="true"
+            data-pagination-parts="['pageList', 'pageSize']" data-classes="table table-hover table-datasets">
             <thead>
               <tr>
-                <th scope="col">Dataset</th>
-                <th scope="col">Split</th>
+                <th data-sortable="true" scope="col">Dataset</th>
+                <th scope="col">Splits</th>
+                <th scope="col">Outputs</th>
                 <th scope="col">Source</th>
-                <th scope="col">Examples</th>
-                <th scope="col">Actions</th>
+                <th scope="col">Download</th>
               </tr>
             </thead>
             <tbody>
+              {% for dataset_id, dataset in datasets_for_download.items() %}
+              <tr>
+                <!-- <td><img src="{{ host_prefix }}/static/img/datatypes/{{ dataset.type }}.png" class="intro-img"></td> -->
+                <td>
+                  {{ dataset_id }}
+                </td>
+                <!-- <td class="underline-link">{{ dataset.description | safe }}</td> -->
+                <td>
+                  {% for split in dataset.splits %}
+                  <a class="badge bg-secondary">{{ split }}</a>
+                  {% endfor %}
+                </td>
+                <td>
+                  {% for output in dataset.outputs %}
+                  <a class="badge bg-light text-dark">{{ output }}</a>
+                  {% endfor %}
+                </td>
+                <td>
+                  {% if dataset.source %}
+                  <a href="{{ dataset.source }}" class="blue-link" target="_blank">link</a>
+                  {% else %}
+                  <i>-</i>
+                  {% endif %}
+                </td>
+                <td id="row-actions-{{ dataset_id }}">
+                  <a onclick="downloadDataset('{{ dataset_id }}')" class="btn btn-outline-secondary"
+                    id="btn-download-{{ dataset_id }}" data-bs-toggle="tooltip" title="Download the dataset" {% if
+                    dataset.downloaded %}style="display: none;" {% endif %}>
+                    <i class="fa fa-cloud-download"></i>
+                  </a>
+                  <i class="fa fa-check"
+                    style="margin: 10px 12px 10px 12px; {% if not dataset.downloaded %}display: none;{% endif %}"
+                    id="check-downloaded-{{ dataset_id }}"></i>
+                </td>
+                <span style="display: none;" id="desc-{{ loop.index }}">
+                  <div class="blue-link">
+                    {% if dataset.description %}
+                    {{ dataset.description|safe }}
+                    {% else %}
+                    <i>No description</i>
+                    {% endif %}
+                  </div>
+                </span>
+              </tr>
+              {% endfor %}
             </tbody>
           </table>
+        </div>
+        <div class="tab-pane fade mt-3" id="pills-datasets" role="tabpanel" aria-labelledby="pills-datasets-tab">
+          <table id="table-local" data-toggle="table" data-search="false" data-pagination="true" data-page-size="10"
+            data-detail-view-icon="false" data-search-align="left" data-detail-view="true"
+            data-detail-formatter="detailFormatter" data-detail-view-by-click="true" data-show-search-button="true"
+            data-pagination-parts="['pageList', 'pageSize']" data-classes="table table-hover table-datasets">
+            <thead>
+              <tr>
+                <th scope="col" width="5%">Loaded</th>
+                <th scope="col" width="12%">Dataset</th>
+                <th scope="col" width="22%">Class</th>
+                <th scope="col" width="8%">Splits</th>
+                <th scope="col" width="8%">Examples</th>
+                <th scope="col" width="10%">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for dataset_id, dataset in datasets.items() %}
+              <tr>
+                <td>
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault" {% if dataset.enabled %}
+                      checked {% endif %} onclick="setDatasetEnabled('{{ dataset_id }}', this.checked)">
+                  </div>
+                </td>
+                <td>
+                  {% if dataset.enabled %}
+                  <a href="{{ host_prefix }}/browse?dataset={{ dataset_id }}&split={{ dataset.splits[0] }}&example_idx=0"
+                    class="blue-link">
+                    {{ dataset_id
+                    }}</a>
+                  {% else %}
+                  <span class="text-muted"><i>{{ dataset_id }}</i></span>
+                  {% endif %}
+                </td>
+                <td>{{ dataset.class }}</td>
+                <!-- <td class="underline-link">{{ dataset.description | safe }}</td> -->
+                <td>
+                  {% for split in dataset.splits %}
+                  <a class="badge bg-secondary"
+                    href="{{ host_prefix }}/browse?dataset={{ dataset_id }}&split={{ split }}&example_idx=0">{{ split
+                    }}</a>
+                  {% endfor %}
+                </td>
+                <td>
+                  {% for split in dataset.splits %}
+                  {{ dataset.example_count[split] }}{% if not loop.last %} /{% endif %}
+                  {% endfor %}
+                </td>
+                <td>
+                  <a href="{{ host_prefix }}/export_dataset?dataset_id={{ dataset_id }}"
+                    class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Download the dataset">
+                    <i class="fa fa-download"></i>
+                  </a>
+                  <a onclick="deleteDataset('{{ dataset_id }}')" class="btn btn-outline-danger" data-bs-toggle="tooltip"
+                    title="Delete the dataset">
+                    <i class="fa fa-trash"></i>
+                  </a>
+                </td>
+                <span style="display: none;" id="desc-{{ loop.index }}">
+                  <div class="blue-link">
+                    {% if dataset.description %}
+                    {{ dataset.description|safe }}
+                    {% else %}
+                    <i>No description</i>
+                    {% endif %}
+                  </div>
+                </span>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <div class="text-center">
+            <a type="button" class="btn btn-primary mt-2 mb-4" data-bs-toggle="modal"
+              data-bs-target="#add-dataset-modal">Add
+              dataset</a>
+          </div>
+        </div>
+        <div class="tab-pane fade show" id="pills-outputs" role="tabpanel" aria-labelledby="pills-outputs-tab">
+          <div class="mt-5">
+            <div class="row g-3 mb-3 mt-3 align-items-center">
+              <div class="col-auto">
+                <span style="margin-left: 5px;">Dataset</span>
+              </div>
+              <div class="col-auto">
+                <select id="dataset-select-overview" class="form-select form-select-sm"
+                  style="display: inline-block; margin-right: 10px; max-width: 250px;">
+                  {% for name, dataset in datasets.items() %}
+                  <option value="{{ name }}">{{ name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
 
+            <table class="table table-hover" id="model-out-table">
+              <thead>
+                <tr>
+                  <th scope="col">Dataset</th>
+                  <th scope="col">Split</th>
+                  <th scope="col">Source</th>
+                  <th scope="col">Examples</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+
+          </div>
         </div>
       </div>
-    </div>
 
-    {% include 'forms/add_dataset_modal.html' %}
-    {% include 'forms/add_model_output_modal.html' %}
+      {% include 'forms/add_dataset_modal.html' %}
+      {% include 'forms/add_model_output_modal.html' %}
 </body>
 <script>
   // variable to be used in factgenie.js

@@ -5,11 +5,12 @@ logger = logging.getLogger(__name__)
 
 import dateutil.parser
 from factgenie.loaders.dataset import Dataset
+from factgenie.loaders.quintd import QuintdDataset
 from pathlib import Path
 import json
 
 
-class OurWorldInData(Dataset):
+class OurWorldInData(QuintdDataset, Dataset):
     def load_examples(self, split, data_path):
         examples = []
         split_dir = Path(f"{data_path}/{split}")

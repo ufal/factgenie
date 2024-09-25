@@ -480,6 +480,13 @@ def generate_campaign_db(app, campaign_data, config):
     return df
 
 
+def load_dataset_download_config():
+    with open(DATASET_CONFIG_PATH) as f:
+        config = yaml.safe_load(f)
+
+    return config
+
+
 def load_dataset_local_config():
     if not DATASET_LOCAL_CONFIG_PATH.exists():
         with open(DATASET_LOCAL_CONFIG_PATH, "w") as f:
@@ -509,7 +516,7 @@ def set_dataset_enabled(app, dataset_id, enabled):
     save_dataset_local_config(config)
 
 
-def get_dataset_overview(app):
+def get_local_dataset_overview(app):
     config = load_dataset_local_config()
     overview = {}
 
@@ -540,6 +547,54 @@ def get_dataset_overview(app):
         }
 
     return overview
+
+
+def get_datasets_for_download(app):
+    config = load_dataset_download_config()
+
+    return config["datasets"]
+
+
+def download_dataset(app, dataset_id):
+    config = load_dataset_download_config()
+    dataset_config = config["datasets"].get(dataset_id)
+
+    if dataset_config is None:
+        raise ValueError(f"Dataset {dataset_id} not found in the download config")
+
+    submodule, class_name = dataset_config["class"].split(".")
+
+    dataset_cls = get_dataset_class(submodule, class_name)
+    download_dir = DATA_DIR / dataset_id
+    output_dir = OUTPUT_DIR / dataset_id
+
+    os.makedirs(download_dir, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
+
+    dataset_cls.download(
+        dataset_id=dataset_id,
+        data_download_dir=download_dir,
+        out_download_dir=output_dir,
+        splits=dataset_config["splits"],
+        outputs=dataset_config["outputs"],
+    )
+
+    # add an entry in the dataset config
+    config = load_dataset_local_config()
+
+    config["datasets"][dataset_id] = {
+        "class": dataset_config["class"],
+        "description": dataset_config["description"],
+        "splits": dataset_config["splits"],
+        "enabled": True,
+    }
+
+    dataset = instantiate_dataset(dataset_id, config["datasets"][dataset_id])
+    app.db["datasets_obj"][dataset_id] = dataset
+
+    save_dataset_local_config(config)
+
+    return dataset
 
 
 def get_dataset_classes():
@@ -612,13 +667,19 @@ def export_outputs(app, dataset_id, split, setup_id):
     return response
 
 
-def instantiate_dataset(dataset_id, dataset_config):
-    submodule, class_name = dataset_config["class"].split(".")
-
+def get_dataset_class(submodule, class_name):
     # Dynamically import the class
     module = importlib.import_module("factgenie.loaders")
     submodule = getattr(module, submodule)
     dataset_class = getattr(submodule, class_name)
+
+    return dataset_class
+
+
+def instantiate_dataset(dataset_id, dataset_config):
+    submodule, class_name = dataset_config["class"].split(".")
+
+    dataset_class = get_dataset_class(submodule, class_name)
 
     return dataset_class(dataset_id, **dataset_config)
 
