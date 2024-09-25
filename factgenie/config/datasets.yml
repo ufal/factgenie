@@ -8,8 +8,11 @@ datasets:
     class: logicnlg.LogicNLG
     description: Sample of 100 examples from the  <a href="https://github.com/wenhuchen/LogicNLG">LogicNLG</a>
       dataset.
+    source: https://huggingface.co/datasets/kasnerz/logicnlg
     splits:
     - test
+    outputs:
+    - gpt4-direct-2shotcot
   quintd1-gsmarena:
     class: gsmarena.GSMArena
     description: <p>The <code>gsmarena</code> subset of the <a href="https://github.com/kasnerz/quintd/">quintd-1

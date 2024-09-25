@@ -2,35 +2,48 @@
 import ast
 import json
 import logging
-from datasets import load_dataset
+import os
+import requests
 
 logger = logging.getLogger(__name__)
-from factgenie.loaders.dataset import Dataset
-from factgenie import OUTPUT_DIR
-
+from factgenie.loaders.hf_dataset import HFDataset
 from tinyhtml import h
-from collections import defaultdict
-from pathlib import Path
-from slugify import slugify
 
 
-class LogicNLG(Dataset):
-    def load_examples(self, split, data_path):
-        # loading only 100 examples for the sample
-        hf_dataset = load_dataset("kasnerz/logicnlg", split=split)
+class LogicNLG(HFDataset):
+    @classmethod
+    def download(cls, dataset_id, data_download_dir, out_download_dir, splits, outputs):
+        super().download(
+            dataset_id=dataset_id,
+            data_download_dir=data_download_dir,
+            out_download_dir=out_download_dir,
+            splits=splits,
+            outputs=outputs,
+            hf_id="kasnerz/logicnlg",
+        )
+        # we support only the test split
+        split = "test"
 
-        # we support only test split
-        if split != "test":
-            return []
+        # our custom outputs for a subset of tables
+        output_url = "https://owncloud.cesnet.cz/index.php/s/8SFNAjr1g3AbUcm/download"
 
-        # just use the first json and assume the rest use the same tables
-        needed_table_ids = OUTPUT_DIR / "logicnlg" / "test" / "GPT4-direct-2shotCoT.json"
-        with open(needed_table_ids) as f:
-            needed_table_ids = json.load(f)
+        out_path = out_download_dir / split
+        os.makedirs(out_path, exist_ok=True)
+        out_file = out_path / "GPT4-direct-2shotCoT.json"
 
-        table_ids = [out["table_id"] for out in needed_table_ids["generated"]]
+        logger.info(f"Downloading {output_url} to {out_file}")
+        response = requests.get(output_url)
+        out_content = json.loads(response.content)
 
+        with open(out_file, "w") as f:
+            json.dump(out_content, f)
+
+        # filter the examples for our subset of tables
+        table_ids = [out["table_id"] for out in out_content["generated"]]
         tables = {}
+
+        with open(data_download_dir / split / "dataset.jsonl") as f:
+            hf_dataset = [json.loads(line) for line in f]
 
         for example in hf_dataset:
             table = ast.literal_eval(example["table"])
@@ -42,6 +55,15 @@ class LogicNLG(Dataset):
 
         examples = [tables[tid] for tid in table_ids]
 
+        # save the outputs we will be loading
+        with open(data_download_dir / split / "examples.json", "w") as f:
+            json.dump(examples, f)
+
+        return examples
+
+    def load_examples(self, split, data_path):
+        with open(data_path / split / "examples.json") as f:
+            examples = json.load(f)
         return examples
 
     def render(self, example):
