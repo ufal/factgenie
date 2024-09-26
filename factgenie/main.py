@@ -859,7 +859,7 @@ def upload_dataset():
     # Process each file in the dataset
 
     try:
-        utils.upload_dataset(dataset_id, dataset_description, dataset_format, dataset_data)
+        utils.upload_dataset(app, dataset_id, dataset_description, dataset_format, dataset_data)
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": f"Error while uploading dataset: {e}"})

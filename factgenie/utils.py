@@ -558,6 +558,11 @@ def get_local_dataset_overview(app):
 
         if is_enabled:
             dataset = app.db["datasets_obj"].get(dataset_id)
+
+            if dataset is None:
+                logger.warning(f"Dataset {dataset_id} is enabled but not loaded")
+                continue
+
             dataset.outputs = dataset.load_generated_outputs(dataset.output_path)
 
             example_count = {split: dataset.get_example_count(split) for split in dataset.get_splits()}
@@ -732,7 +737,15 @@ def upload_dataset(dataset_id, dataset_description, dataset_format, dataset_data
         # dataset_data is the file object
         for split, data in dataset_data.items():
             binary_file = BytesIO(bytes(data))
+
+            # check if there is at least one HTML file in the top-level directory
             with zipfile.ZipFile(binary_file, "r") as zip_ref:
+                for file in zip_ref.namelist():
+                    if file.endswith(".html") and "/" not in file:
+                        break
+                else:
+                    raise ValueError("No HTML files found in the zip archive")
+
                 zip_ref.extractall(f"{data_dir}/{split}")
 
     # add an entry in the dataset config

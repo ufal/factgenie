@@ -77,6 +77,8 @@ function uploadDataset() {
     const dataset = {};
     var filesToRead = $("#dataset-files").children().length;
 
+    $("#upload-dataset-btn").text("Uploading...").prop("disabled", true);
+
     // Function to send the POST request
     function sendRequest() {
         $.post({
@@ -93,6 +95,7 @@ function uploadDataset() {
 
                 if (response.success !== true) {
                     alert(response.error);
+                    $("#upload-dataset-btn").text("Upload dataset").prop("disabled", false);
                 } else {
                     // reload
                     location.reload();
