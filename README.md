@@ -5,6 +5,8 @@
 
 ![GitHub](https://img.shields.io/github/license/kasnerz/factgenie)
 ![GitHub issues](https://img.shields.io/github/issues/kasnerz/factgenie)
+[![arXiv](https://img.shields.io/badge/arXiv-2407.17863-0175ac.svg)](https://arxiv.org/abs/2407.17863)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 ![Github stars](https://img.shields.io/github/stars/kasnerz/factgenie?style=social)
 <!-- ![PyPI](https://img.shields.io/pypi/v/factgenie) -->
 <!-- ![PyPI downloads](https://img.shields.io/pypi/dm/factgenie) -->
