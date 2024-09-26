@@ -82,10 +82,19 @@ class Dataset(ABC):
         pass
 
     @classmethod
-    @abstractmethod
-    def download(cls, dataset_id, data_download_dir, out_download_dir, splits, outputs, dataset_config, **kwargs):
+    def download(
+        cls,
+        dataset_id,
+        data_download_dir,
+        out_download_dir,
+        annotation_download_dir,
+        splits,
+        outputs,
+        dataset_config,
+        **kwargs,
+    ):
         """
-        Download the dataset from an external source.
+        Download the dataset (along - optionally - with model outputs and annotations) from an external source.
 
         Does not need to be implemented if the dataset is already present in the `data` directory.
 
@@ -96,7 +105,9 @@ class Dataset(ABC):
         data_download_dir : str
             Path to the directory where the dataset should be downloaded.
         out_download_dir : str
-            Path to the directory where the outputs should be downloaded.
+            Path to the directory where the outputs should be downloaded (optional).
+        annotation_download_dir : str
+            Path to the directory where the annotations should be downloaded (optional).
         splits : list
             List of splits to download.
         outputs : list

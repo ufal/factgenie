@@ -167,6 +167,8 @@ def generate_campaign_index(app, force_reload=True):
                     campaign = LLMCampaignEval(campaign_id=campaign_id)
                 elif campaign_source == "llm_gen":
                     campaign = LLMCampaignGen(campaign_id=campaign_id)
+                elif campaign_source == "external":
+                    campaign = ExternalCampaign(campaign_id=campaign_id)
                 elif campaign_source == "hidden":
                     continue
                 else:

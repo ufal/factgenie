@@ -16,7 +16,17 @@ import json2table
 
 class BasicDataset(Dataset):
     @classmethod
-    def download(cls, dataset_id, data_download_dir, out_download_dir, splits, outputs, dataset_config, **kwargs):
+    def download(
+        cls,
+        dataset_id,
+        data_download_dir,
+        out_download_dir,
+        annotation_download_dir,
+        splits,
+        outputs,
+        dataset_config,
+        **kwargs,
+    ):
         # default implementation for downloading datasets and outputs using the `data-link` and `outputs-link` fields in the dataset config
         if dataset_config.get("data-link"):
             link = dataset_config["data-link"]
@@ -52,6 +62,22 @@ class BasicDataset(Dataset):
                 zip_ref.extractall(out_download_dir)
 
             os.remove(f"{out_download_dir}/{dataset_id}.zip")
+
+        if dataset_config.get("annotations-link"):
+            link = dataset_config["annotations-link"]
+            logger.info(f"Downloading annotations from {link}")
+            # download the annotations as a zip file and unpack it
+            response = requests.get(link)
+
+            with open(f"{annotation_download_dir}/{dataset_id}.zip", "wb") as f:
+                f.write(response.content)
+
+            logger.info(f"Downloaded {dataset_id} annotations")
+
+            with zipfile.ZipFile(f"{annotation_download_dir}/{dataset_id}.zip", "r") as zip_ref:
+                zip_ref.extractall(annotation_download_dir)
+
+            os.remove(f"{annotation_download_dir}/{dataset_id}.zip")
 
 
 class PlainTextDataset(BasicDataset):
