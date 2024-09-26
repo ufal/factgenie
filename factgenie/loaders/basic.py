@@ -6,12 +6,55 @@ logger = logging.getLogger(__name__)
 from factgenie.loaders.dataset import Dataset
 from pathlib import Path
 from natsort import natsorted
+import requests
+import zipfile
+import os
 import re
 import json
 import json2table
 
 
-class PlainTextDataset(Dataset):
+class BasicDataset(Dataset):
+    @classmethod
+    def download(cls, dataset_id, data_download_dir, out_download_dir, splits, outputs, dataset_config, **kwargs):
+        # default implementation for downloading datasets and outputs using the `data-link` and `outputs-link` fields in the dataset config
+        if dataset_config.get("data-link"):
+            link = dataset_config["data-link"]
+            logger.info(f"Downloading dataset from {link}")
+            # download the dataset as a zip file and unpack it
+            response = requests.get(link)
+
+            with open(f"{data_download_dir}/{dataset_id}.zip", "wb") as f:
+                f.write(response.content)
+
+            logger.info(f"Downloaded {dataset_id}")
+
+            with zipfile.ZipFile(f"{data_download_dir}/{dataset_id}.zip", "r") as zip_ref:
+                zip_ref.extractall(data_download_dir)
+
+            os.remove(f"{data_download_dir}/{dataset_id}.zip")
+        else:
+            raise NotImplementedError("Dataset download not implemented.")
+
+        # outputs are (unlike a dataset) optional
+        if dataset_config.get("outputs-link"):
+            link = dataset_config["outputs-link"]
+            logger.info(f"Downloading outputs from {link}")
+            # download the outputs as a zip file and unpack it
+            response = requests.get(link)
+
+            with open(f"{out_download_dir}/{dataset_id}.zip", "wb") as f:
+                f.write(response.content)
+
+            logger.info(f"Downloaded {dataset_id} outputs")
+
+            with zipfile.ZipFile(f"{out_download_dir}/{dataset_id}.zip", "r") as zip_ref:
+                zip_ref.extractall(out_download_dir)
+
+            os.remove(f"{out_download_dir}/{dataset_id}.zip")
+
+
+class PlainTextDataset(BasicDataset):
     def load_examples(self, split, data_path):
         examples = []
 
@@ -32,7 +75,7 @@ class PlainTextDataset(Dataset):
         return html
 
 
-class JSONDataset(Dataset):
+class JSONDataset(BasicDataset):
     def load_examples(self, split, data_path):
         examples = []
 
@@ -53,7 +96,7 @@ class JSONDataset(Dataset):
         return html
 
 
-class JSONLDataset(Dataset):
+class JSONLDataset(BasicDataset):
     def load_examples(self, split, data_path):
         examples = []
 
@@ -75,7 +118,7 @@ class JSONLDataset(Dataset):
         return html
 
 
-class CSVDataset(Dataset):
+class CSVDataset(BasicDataset):
     def load_examples(self, split, data_path):
         # load the corresponding CSV file
         # each example will be a key-value pair where the key is the column name and the value is the value in the row
@@ -107,7 +150,7 @@ class CSVDataset(Dataset):
         return html
 
 
-class HTMLDataset(Dataset):
+class HTMLDataset(BasicDataset):
     def load_examples(self, split, data_path):
         # load the HTML files in the directory, sorted by filename numerically
         examples = []

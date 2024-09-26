@@ -82,6 +82,7 @@ class Dataset(ABC):
         pass
 
     @classmethod
+    @abstractmethod
     def download(cls, dataset_id, data_download_dir, out_download_dir, splits, outputs, dataset_config, **kwargs):
         """
         Download the dataset from an external source.
@@ -101,44 +102,9 @@ class Dataset(ABC):
         outputs : list
             List of outputs to download.
         dataset_config : dict
-            Configuration for the dataset.
+            Dataset configuration.
         """
-
-        # default implementation for downloading datasets and outputs using the `data-link` and `outputs-link` fields in the dataset config
-        if dataset_config.get("data-link"):
-            link = dataset_config["data-link"]
-            logger.info(f"Downloading dataset from {link}")
-            # download the dataset as a zip file and unpack it
-            response = requests.get(link)
-
-            with open(f"{data_download_dir}/{dataset_id}.zip", "wb") as f:
-                f.write(response.content)
-
-            logger.info(f"Downloaded {dataset_id}")
-
-            with zipfile.ZipFile(f"{data_download_dir}/{dataset_id}.zip", "r") as zip_ref:
-                zip_ref.extractall(data_download_dir)
-
-            os.remove(f"{data_download_dir}/{dataset_id}.zip")
-        else:
-            raise NotImplementedError("Dataset download not implemented.")
-
-        # outputs are (unlike a dataset) optional
-        if dataset_config.get("outputs-link"):
-            link = dataset_config["outputs-link"]
-            logger.info(f"Downloading outputs from {link}")
-            # download the outputs as a zip file and unpack it
-            response = requests.get(link)
-
-            with open(f"{out_download_dir}/{dataset_id}.zip", "wb") as f:
-                f.write(response.content)
-
-            logger.info(f"Downloaded {dataset_id} outputs")
-
-            with zipfile.ZipFile(f"{out_download_dir}/{dataset_id}.zip", "r") as zip_ref:
-                zip_ref.extractall(out_download_dir)
-
-            os.remove(f"{out_download_dir}/{dataset_id}.zip")
+        pass
 
     # --------------------------------
     # end TODO
