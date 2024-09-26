@@ -195,8 +195,9 @@ function downloadDataset(datasetId) {
                 $(`#btn-download-${datasetId}`).show();
             } else {
                 // remove the spinner
-                $(`#spinner-download-${datasetId}`).remove();
-                $(`#check-downloaded-${datasetId}`).show();
+                // $(`#spinner-download-${datasetId}`).remove();
+                // $(`#check-downloaded-${datasetId}`).show();
+                location.reload();
             }
         }
     });

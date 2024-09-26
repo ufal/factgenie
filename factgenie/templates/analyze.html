@@ -44,7 +44,7 @@
           <table class="table table-hover">
             <thead>
               <tr>
-                <th scope="col">Id</th>
+                <th scope="col">Campaign</th>
                 <th scope="col">Created</th>
                 <th scope="col">Labels</th>
                 <th scope="col">Status</th>
@@ -54,7 +54,8 @@
             <tbody>
               {% for campaign_id, campaign in campaigns.items() %}
               <tr>
-                <td><a
+                <td><img src="{{ host_prefix }}/static/img/{{ campaign.metadata.source }}.png" style="max-width: 18px;"
+                    class="heading-img-inline"> <a
                     href="{{ host_prefix }}/analyze/detail?campaign={{ campaign.metadata.id }}&source={{ campaign.metadata.source }}"
                     class="blue-link">{{
                     campaign.metadata.id }}</a></td>
