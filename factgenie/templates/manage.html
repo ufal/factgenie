@@ -67,6 +67,7 @@
                 <th scope="col">Annotations</th>
                 <th scope="col">Source</th>
                 <th scope="col">Download</th>
+                <th scope="col" data-visible="false">Description</th>
               </tr>
             </thead>
             <tbody>
@@ -115,7 +116,7 @@
                     style="margin: 10px 12px 10px 12px; {% if not dataset.downloaded %}display: none;{% endif %}"
                     id="check-downloaded-{{ dataset_id }}"></i>
                 </td>
-                <span style="display: none;" id="desc-{{ loop.index }}">
+                <td class="dataset-description" style="display: none;">
                   <div class="blue-link">
                     {% if dataset.description %}
                     {{ dataset.description|safe }}
@@ -123,7 +124,7 @@
                     <i>No description</i>
                     {% endif %}
                   </div>
-                </span>
+                </td>
               </tr>
               {% endfor %}
             </tbody>
@@ -136,12 +137,13 @@
             data-pagination-parts="['pageList']" data-classes="table table-hover table-datasets">
             <thead>
               <tr>
-                <th scope="col" width="5%">Loaded</th>
-                <th scope="col" width="12%">Dataset</th>
-                <th scope="col" width="22%">Class</th>
-                <th scope="col" width="8%">Splits</th>
-                <th scope="col" width="8%">Examples</th>
-                <th scope="col" width="10%">Actions</th>
+                <th scope="col">Enabled</th>
+                <th scope="col">Dataset</th>
+                <th scope="col">Class</th>
+                <th scope="col">Splits</th>
+                <th scope="col">Examples</th>
+                <th scope="col">Actions</th>
+                <th scope="col" data-visible="false">Description</th>
               </tr>
             </thead>
             <tbody>
@@ -187,7 +189,7 @@
                     <i class="fa fa-trash"></i>
                   </a>
                 </td>
-                <span style="display: none;" id="desc-{{ loop.index }}">
+                <td class="dataset-description" style="display: none;">
                   <div class="blue-link">
                     {% if dataset.description %}
                     {{ dataset.description|safe }}
@@ -195,7 +197,7 @@
                     <i>No description</i>
                     {% endif %}
                   </div>
-                </span>
+                </td>
               </tr>
               {% endfor %}
             </tbody>

@@ -29,10 +29,6 @@ function addDatasetSplit() {
     datasetSplits.append(newSplit);
 }
 
-$("#dataset-select-overview").on("change", showModelOutputs);
-$("#dataset-select").on("change", updateSplits);
-
-
 function updateSplits() {
     const dataset = $('#dataset-select').val();
 
@@ -257,8 +253,10 @@ function setDatasetEnabled(name, enabled) {
 }
 
 function detailFormatter(index, row) {
-    // uncover #desc-{{ loop.index }}
-    return $(`#desc-${index + 1}`).html();
+    const keys = Object.keys(row).filter(key => key.match(/^\d+$/));
+    const key = keys[keys.length - 1];
+
+    return row[key];
 }
 
 

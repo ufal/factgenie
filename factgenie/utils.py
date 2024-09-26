@@ -716,7 +716,7 @@ def instantiate_datasets():
     return datasets
 
 
-def upload_dataset(dataset_id, dataset_description, dataset_format, dataset_data):
+def upload_dataset(app, dataset_id, dataset_description, dataset_format, dataset_data):
     params = {
         "text": {"suffix": "txt", "class": "basic.PlainTextDataset", "type": "default"},
         "jsonl": {"suffix": "jsonl", "class": "basic.JSONLDataset", "type": "json"},
@@ -753,11 +753,12 @@ def upload_dataset(dataset_id, dataset_description, dataset_format, dataset_data
     config[dataset_id] = {
         "class": params[dataset_format]["class"],
         "description": dataset_description,
-        "type": params[dataset_format]["type"],
         "splits": list(dataset_data.keys()),
-        "enabled": False,
+        "enabled": True,
     }
     save_dataset_local_config(config)
+
+    app.db["datasets_obj"][dataset_id] = instantiate_dataset(dataset_id, config[dataset_id])
 
 
 def upload_model_outputs(dataset, split, setup_id, model_outputs):
