@@ -8,8 +8,8 @@ datasets:
     - test
   logicnlg-100:
     class: logicnlg.LogicNLG
-    description: Sample of 100 examples from the  <a href="https://github.com/wenhuchen/LogicNLG">LogicNLG</a>
-      dataset. Provided as an example dataset loaded from Huggingface, including post-processing with custom outputs.
+    description: 'Sample of 100 examples from the  <a href="https://github.com/wenhuchen/LogicNLG">LogicNLG</a>
+      dataset. Provided as an example dataset loaded from Huggingface, including post-processing with custom outputs.'
     source: https://huggingface.co/datasets/kasnerz/logicnlg
     splits:
     - test
@@ -17,8 +17,7 @@ datasets:
     - gpt4-direct-2shotcot
   quintd1-gsmarena:
     class: gsmarena.GSMArena
-    description: <p>The <code>gsmarena</code> subset of the <a href="https://github.com/kasnerz/quintd/">quintd-1
-      dataset</a>. </p><p>Contains mobile phone specifications from GSMArena.com.</p>
+    description: '<p>The <code>gsmarena</code> subset of the <a href="https://github.com/kasnerz/quintd/">quintd-1 dataset</a>.  Contains mobile phone specifications from GSMArena.com.</p><p><i>Note: annotations and GPT-3.5 outputs are available only for the test set.</i></p>'
     source: https://github.com/kasnerz/quintd/tree/main/data/quintd-1
     splits:
     - dev
@@ -28,10 +27,12 @@ datasets:
     - mistral
     - zephyr
     - gpt-3.5
+    annotations:
+    - gpt-4
+    - human
   quintd1-ice_hockey:
     class: ice_hockey.IceHockey
-    description: <p>The <code>ice_hockey</code> subset of the <a href="https://github.com/kasnerz/quintd/">quintd-1
-      dataset</a>. </p><p>Contains ice hockey game summaries from <a href="https://rapidapi.com/fluis.lacasse/api/icehockeyapi">RapidAPI.com</a>.</p>
+    description: '<p>The <code>ice_hockey</code> subset of the <a href="https://github.com/kasnerz/quintd/">quintd-1 dataset</a>.  Contains ice hockey game summaries from <a href="https://rapidapi.com/fluis.lacasse/api/icehockeyapi">RapidAPI.com</a>.</p><p><i>Note: annotations and GPT-3.5 outputs are available only for the test set.</i></p>'
     splits:
     - dev
     - test
@@ -44,10 +45,12 @@ datasets:
     - mistral
     - zephyr
     - gpt-3.5
+    annotations:
+    - gpt-4
+    - human
   quintd1-openweather:
     class: openweather.OpenWeather
-    description: <p>The <code>openweather</code> subset of the <a href="https://github.com/kasnerz/quintd/">quintd-1
-      dataset</a>. </p><p>Contains weather forecasts from <a href="https://openweathermap.org/forecast5">OpenWeather</a>.</p>
+    description: '<p>The <code>openweather</code> subset of the <a href="https://github.com/kasnerz/quintd/">quintd-1 dataset</a>.  Contains weather forecasts from <a href="https://openweathermap.org/forecast5">OpenWeather</a>.</p><p><i>Note: annotations and GPT-3.5 outputs are available only for the test set.</i></p>'
     splits:
     - dev
     - test
@@ -60,11 +63,14 @@ datasets:
     - mistral
     - zephyr
     - gpt-3.5
+    annotations:
+    - gpt-4
+    - human
   quintd1-owid:
     class: owid.OurWorldInData
-    description: <p>The <code>owid</code> subset of the <a href="https://github.com/kasnerz/quintd/">quintd-1
-      dataset</a>. </p><p>Contains health-related time series from <a href="https://ourworldindata.org">Our
-      World in Data</a>.</p>
+    description: '<p>The <code>owid</code> subset of the <a href="https://github.com/kasnerz/quintd/">quintd-1
+      dataset</a>.  Contains health-related time series from <a href="https://ourworldindata.org">Our
+      World in Data</a>. <p><i>Note: annotations and GPT-3.5 outputs are available only for the test set.</i></p>'
     splits:
     - dev
     - test
@@ -77,11 +83,13 @@ datasets:
     - mistral
     - zephyr
     - gpt-3.5
+    annotations:
+    - gpt-4
+    - human
   quintd1-wikidata:
     class: wikidata.Wikidata
-    description: <p>The <code>wikidata</code> subset of the <a href="https://github.com/kasnerz/quintd/">quintd-1
-      dataset</a>. </p><p>Contains <a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">wikidata</a>
-      entities and their properties.</p>
+    description: '<p>The <code>wikidata</code> subset of the <a href="https://github.com/kasnerz/quintd/">quintd-1 dataset</a>.  Contains <a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">wikidata</a>
+      entities and their properties.</p><p><i>Note: annotations and GPT-3.5 outputs are available only for the test set.</i></p>'
     splits:
     - dev
     - test
@@ -94,10 +102,13 @@ datasets:
     - mistral
     - zephyr
     - gpt-3.5
+    annotations:
+    - gpt-4
+    - human
   xsum-debug:
     class: basic.PlainTextDataset
-    description: Sample of 5 examples from the <a href="https://github.com/EdinburghNLP/XSum">XSum</a>
-      dataset.
+    description: 'Sample of 5 examples from the <a href="https://github.com/EdinburghNLP/XSum">XSum</a>
+      dataset.'
     data-link: "https://owncloud.cesnet.cz/index.php/s/W3eYWbEfCyKqHEl/download"
     outputs-link: "https://owncloud.cesnet.cz/index.php/s/fbQGSTaMohfhShs/download"
     source: https://github.com/EdinburghNLP/XSum
