@@ -43,45 +43,6 @@ function updateSplits() {
     }
 }
 
-
-
-function showModelOutputs() {
-    // add a row to #model-out-table for each model output
-
-    const dataset = $('#dataset-select-overview').val();
-    const outputs = modelOutputs[dataset];
-    const table = $('#model-out-table tbody');
-    table.empty();
-
-    // we need to iterate of triple nested dict
-    for (const [split, setups] of Object.entries(outputs)) {
-        for (const [setup, outputs] of Object.entries(setups)) {
-            const examples = datasets[dataset].example_count[split];
-            const row = `<tr>
-                <td>${dataset}</td>
-                <td>${split}</td>
-                <td>${setup}</td>
-                <td>${examples}</td>
-                <td>
-                    <a href="${url_prefix}/browse?dataset=${dataset}&split=${split}&example_idx=0" class="btn btn-outline-secondary"
-                        data-bs-toggle="tooltip" title="Show the outputs">
-                        <i class="fa fa-eye"></i>
-                    </a>
-                    <a href="${url_prefix}/export_outputs?dataset=${dataset}&split=${split}&setup=${setup}" class="btn btn-outline-secondary"
-                    data-bs-toggle="tooltip" title="Export model outputs">
-                    <i class="fa fa-download"></i>
-                </a>
-                    <a onclick="deleteOutput('${dataset}', '${split}', '${setup}')" class="btn btn-outline-danger"
-                    data-bs-toggle="tooltip" title="Delete the output">
-                    <i class="fa fa-trash"></i>
-                    </a>
-                </td>
-            </tr>`;
-            table.append(row);
-        }
-    }
-}
-
 function deleteOutput(dataset, split, setup) {
     // ask for confirmation
     if (!confirm(`Are you sure you want to delete the output for ${setup}?`)) {

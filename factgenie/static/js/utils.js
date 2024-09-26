@@ -1,6 +1,3 @@
-const url_prefix = window.url_prefix;
-
-
 function deleteCampaign(campaignId, source) {
     // ask for confirmation
     if (!confirm(`Are you sure you want to delete the campaign ${campaignId}? All the data will be lost!`)) {
@@ -13,7 +10,6 @@ function deleteCampaign(campaignId, source) {
         data: JSON.stringify({
             campaignId: campaignId,
             source: source,
-            mode: window.mode
         }),
         success: function (response) {
             console.log(response);

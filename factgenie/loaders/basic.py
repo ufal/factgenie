@@ -13,6 +13,8 @@ import re
 import json
 import json2table
 
+from factgenie.utils import resumable_download
+
 
 class BasicDataset(Dataset):
     @classmethod
@@ -32,11 +34,7 @@ class BasicDataset(Dataset):
             link = dataset_config["data-link"]
             logger.info(f"Downloading dataset from {link}")
             # download the dataset as a zip file and unpack it
-            response = requests.get(link)
-
-            with open(f"{data_download_dir}/{dataset_id}.zip", "wb") as f:
-                f.write(response.content)
-
+            resumable_download(url=link, filename=f"{data_download_dir}/{dataset_id}.zip", force_download=True)
             logger.info(f"Downloaded {dataset_id}")
 
             with zipfile.ZipFile(f"{data_download_dir}/{dataset_id}.zip", "r") as zip_ref:
@@ -46,15 +44,12 @@ class BasicDataset(Dataset):
         else:
             raise NotImplementedError("Dataset download not implemented.")
 
-        # outputs are (unlike a dataset) optional
+        # optionally download outputs
         if dataset_config.get("outputs-link"):
             link = dataset_config["outputs-link"]
             logger.info(f"Downloading outputs from {link}")
             # download the outputs as a zip file and unpack it
-            response = requests.get(link)
-
-            with open(f"{out_download_dir}/{dataset_id}.zip", "wb") as f:
-                f.write(response.content)
+            resumable_download(url=link, filename=f"{out_download_dir}/{dataset_id}.zip", force_download=True)
 
             logger.info(f"Downloaded {dataset_id} outputs")
 
@@ -63,14 +58,12 @@ class BasicDataset(Dataset):
 
             os.remove(f"{out_download_dir}/{dataset_id}.zip")
 
+        # optionally download annotations
         if dataset_config.get("annotations-link"):
             link = dataset_config["annotations-link"]
             logger.info(f"Downloading annotations from {link}")
             # download the annotations as a zip file and unpack it
-            response = requests.get(link)
-
-            with open(f"{annotation_download_dir}/{dataset_id}.zip", "wb") as f:
-                f.write(response.content)
+            resumable_download(url=link, filename=f"{annotation_download_dir}/{dataset_id}.zip", force_download=True)
 
             logger.info(f"Downloaded {dataset_id} annotations")
 

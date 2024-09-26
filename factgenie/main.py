@@ -27,6 +27,7 @@ from slugify import slugify
 
 from factgenie.campaigns import HumanCampaign, CampaignStatus, ExampleStatus, ANNOTATIONS_DIR, GENERATIONS_DIR
 from factgenie.models import ModelFactory
+from factgenie.loaders.dataset import get_dataset_classes
 import factgenie.utils as utils
 import factgenie.analysis as analysis
 
@@ -385,9 +386,8 @@ def delete_campaign():
     data = request.get_json()
     campaign_name = data.get("campaignId")
     source = data.get("source")
-    mode = data.get("mode")
 
-    if mode == "llm_gen":
+    if source == "llm_gen":
         target_dir = GENERATIONS_DIR
     else:
         target_dir = ANNOTATIONS_DIR
@@ -749,7 +749,7 @@ def llm_gen():
 @login_required
 def manage():
     datasets = utils.get_local_dataset_overview(app)
-    dataset_classes = list(utils.get_dataset_classes().keys())
+    dataset_classes = list(get_dataset_classes().keys())
 
     datasets_enabled = {k: v for k, v in datasets.items() if v["enabled"]}
     model_outputs = utils.get_model_outputs_overview(app, datasets_enabled)

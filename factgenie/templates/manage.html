@@ -57,7 +57,7 @@
           <table id="table-download" data-toggle="table" data-search="true" data-pagination="true" data-page-size="10"
             data-detail-view-icon="false" data-search-align="left" data-detail-view="true"
             data-detail-formatter="detailFormatter" data-detail-view-by-click="true" data-show-search-button="true"
-            data-search-time-out="500" data-search-on-enter-key="true" data-pagination-parts="['pageList', 'pageSize']"
+            data-search-time-out="500" data-search-on-enter-key="true" data-pagination-parts="['pageList']"
             data-searchable="false" data-classes="table table-hover table-datasets">
             <thead>
               <tr>
@@ -133,7 +133,7 @@
           <table id="table-local" data-toggle="table" data-search="false" data-pagination="true" data-page-size="10"
             data-detail-view-icon="false" data-search-align="left" data-detail-view="true"
             data-detail-formatter="detailFormatter" data-detail-view-by-click="true" data-show-search-button="true"
-            data-pagination-parts="['pageList', 'pageSize']" data-classes="table table-hover table-datasets">
+            data-pagination-parts="['pageList']" data-classes="table table-hover table-datasets">
             <thead>
               <tr>
                 <th scope="col" width="5%">Loaded</th>
@@ -206,34 +206,45 @@
               dataset</a>
           </div>
         </div>
-        <div class="tab-pane fade" id="pills-outputs" role="tabpanel" aria-labelledby="pills-outputs-tab">
-          <div class="row g-3 mb-3 mt-3 align-items-center">
-            <div class="col-auto">
-              <span style="margin-left: 5px;">Dataset</span>
-            </div>
-            <div class="col-auto">
-              <select id="dataset-select-overview" class="form-select form-select-sm"
-                style="display: inline-block; margin-right: 10px; max-width: 250px;">
-                {% for name, dataset in datasets.items() %}
-                <option value="{{ name }}">{{ name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-          </div>
-
+        <div class="tab-pane fade mt-3" id="pills-outputs" role="tabpanel" aria-labelledby="pills-outputs-tab">
           <table id="model-out-table" data-toggle="table" data-search="false" data-pagination="true" data-page-size="10"
-            data-detail-view-icon="false" data-pagination-parts="['pageList', 'pageSize']"
-            data-classes="table table-hover">
+            data-detail-view-icon="false" data-pagination-parts="['pageList']" data-classes="table table-hover">
             <thead>
               <tr>
-                <th scope="col">Dataset</th>
-                <th scope="col">Split</th>
-                <th scope="col">Source</th>
-                <th scope="col">Examples</th>
+                <th scope="col" data-sortable="true">Dataset</th>
+                <th scope="col" data-sortable="true">Split</th>
+                <th scope="col" data-sortable="true">Source</th>
+                <th scope="col" data-sortable="true">Examples</th>
                 <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>
+              {% for dataset, splits in model_outputs.items() %}
+              {% for split, setups in splits.items() %}
+              {% for setup, outputs in setups.items() %}
+              <tr>
+                <td>{{ dataset }}</td>
+                <td>{{ split }}</td>
+                <td>{{ setup }}</td>
+                <td>{{ datasets[dataset].example_count[split] }}</td>
+                <td>
+                  <a href="{{ host_prefix }}/browse?dataset={{ dataset }}&split={{ split }}&example_idx=0"
+                    class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Show the outputs">
+                    <i class="fa fa-eye"></i>
+                  </a>
+                  <a href="{{ host_prefix }}/export_outputs?dataset={{ dataset }}&split={{ split }}&setup={{ setup }}"
+                    class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Export model outputs">
+                    <i class="fa fa-download"></i>
+                  </a>
+                  <a onclick="deleteOutput('{{ dataset }}', '{{ split }}', '{{ setup }}')"
+                    class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Delete the output">
+                    <i class="fa fa-trash"></i>
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+              {% endfor %}
+              {% endfor %}
             </tbody>
           </table>
           <div class="text-center mb-5">
@@ -244,7 +255,7 @@
         </div>
         <div class="tab-pane fade mt-3" id="pills-annotations" role="tabpanel" aria-labelledby="pills-annotations-tab">
           <table id="table-ann" data-toggle="table" data-pagination="true" data-page-size="10" data-search-align="left"
-            data-pagination-parts="['pageList', 'pageSize']" data-classes="table table-hover">
+            data-pagination-parts="['pageList']" data-classes="table table-hover">
             <thead>
               <tr>
                 <th scope="col" data-sortable="true">Campaign</th>
@@ -259,10 +270,11 @@
               {% for campaign_id, campaign in campaigns.items() %}
               <tr>
                 <td><img src="{{ host_prefix }}/static/img/{{ campaign.metadata.source }}.png" style="max-width: 18px;"
-                    class="heading-img-inline"> <a
+                    class="heading-img-inline"> {% if campaign.metadata.source == 'external' %}{{
+                  campaign.metadata.id }}{% else %}<a
                     href="{{ host_prefix }}/{{ campaign.metadata.source }}/detail?campaign={{ campaign.metadata.id }}"
                     class="blue-link">{{
-                    campaign.metadata.id }}</a></td>
+                    campaign.metadata.id }}</a>{% endif %}</td>
                 <td>{{ campaign.metadata.source }}</td>
                 <td>{{ campaign.metadata.created }}</td>
                 <td>{% for category in campaign.metadata.config.annotation_span_categories %}

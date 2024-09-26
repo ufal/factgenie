@@ -85,15 +85,10 @@ class Campaign:
         with open(self.metadata_path) as f:
             self.metadata = json.load(f)
 
-    def get_stats(self):
-        # group by batch_idx, keep the first row of each group
-        batch_stats = self.db.groupby("batch_idx").first()
-
-        return batch_stats["status"].value_counts().to_dict()
-
 
 class ExternalCampaign(Campaign):
-    pass
+    def get_stats(self):
+        return self.db["status"].value_counts().to_dict()
 
 
 class HumanCampaign(Campaign):
@@ -144,6 +139,12 @@ class HumanCampaign(Campaign):
         overview_db = overview_db.to_dict(orient="records")
 
         return overview_db
+
+    def get_stats(self):
+        # group by batch_idx, keep the first row of each group
+        batch_stats = self.db.groupby("batch_idx").first()
+
+        return batch_stats["status"].value_counts().to_dict()
 
 
 class LLMCampaign(Campaign):

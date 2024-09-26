@@ -4,6 +4,10 @@ import requests
 import json
 import os
 import zipfile
+import importlib
+import inspect
+
+
 from pathlib import Path
 from collections import defaultdict
 from slugify import slugify
@@ -12,6 +16,24 @@ from abc import ABC, abstractmethod
 from factgenie import DATA_DIR, OUTPUT_DIR
 
 logger = logging.getLogger(__name__)
+
+
+def get_dataset_classes():
+    module_name = "factgenie.loaders"
+    module = importlib.import_module(module_name)
+
+    classes = {}
+
+    # for each submodule, find all classes subclassing `Dataset`
+    for name, obj in inspect.getmembers(module):
+        if inspect.ismodule(obj):
+            submodule = obj
+            for name, obj in inspect.getmembers(submodule):
+                if inspect.isclass(obj) and issubclass(obj, Dataset) and obj != Dataset:
+                    submodule_name = obj.__module__[len(module_name) + 1 :]
+                    classes[f"{submodule_name}.{obj.__name__}"] = obj
+
+    return classes
 
 
 class Dataset(ABC):
@@ -94,9 +116,9 @@ class Dataset(ABC):
         **kwargs,
     ):
         """
-        Download the dataset (along - optionally - with model outputs and annotations) from an external source.
+        Download the dataset (optionally along with model outputs and annotations) from an external source.
 
-        Does not need to be implemented if the dataset is already present in the `data` directory.
+        Does not need to be implemented if the dataset is added locally into the `data` directory.
 
         Parameters
         ----------
