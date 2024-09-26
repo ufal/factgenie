@@ -518,7 +518,7 @@ def load_dataset_download_config():
 def load_dataset_local_config():
     if not DATASET_LOCAL_CONFIG_PATH.exists():
         with open(DATASET_LOCAL_CONFIG_PATH, "w") as f:
-            f.write("datasets: {}\n")
+            f.write("")
 
     with open(DATASET_LOCAL_CONFIG_PATH) as f:
         config = yaml.safe_load(f)
@@ -533,10 +533,10 @@ def save_dataset_local_config(config):
 
 def set_dataset_enabled(app, dataset_id, enabled):
     config = load_dataset_local_config()
-    config["datasets"][dataset_id]["enabled"] = enabled
+    config[dataset_id]["enabled"] = enabled
 
     if enabled:
-        dataset = instantiate_dataset(dataset_id, config["datasets"][dataset_id])
+        dataset = instantiate_dataset(dataset_id, config[dataset_id])
         app.db["datasets_obj"][dataset_id] = dataset
     else:
         app.db["datasets_obj"].pop(dataset_id, None)
@@ -548,7 +548,7 @@ def get_local_dataset_overview(app):
     config = load_dataset_local_config()
     overview = {}
 
-    for dataset_id, dataset_config in config["datasets"].items():
+    for dataset_id, dataset_config in config.items():
         class_name = dataset_config["class"]
         params = dataset_config.get("params", {})
         is_enabled = dataset_config.get("enabled", True)
@@ -580,12 +580,12 @@ def get_local_dataset_overview(app):
 def get_datasets_for_download(app):
     config = load_dataset_download_config()
 
-    return config["datasets"]
+    return config
 
 
 def download_dataset(app, dataset_id):
     config = load_dataset_download_config()
-    dataset_config = config["datasets"].get(dataset_id)
+    dataset_config = config.get(dataset_id)
 
     if dataset_config is None:
         raise ValueError(f"Dataset {dataset_id} not found in the download config")
@@ -613,14 +613,14 @@ def download_dataset(app, dataset_id):
     # add an entry in the dataset config
     config = load_dataset_local_config()
 
-    config["datasets"][dataset_id] = {
+    config[dataset_id] = {
         "class": dataset_config["class"],
         "description": dataset_config.get("description", ""),
         "splits": dataset_config["splits"],
         "enabled": True,
     }
 
-    dataset = instantiate_dataset(dataset_id, config["datasets"][dataset_id])
+    dataset = instantiate_dataset(dataset_id, config[dataset_id])
     app.db["datasets_obj"][dataset_id] = dataset
 
     save_dataset_local_config(config)
@@ -630,7 +630,7 @@ def download_dataset(app, dataset_id):
 
 def delete_dataset(app, dataset_id):
     config = load_dataset_local_config()
-    config["datasets"].pop(dataset_id, None)
+    config.pop(dataset_id, None)
     save_dataset_local_config(config)
 
     # remove the data directory
@@ -700,7 +700,7 @@ def instantiate_datasets():
     config = load_dataset_local_config()
     datasets = {}
 
-    for dataset_id, dataset_config in config["datasets"].items():
+    for dataset_id, dataset_config in config.items():
         is_enabled = dataset_config.get("enabled", True)
 
         if not is_enabled:
@@ -737,7 +737,7 @@ def upload_dataset(dataset_id, dataset_description, dataset_format, dataset_data
 
     # add an entry in the dataset config
     config = load_dataset_local_config()
-    config["datasets"][dataset_id] = {
+    config[dataset_id] = {
         "class": params[dataset_format]["class"],
         "description": dataset_description,
         "type": params[dataset_format]["type"],

@@ -16,7 +16,7 @@ def list_datasets():
     with open(DATASET_LOCAL_CONFIG_PATH) as f:
         config = yaml.safe_load(f)
 
-    for dataset_id, _ in config["datasets"].items():
+    for dataset_id, _ in config.items():
         print(dataset_id)
 
 
@@ -42,7 +42,7 @@ def run_llm_campaign(
     campaign_data = [{"dataset": dataset_id, "split": split, "setup_id": setup_id}]
 
     config = utils.load_dataset_local_config()
-    dataset_config = config["datasets"][dataset_id]
+    dataset_config = config[dataset_id]
     datasets = {dataset_id: utils.instantiate_dataset(dataset_id, dataset_config)}
 
     if mode == "llm_eval" and not setup_id:
@@ -84,6 +84,16 @@ def create_app(**kwargs):
     if OLD_MAIN_CONFIG_PATH.exists():
         logger.debug("Factgenie updated: moving config.yml to config/config.yml")
         shutil.move(OLD_MAIN_CONFIG_PATH, MAIN_CONFIG_PATH)
+
+    # load `DATASET_CONFIG_PATH` and if it has as the only key `datasets`, use its values as top level keys
+    with open(DATASET_CONFIG_PATH) as f:
+        dataset_config = yaml.safe_load(f)
+        if "datasets" in dataset_config:
+            dataset_config = dataset_config["datasets"]
+
+    with open(DATASET_CONFIG_PATH, "w") as f:
+        yaml.dump(dataset_config, f, indent=2, allow_unicode=True)
+
     # --- end of compatibility with older versions ---
 
     with open(MAIN_CONFIG_PATH) as f:
