@@ -12,6 +12,7 @@ import os
 import re
 import json
 import json2table
+import pandas as pd
 
 from factgenie.utils import resumable_download
 
@@ -143,13 +144,11 @@ class CSVDataset(BasicDataset):
         # each example will be a key-value pair where the key is the column name and the value is the value in the row
         examples = []
 
-        with open(f"{data_path}/{split}.csv") as f:
-            lines = f.readlines()
-            header = lines[0].strip().split(",")
-            for line in lines[1:]:
-                values = line.strip().split(",")
-                example = dict(zip(header, values))
-                examples.append(example)
+        csv = pd.read_csv(f"{data_path}/{split}.csv")
+
+        for _, row in csv.iterrows():
+            example = dict(row)
+            examples.append(example)
 
         return examples
 
