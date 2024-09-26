@@ -28,21 +28,26 @@
     <h3><img src="{{ host_prefix }}/static/img/manage.png" class="heading-img-inline">
       <b>Data management</b>
     </h3>
-    <ul class="nav nav-pills nav-fill mt-4" id="pills-tab" role="tablist">
+    <ul class="nav nav-tabs nav-fill mt-4" id="pills-tab" role="tablist">
       <li class="nav-item" role="presentation">
         <a class="nav-link active" id="pills-datasets-tab" data-bs-toggle="pill" href="#pills-download" role="tab"
-          aria-controls="pills-download"><img src="{{ host_prefix }}/static/img/download.png" height="30px"
-            class="heading-img-inline">External datasets</a>
+          aria-controls="pills-download" data-anchor="external"><img src="{{ host_prefix }}/static/img/download.png"
+            height="30px" class="heading-img-inline">External resources</a>
       </li>
       <li class="nav-item" role="presentation">
         <a class="nav-link" id="pills-datasets-tab" data-bs-toggle="pill" href="#pills-datasets" role="tab"
-          aria-controls="pills-datasets"><img src="{{ host_prefix }}/static/img/datasets.png" height="30px"
-            class="heading-img-inline">Local datasets</a>
+          aria-controls="pills-datasets" data-anchor="local"><img src="{{ host_prefix }}/static/img/datasets.png"
+            height="30px" class="heading-img-inline">Datasets</a>
       </li>
       <li class="nav-item" role="presentation">
         <a class="nav-link" id="pills-outputs-tab" data-bs-toggle="pill" href="#pills-outputs" role="tab"
-          aria-controls="pills-outputs"><img src="{{ host_prefix }}/static/img/output.png" height="30px"
-            class="heading-img-inline">Model outputs</a>
+          aria-controls="pills-outputs" data-anchor="outputs"><img src="{{ host_prefix }}/static/img/output.png"
+            height="30px" class="heading-img-inline">Model outputs</a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a class="nav-link" id="pills-annotations-tab" data-bs-toggle="pill" href="#pills-annotations" role="tab"
+          aria-controls="pills-annotations" data-anchor="annotations"><img
+            src="{{ host_prefix }}/static/img/checkmark.png" height="30px" class="heading-img-inline">Annotations</a>
       </li>
     </ul>
     <div class="tab-content" id="pills-tabContent">
@@ -59,6 +64,7 @@
                 <th data-searchable="true" data-sortable="true" scope="col">Dataset</th>
                 <th scope="col">Splits</th>
                 <th scope="col">Outputs</th>
+                <th scope="col">Annotations</th>
                 <th scope="col">Source</th>
                 <th scope="col">Download</th>
               </tr>
@@ -82,6 +88,14 @@
                   {% endif %}
                   {% for output in dataset.outputs %}
                   <a class="badge bg-light text-dark">{{ output }}</a>
+                  {% endfor %}
+                </td>
+                <td>
+                  {% if not dataset.annotations %}
+                  -
+                  {% endif %}
+                  {% for ann in dataset.annotations %}
+                  <a class="badge bg-warning text-dark">{{ ann }}</a>
                   {% endfor %}
                 </td>
                 <td>
@@ -227,6 +241,51 @@
               model
               outputs</a>
           </div>
+        </div>
+        <div class="tab-pane fade mt-3" id="pills-annotations" role="tabpanel" aria-labelledby="pills-annotations-tab">
+          <table id="table-ann" data-toggle="table" data-pagination="true" data-page-size="10" data-search-align="left"
+            data-pagination-parts="['pageList', 'pageSize']" data-classes="table table-hover">
+            <thead>
+              <tr>
+                <th scope="col" data-sortable="true">Campaign</th>
+                <th scope="col" data-sortable="true">Source</th>
+                <th scope="col" data-sortable="true">Created</th>
+                <th scope="col">Labels</th>
+                <th scope="col">Status</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for campaign_id, campaign in campaigns.items() %}
+              <tr>
+                <td><img src="{{ host_prefix }}/static/img/{{ campaign.metadata.source }}.png" style="max-width: 18px;"
+                    class="heading-img-inline"> <a
+                    href="{{ host_prefix }}/{{ campaign.metadata.source }}/detail?campaign={{ campaign.metadata.id }}"
+                    class="blue-link">{{
+                    campaign.metadata.id }}</a></td>
+                <td>{{ campaign.metadata.source }}</td>
+                <td>{{ campaign.metadata.created }}</td>
+                <td>{% for category in campaign.metadata.config.annotation_span_categories %}
+                  <span class="badge" style="background-color: {{ category.color }}; color: rgb(60, 65, 73); ">{{
+                    category.name
+                    }}</span>
+                  {% endfor %}
+                </td>
+                <td>
+                  {% for status, count in campaign.stats.items() %}
+                  <span class="badge bg-secondary">{{ status }}: {{ count }}</span>
+                  {% endfor %}
+                </td>
+                <td>
+                  <a onclick="deleteCampaign('{{ campaign.metadata.id }}', '{{ campaign.metadata.source }}')"
+                    class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Delete the campaign">
+                    <i class="fa fa-trash"></i>
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </div>
 

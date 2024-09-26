@@ -727,6 +727,24 @@ def llm_campaign_pause():
     return resp
 
 
+@app.route("/llm_eval/detail", methods=["GET", "POST"])
+@login_required
+def llm_eval():
+    campaign_id = request.args.get("campaign")
+
+    # redirect to /llm_campaign with the mode set to llm_eval, keeping the campaign_id
+    return redirect(f"{app.config['host_prefix']}/llm_campaign/detail?mode=llm_eval&campaign={campaign_id}")
+
+
+@app.route("/llm_gen/detail", methods=["GET", "POST"])
+@login_required
+def llm_gen():
+    campaign_id = request.args.get("campaign")
+
+    # redirect to /llm_campaign with the mode set to llm_gen, keeping the campaign_id
+    return redirect(f"{app.config['host_prefix']}/llm_campaign/detail?mode=llm_gen&campaign={campaign_id}")
+
+
 @app.route("/manage", methods=["GET", "POST"])
 @login_required
 def manage():
@@ -751,6 +769,7 @@ def manage():
         datasets_for_download=datasets_for_download,
         host_prefix=app.config["host_prefix"],
         model_outputs=model_outputs,
+        campaigns=campaigns,
     )
 
 

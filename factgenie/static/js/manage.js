@@ -308,10 +308,37 @@ function enableTooltips() {
 
 
 $(document).ready(function () {
-    if (window.mode == "manage") {
-        $("#dataset-select-overview").val(Object.keys(datasets)[0]).trigger("change");
-        updateSplits();
+    $("#dataset-select-overview").val(Object.keys(datasets)[0]).trigger("change");
+    updateSplits();
+
+    // Function to activate the tab based on the anchor
+    function activateTabFromAnchor() {
+        var anchor = window.location.hash.substring(1);
+        if (anchor) {
+            var tabToActivate = $('a[data-anchor="' + anchor + '"]');
+            if (tabToActivate.length) {
+                tabToActivate.tab('show');
+            }
+        }
     }
+
+    // Add click event listener to update the URL
+    $('a[data-bs-toggle="pill"]').on('click', function (e) {
+        var anchor = $(this).data('anchor');
+        if (anchor) {
+            window.location.hash = anchor;
+        }
+    });
+
+    // Activate the tab based on the URL anchor on page load
+    activateTabFromAnchor();
+
+    // Re-activate the tab if the URL hash changes
+    $(window).on('hashchange', function () {
+        activateTabFromAnchor();
+    });
+
+
     // $("#page-input").val(example_idx);
     enableTooltips();
 });

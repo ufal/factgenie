@@ -184,6 +184,21 @@ def generate_campaign_index(app, force_reload=True):
     return app.db["campaign_index"]
 
 
+def get_sorted_campaign_list(app, sources):
+    campaign_index = generate_campaign_index(app, force_reload=True)
+
+    campaigns = []
+    for source in sources:
+        campaigns.extend(campaign_index[source].values())
+
+    campaigns.sort(key=lambda x: x.metadata["created"], reverse=True)
+    campaigns = {
+        c.metadata["id"]: {"metadata": c.metadata, "stats": c.get_stats(), "data": c.db.to_dict(orient="records")}
+        for c in campaigns
+    }
+    return campaigns
+
+
 def load_annotations_for_campaign(subdir):
     annotations_campaign = defaultdict(list)
 
@@ -579,7 +594,7 @@ def download_dataset(app, dataset_id):
         out_download_dir=output_dir,
         splits=dataset_config["splits"],
         outputs=dataset_config.get("outputs", []),
-        dataset_config=dataset_config
+        dataset_config=dataset_config,
     )
 
     # add an entry in the dataset config
