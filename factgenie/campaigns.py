@@ -92,6 +92,10 @@ class Campaign:
         return batch_stats["status"].value_counts().to_dict()
 
 
+class ExternalCampaign(Campaign):
+    pass
+
+
 class HumanCampaign(Campaign):
     def get_examples_for_batch(self, batch_idx):
         annotator_batch = []

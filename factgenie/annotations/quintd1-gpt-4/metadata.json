@@ -1,6 +1,6 @@
 {
     "id": "quintd1-gpt-4",
-    "source": "llm_eval",
+    "source": "external",
     "config": {
         "annotation_span_categories": [
             {

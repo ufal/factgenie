@@ -145,14 +145,7 @@ def about():
 def analyze():
     logger.info(f"Analysis page loaded")
 
-    campaign_index = utils.generate_campaign_index(app, force_reload=True)
-
-    campaigns = list(campaign_index["llm_eval"].values()) + list(campaign_index["crowdsourcing"].values())
-    campaigns.sort(key=lambda x: x.metadata["created"], reverse=True)
-    campaigns = {
-        c.metadata["id"]: {"metadata": c.metadata, "stats": c.get_stats(), "data": c.db.to_dict(orient="records")}
-        for c in campaigns
-    }
+    campaigns = utils.get_sorted_campaign_list(app, sources=["crowdsourcing", "llm_eval"])
 
     return render_template(
         "analyze.html",
@@ -748,6 +741,8 @@ def manage():
     # set as `downloaded` the datasets that are already downloaded
     for dataset_id in datasets_for_download.keys():
         datasets_for_download[dataset_id]["downloaded"] = dataset_id in datasets
+
+    campaigns = utils.get_sorted_campaign_list(app, sources=["crowdsourcing", "llm_eval", "llm_gen", "external"])
 
     return render_template(
         "manage.html",
