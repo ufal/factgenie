@@ -221,6 +221,9 @@ def load_annotations_for_campaign(subdir):
     with open(metadata_path) as f:
         metadata = json.load(f)
 
+    if metadata["source"] == "hidden":
+        return None
+
     jsonl_files = (ANNOTATIONS_DIR / subdir / "files").glob("*.jsonl")
 
     for jsonl_file in jsonl_files:
@@ -260,7 +263,6 @@ def generate_annotation_index(app):
             logger.error(f"Error while loading annotations for {subdir}")
 
     app.db["annotation_index"] = annotations
-
     return annotations
 
 

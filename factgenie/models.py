@@ -158,7 +158,15 @@ class LLMMetric(Model):
     def prompt(self, data, text):
         assert isinstance(text, str) and len(text) > 0, f"Text must be a non-empty string, got {text=}"
         data_for_prompt = self.preprocess_data_for_prompt(data)
-        return self.config["prompt_template"].format(data=data_for_prompt, text=text)
+
+        prompt_template = self.config["prompt_template"]
+
+        # we used to require replacing any curly braces with double braces
+        # to support existing prompts, we replace any double braces with single braces
+        # this should not do much harm, as the prompts usually do contain double braces (but remove this in the future?)
+        prompt_template = prompt_template.replace("{{", "{").replace("}}", "}")
+
+        return prompt_template.replace("{data}", str(data_for_prompt)).replace("{text}", text)
 
     def annotate_example(self, data, text):
         raise NotImplementedError("Override this method in the subclass to call the LLM API")
@@ -293,7 +301,15 @@ class LLMGen(Model):
         return output
 
     def prompt(self, data):
-        return self.config["prompt_template"].format(data=data)
+        prompt_template = self.config["prompt_template"]
+        data = self.preprocess_data_for_prompt(data)
+
+        # we used to require replacing any curly braces with double braces
+        # to support existing prompts, we replace any double braces with single braces
+        # this should not do much harm, as the prompts usually do contain double braces (but remove this in the future?)
+        prompt_template = prompt_template.replace("{{", "{").replace("}}", "}")
+
+        return prompt_template.replace("{data}", str(data))
 
     def preprocess_data_for_prompt(self, data):
         """Override this method to change the format how the data is presented in the prompt. See self.prompt() method for usage."""

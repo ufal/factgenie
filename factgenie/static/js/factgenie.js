@@ -435,11 +435,11 @@ function annotateContent(content, annotations, annotation_span_categories) {
         const end = start + text.length;
 
         const error_name = annotation_span_categories[annotationType].name;
-        const reason = annotation.reason;
+        const note = annotation.reason || annotation.note;
         let tooltip_text;
 
-        if (annotation.reason !== undefined) {
-            tooltip_text = `${error_name} (${reason})`;
+        if (note !== undefined && note !== "" && note !== null) {
+            tooltip_text = `${error_name} (${note})`;
         } else {
             tooltip_text = `${error_name}`;
         }
@@ -922,6 +922,14 @@ function startLLMCampaignListener(campaignId) {
             source.close();
             console.log("Closing the connection");
 
+            $("#metadata-status").html("finished");
+            $("#run-button").hide();
+            $("#download-button").show();
+            $("#stop-button").hide();
+            $("#llm-progress").hide();
+
+            $("#log-area").text(response.final_message);
+
             if (window.mode == "llm_gen") {
                 $("#save-generations-button").show();
             }
@@ -955,16 +963,6 @@ function runLLMCampaign(campaignId) {
                 $("#llm-progress").hide();
             } else {
                 console.log(response);
-
-                if (response.status == "finished") {
-                    $("#metadata-status").html("finished");
-                    $("#run-button").hide();
-                    $("#download-button").show();
-                    $("#stop-button").hide();
-                    $("#llm-progress").hide();
-
-                    $("#log-area").text(response.final_message);
-                }
             }
         }
     });

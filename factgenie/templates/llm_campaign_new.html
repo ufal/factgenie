@@ -184,7 +184,9 @@
                   <i class="fa fa-cogs"></i>
                   <span style="margin-left: 10px; margin-right: 10px;">Model arguments</span>
                   <div class="mb-2">
-                    <small class="form-text text-muted">API arguments to be passed to the model
+                    <small class="form-text text-muted">API arguments to be passed to the model. Internally, we use
+                      <code>ast.literal_eval()</code> for determining the argument type. Use floating point
+                      format (e.g. 0.0) for the numbers that should be interpreted as floats.
                     </small>
                   </div>
                 </div>

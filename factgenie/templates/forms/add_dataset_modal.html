@@ -42,6 +42,15 @@
                                 </ul>
                             </div>
                             <div class="mb-3">
+                                <label for="dataset-format" class="form-label">Dataset format</label>
+                                <select class="form-select" id="dataset-format">
+                                    <option value="text">Text</option>
+                                    <option value="jsonl">JSONL</option>
+                                    <option value="csv">CSV</option>
+                                    <option value="html">HTML</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
                                 <label for="dataset-id" class="form-label
                                     ">Dataset ID</label>
                                 <input class="form-control" type="text" id="dataset-id" name="dataset-id" required>
@@ -52,15 +61,7 @@
                                 <textarea class="form-control" id="dataset-description" name="dataset-description"
                                     rows="3"></textarea>
                             </div>
-                            <div class="mb-3">
-                                <label for="dataset-format" class="form-label">Dataset format</label>
-                                <select class="form-select" id="dataset-format">
-                                    <option value="text">Text</option>
-                                    <option value="jsonl">JSONL</option>
-                                    <option value="csv">CSV</option>
-                                    <option value="html">HTML</option>
-                                </select>
-                            </div>
+
                             <div class="row g-3 mb-3 align-items-center">
                                 <div class="col-auto">
                                     <span style="margin-left: 10px; margin-right: 10px;">Dataset files</span>

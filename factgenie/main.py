@@ -583,7 +583,7 @@ def llm_campaign_create():
 
     data = request.get_json()
 
-    campaign_id = data.get("campaignId")
+    campaign_id = slugify(data.get("campaignId"))
     campaign_data = data.get("campaignData")
     config = data.get("config")
 
@@ -682,14 +682,19 @@ def llm_campaign_run():
     app.db["threads"][campaign_id] = {
         "running": True,
     }
-    campaign = utils.load_campaign(app, campaign_id=campaign_id, mode=mode)
-    threads = app.db["threads"]
-    datasets = app.db["datasets_obj"]
 
-    config = campaign.metadata["config"]
-    model = ModelFactory.from_config(config, mode=mode)
+    try:
+        campaign = utils.load_campaign(app, campaign_id=campaign_id, mode=mode)
+        threads = app.db["threads"]
+        datasets = app.db["datasets_obj"]
 
-    return utils.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, threads)
+        config = campaign.metadata["config"]
+        model = ModelFactory.from_config(config, mode=mode)
+
+        return utils.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, threads)
+    except Exception as e:
+        traceback.print_exc()
+        return utils.error(f"Error while running campaign: {e}")
 
 
 @app.route("/llm_campaign/progress/<campaign_id>", methods=["GET"])
