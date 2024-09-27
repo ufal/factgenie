@@ -40,6 +40,7 @@ class ModelFactory:
             "llm_gen": {
                 "openai_gen": OpenAIGen,
                 "ollama_gen": OllamaGen,
+                "tgwebui_gen": TextGenerationWebuiGen,
             },
         }
 
@@ -356,6 +357,55 @@ class OpenAIGen(LLMGen):
                 messages=messages,
                 **self.config.get("model_args", {}),
             )
+            output = response.choices[0].message.content
+            logger.info(output)
+
+            return {"prompt": prompt, "output": self.postprocess_output(output)}
+        except Exception as e:
+            traceback.print_exc()
+            logger.error(e)
+            return {"error": str(e)}
+
+
+class TextGenerationWebuiGen(LLMGen):
+    def __init__(self, config):
+        super().__init__(config)
+
+    def get_required_fields(self):
+        return {"type": str, "prompt_template": str, "model": str, "api_url": str, "extra_args": dict}
+
+    def get_optional_fields(self):
+        return {
+            "system_msg": str,
+            "model_args": dict,
+            "start_with": str,
+        }
+
+    def generate_output(self, data):
+        try:
+            prompt = self.prompt(data)
+            api_url = self.config["api_url"]
+            api_key = self.config["extra_args"]["api_key"]
+
+            messages = [
+                {"role": "user", "content": prompt},
+            ]
+
+            if self.config.get("start_with"):
+                messages.append({"role": "assistant", "content": self.config["start_with"]})
+
+            model_args = self.config.get("model_args", {})
+            logger.debug(f"Calling Text Generation Webui API with prompt: {prompt}")
+            response = requests.post(
+                api_url,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {api_key}",
+                },
+                json={"model": self.config["model"], "messages": messages, **model_args},
+            )
+
+            breakpoint()
             output = response.choices[0].message.content
             logger.info(output)
 
