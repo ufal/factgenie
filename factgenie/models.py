@@ -16,6 +16,8 @@ import time
 import requests
 import copy
 
+from ast import literal_eval
+
 # logging.basicConfig(format="%(message)s", level=logging.INFO, datefmt="%H:%M:%S")
 coloredlogs.install(level="INFO", fmt="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -72,15 +74,11 @@ class Model:
         if "model_args" not in self.config:
             return
 
-        # TODO more robust typing. See https://github.com/ufal/factgenie/issues/93
-        # The argument list taken from https://github.com/ollama/ollama/blob/main/docs/modelfile.md
-        for arg in ["mirostat_eta", "mirostat_tau", "repeat_penalty", "temperature", "tfs_z", "top_p", "min_p"]:
-            if arg in self.config["model_args"]:
-                self.config["model_args"][arg] = float(self.config["model_args"][arg])
-
-        for arg in ["mirostat", "num_ctx", "repeat_last_n", "seed", "max_tokens", "num_predict", "top_k"]:
-            if arg in self.config["model_args"]:
-                self.config["model_args"][arg] = int(self.config["model_args"][arg])
+        for arg in self.config["model_args"]:
+            try:
+                self.config["model_args"][arg] = literal_eval(self.config["model_args"][arg])
+            except:
+                pass
 
     def validate_config(self, config):
         for field in self.get_required_fields():
