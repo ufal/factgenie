@@ -10,7 +10,7 @@ import coloredlogs
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
-coloredlogs.install(level="INFO", logger=logger, fmt="%(asctime)s %(levelname)s %(message)s")
+# coloredlogs.install(level="INFO", logger=logger, fmt="%(asctime)s %(levelname)s %(message)s")
 
 
 DIR_PATH = os.path.dirname(__file__)

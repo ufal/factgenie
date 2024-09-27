@@ -19,7 +19,7 @@ import copy
 from ast import literal_eval
 
 # logging.basicConfig(format="%(message)s", level=logging.INFO, datefmt="%H:%M:%S")
-coloredlogs.install(level="INFO", fmt="%(asctime)s %(levelname)s %(message)s")
+# coloredlogs.install(level="INFO", fmt="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 DIR_PATH = os.path.dirname(__file__)

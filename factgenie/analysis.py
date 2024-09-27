@@ -20,7 +20,7 @@ from factgenie.campaigns import ANNOTATIONS_DIR
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 logger = logging.getLogger(__name__)
-coloredlogs.install(level="INFO", logger=logger, fmt="%(asctime)s %(levelname)s %(message)s")
+# coloredlogs.install(level="INFO", logger=logger, fmt="%(asctime)s %(levelname)s %(message)s")
 
 
 def get_example_info(j, campaign_id):
