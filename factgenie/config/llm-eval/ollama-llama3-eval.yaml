@@ -6,12 +6,10 @@ model: llama3
 # If you run ollama at the same machine as factgenie let's use just localhost.
 api_url: http://localhost:11434/api/
 model_args:
-  max_tokens: 1024
-  num_beams: 1
+  num_predict: 1024
   temperature: 0.0
   top_p: 1.0
   top_k: 0.0
-  do_sample: false
   seed: 42
 annotation_span_categories:
   - name: "Incorrect"
@@ -52,6 +50,6 @@ prompt_template: |
   Nokia 3310 is produced in Finland and features a 320x320 display. It is available in black color. The data seem to provide only partial information about the phone.
   ```
   output:
-  ```{{ "annotations": [{{"reason": "The country where the phone is produced is not mentioned in the data.", "text": "produced in Finland", "type": 1}}, {{"reason": "The data mentions that the display has resolution 320x240px.", "text": "320x320", type: 0}}, {{"reason": "Misleadingly suggests that the phone is not available in other colors.", "text": "available in black color", type: 2}}, {{"reason", "Nationality is not mentioned in the data", "text": "Indian", type: 1}}, {{"reason": "The note is irrelevant for the phone description.", "text": "The data seem to provide only partial information about the phone.", type: 3}}] }}
+  ```{{ "annotations": [{{"reason": "The country where the phone is produced is not mentioned in the data.", "text": "produced in Finland", "type": 1}}, {{"reason": "The data mentions that the display has resolution 320x240px.", "text": "320x320", type: 0}}, {{"reason": "Misleadingly suggests that the phone is not available in other colors.", "text": "available in black color", type: 2}}, {{"reason": "The note is irrelevant for the phone description.", "text": "The data seem to provide only partial information about the phone.", type: 3}}] }}
   ```
   Note that some details may not be mentioned in the text: do not count omissions as errors. Also do not be too strict: some facts can be less specific than in the data (rounded values, shortened or abbreviated text, etc.), do not count these as errors. If there are no errors in the text, "annotations" will be an empty list.

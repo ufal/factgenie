@@ -3,13 +3,11 @@ extra_args:
   rstrip: '"'
 model: llama3
 model_args:
-  do_sample: 'false'
-  max_tokens: '1024'
-  num_beams: '1'
-  seed: '42'
-  temperature: '0'
-  top_k: '0'
-  top_p: '1'
+  num_predict: 1024
+  temperature: 0.7
+  top_p: 1.0
+  top_k: 0.0
+  seed: 42
 prompt_template: |-
   Given the original text:
   """
