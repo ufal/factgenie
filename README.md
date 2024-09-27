@@ -1,5 +1,5 @@
 <div align="center">
-<img src="factgenie/static/img/factgenie.png" width=80px" alt="logo" />
+<img src="factgenie/static/img/factgenie_whitebg.png" width=80px" alt="logo" />
 
 <h1> factgenie </h1>
 
