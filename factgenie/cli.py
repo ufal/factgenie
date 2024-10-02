@@ -69,31 +69,12 @@ def create_app(**kwargs):
     from factgenie.main import app
     from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, GENERATIONS_DIR, ANNOTATIONS_DIR, DATA_DIR, OUTPUT_DIR
     from factgenie import utils
-    from factgenie.utils import check_login
+    from factgenie.utils import check_login, migrate
 
     logger = logging.getLogger(__name__)
 
     # --- compatibility with older versions ---
-    from factgenie import OLD_DATASET_CONFIG_PATH, OLD_MAIN_CONFIG_PATH, DATASET_CONFIG_PATH, MAIN_CONFIG_PATH
-    import shutil
-
-    if OLD_DATASET_CONFIG_PATH.exists():
-        logger.debug("Factgenie updated: moving loaders/datasets.yml to config/datasets_local.yml")
-        shutil.move(OLD_DATASET_CONFIG_PATH, DATASET_CONFIG_PATH)
-
-    if OLD_MAIN_CONFIG_PATH.exists():
-        logger.debug("Factgenie updated: moving config.yml to config/config.yml")
-        shutil.move(OLD_MAIN_CONFIG_PATH, MAIN_CONFIG_PATH)
-
-    # load `DATASET_CONFIG_PATH` and if it has as the only key `datasets`, use its values as top level keys
-    with open(DATASET_CONFIG_PATH) as f:
-        dataset_config = yaml.safe_load(f)
-        if "datasets" in dataset_config:
-            dataset_config = dataset_config["datasets"]
-
-    with open(DATASET_CONFIG_PATH, "w") as f:
-        yaml.dump(dataset_config, f, indent=2, allow_unicode=True)
-
+    migrate()
     # --- end of compatibility with older versions ---
 
     with open(MAIN_CONFIG_PATH) as f:

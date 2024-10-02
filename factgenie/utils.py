@@ -236,7 +236,7 @@ def load_annotations_for_campaign(subdir):
                     slugify(annotation["dataset"]),
                     slugify(annotation["split"]),
                     annotation["example_idx"],
-                    slugify(annotation["setup"]["id"]),
+                    slugify(annotation["setup_id"]),
                 )
                 annotations_campaign[key].append(annotation)
 
@@ -304,10 +304,10 @@ def get_example_data(app, dataset_id, split, example_idx):
     # prefix all the "/files" calls with "app.config["host_prefix"]"
     html = html.replace('src="/files', f'src="{app.config["host_prefix"]}/files')
 
-    generated_outputs = dataset.get_generated_outputs_for_idx(split=split, output_idx=example_idx)
+    generated_outputs = dataset.get_outputs_for_idx(split=split, output_idx=example_idx)
 
     for i, output in enumerate(generated_outputs):
-        setup_id = output["setup"]["id"]
+        setup_id = output["setup_id"]
         annotations = get_annotations(app, dataset_id, split, example_idx, setup_id)
 
         generated_outputs[i]["annotations"] = annotations
@@ -330,13 +330,10 @@ def get_model_outputs_overview(app, datasets, non_empty=False):
         model_outputs[dataset_id] = {}
 
         for split in splits:
-            model_outputs[dataset_id][split] = {}
-            outputs = dataset.get_generated_outputs_for_split(split)
+            outputs = dataset.get_outputs_for_split(split)
 
-            for setup_id, output in outputs.items():
-                output_info = {}
-
-                model_outputs[dataset_id][split][setup_id] = output_info
+            # extract all key values from the outputs
+            model_outputs[dataset_id][split] = {setup_id: len(output) for setup_id, output in outputs.items()}
 
     if non_empty:
         for dataset_id, splits in model_outputs.items():
@@ -764,12 +761,10 @@ def upload_dataset(app, dataset_id, dataset_description, dataset_format, dataset
 
 
 def upload_model_outputs(dataset, split, setup_id, model_outputs):
-    path = Path(f"{dataset.output_path}/{split}")
+    path = Path(f"{dataset.output_path}/{split}/{setup_id}/files")
     path.mkdir(parents=True, exist_ok=True)
 
-    model_outputs = model_outputs.strip()
-    generated = [{"out": out} for out in model_outputs.split("\n")]
-
+    generated = model_outputs.strip().split("\n")
     setup_id = slugify(setup_id)
 
     if setup_id in dataset.outputs[split]:
@@ -780,23 +775,37 @@ def upload_model_outputs(dataset, split, setup_id, model_outputs):
             f"Output count mismatch for {setup_id} in {split}: {len(generated)} vs {len(dataset.examples[split])}"
         )
 
-    j = {
-        "dataset": dataset.id,
-        "split": split,
-        "setup": {"id": setup_id},
-        "generated": generated,
-    }
-    dataset.outputs[split][setup_id] = j
+    dataset.outputs[split][setup_id] = {}
 
-    with open(f"{path}/{setup_id}.json", "w") as f:
-        json.dump(j, f, indent=4)
+    with open(f"{path}/{setup_id}.jsonl", "w") as f:
+        for i, out in enumerate(generated):
+            j = {
+                "dataset": dataset.id,
+                "split": split,
+                "setup_id": setup_id,
+                "example_idx": i,
+                "out": out,
+            }
+            f.write(json.dumps(j) + "\n")
+
+            dataset.outputs[split][setup_id][i] = j
+
+    with open(f"{path.parent}/metadata.json", "w") as f:
+        json.dump(
+            {
+                "id": setup_id,
+                "created": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            },
+            f,
+            indent=4,
+        )
 
 
 def delete_model_outputs(dataset, split, setup_id):
-    path = Path(f"{dataset.output_path}/{split}/{setup_id}.json")
+    path = Path(f"{dataset.output_path}/{split}/{setup_id}")
 
     if path.exists():
-        path.unlink()
+        shutil.rmtree(path)
 
     dataset.outputs[split].pop(setup_id, None)
 
@@ -873,7 +882,7 @@ def save_annotation(annotator_id, campaign_id, dataset_id, split, setup_id, exam
         "annotator_group": 0,
         "annotator_id": annotator_id,
         "dataset": dataset_id,
-        "setup": {"id": setup_id, "model": setup_id},
+        "setup_id": setup_id,
         "split": split,
         "example_idx": example_idx,
         "annotations": annotation_set,
@@ -894,8 +903,10 @@ def save_output(campaign_id, dataset_id, split, example_idx, output, start_time)
     record = {
         "dataset": dataset_id,
         "split": split,
+        "setup_id": campaign_id,
         "example_idx": example_idx,
-        "generated": {"in": prompt, "out": generated},
+        "in": prompt,
+        "out": generated,
     }
 
     with open(os.path.join(save_dir, f"{dataset_id}-{split}-{start_time}.jsonl"), "a") as f:
@@ -1144,8 +1155,10 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, th
         example = dataset.get_example(split, example_idx)
 
         if mode == "llm_eval":
-            output = dataset.get_generated_output_by_idx(split=split, output_idx=example_idx, setup_id=setup_id)
-            output = model.annotate_example(example, output)
+            generated_output = dataset.get_output_for_idx_by_setup(
+                split=split, output_idx=example_idx, setup_id=setup_id
+            )
+            output = model.annotate_example(example, generated_output)
 
         elif mode == "llm_gen":
             output = model.generate_output(example)
@@ -1169,8 +1182,8 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, th
             record = save_output(campaign_id, dataset_id, split, example_idx, output, start_time)
 
             # solely for the frontend
-            record["setup"] = {"id": setup_id, "model": setup_id}
-            record["output"] = record.pop("generated")["out"]
+            record["setup_id"] = setup_id
+            record["output"] = record.pop("out")
 
         db.loc[i, "status"] = ExampleStatus.FINISHED
         db.loc[i, "end"] = int(time.time())
@@ -1201,9 +1214,9 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, th
     return jsonify(success=True, status=campaign.metadata["status"], final_message=final_message)
 
 
-def save_generation_outputs(app, campaign_id, model_name):
+def save_generation_outputs(app, campaign_id, setup_id):
     """
-    Load the files from the `GENERATIONS_DIR` and convert them to a single JSON file which we save into the `OUTPUT_DIR`.
+    Load the files from the `GENERATIONS_DIR` and save them in the appropriate subdirectory in `OUTPUT_DIR`.
     """
 
     campaign = load_campaign(app, campaign_id, mode="llm_gen")
@@ -1221,22 +1234,23 @@ def save_generation_outputs(app, campaign_id, model_name):
             with open(GENERATIONS_DIR / campaign_id / "files" / file) as f:
                 for line in f:
                     record = json.loads(line)
+                    # replace the campaign_id with the desired setup_id
+                    record["setup_id"] = setup_id
                     key = (record["dataset"], record["split"])
                     outputs[key].append(record)
 
-    setup = metadata["config"]
-    setup["params"] = setup.pop("model_args")
-    setup["id"] = model_name
-
     # save the outputs
     for (dataset_id, split), examples in outputs.items():
-        path = OUTPUT_DIR / dataset_id / split
-        os.makedirs(path, exist_ok=True)
+        path = OUTPUT_DIR / dataset_id / split / setup_id
+        os.makedirs(path / "files", exist_ok=True)
 
-        generated = [e["generated"] for e in examples]
+        # save the metadata
+        with open(path / f"metadata.json", "w") as f:
+            json.dump(metadata, f, indent=4)
 
-        with open(path / f"{model_name}.json", "w") as f:
-            json.dump({"dataset": dataset_id, "setup": setup, "generated": generated}, f, indent=4)
+        with open(path / "files" / f"{setup_id}.jsonl", "w") as f:
+            for example in examples:
+                f.write(json.dumps(example) + "\n")
 
     return success()
 
@@ -1339,3 +1353,98 @@ def resumable_download(
                     _download(urllib.request.Request(url, headers=ua_headers), 0)
             else:
                 raise e
+
+
+def migrate():
+    """
+    Ensure backwards compatibility after changes in the app
+    """
+    from factgenie import OLD_DATASET_CONFIG_PATH, OLD_MAIN_CONFIG_PATH, MAIN_CONFIG_PATH
+    import shutil
+
+    # if an old config file exist, we perform the migration
+    if not OLD_MAIN_CONFIG_PATH.exists():
+        return
+
+    logger.warning("Factgenie updated, performing migration tasks...")
+
+    # ------------------
+    # update old config files
+    # ------------------
+    logger.warning("Moving loaders/datasets.yml to config/datasets_local.yml")
+    shutil.move(OLD_DATASET_CONFIG_PATH, DATASET_CONFIG_PATH)
+
+    logger.debug("Moving config.yml to config/config.yml")
+    shutil.move(OLD_MAIN_CONFIG_PATH, MAIN_CONFIG_PATH)
+
+    # load `DATASET_CONFIG_PATH` and if it has as the only key `datasets`, use its values as top level keys
+    with open(DATASET_CONFIG_PATH) as f:
+        dataset_config = yaml.safe_load(f)
+        if "datasets" in dataset_config:
+            dataset_config = dataset_config["datasets"]
+
+    with open(DATASET_CONFIG_PATH, "w") as f:
+        yaml.dump(dataset_config, f, indent=2, allow_unicode=True)
+
+    # ------------------
+    # convert old model outputs to the new JSONL format
+    # ------------------
+    outs = list(Path(OUTPUT_DIR).glob("**/*.json"))
+
+    # ignore metadata.json
+    outs = [out for out in outs if not out.name == "metadata.json"]
+
+    for out in outs:
+        with open(out) as f:
+            j = json.load(f)
+
+        logger.warning(f"Converting old model outputs to a new JSONL format for {j['dataset']}...")
+
+        new_out = []
+        for i, gen in enumerate(j["generated"]):
+            record = {
+                "dataset": j["dataset"],
+                "split": j.get("split", out.parent.name),
+                "setup_id": j["setup"]["id"],
+                "example_idx": i,
+                "out": gen["out"],
+            }
+            if gen.get("in"):
+                record["in"] = gen["in"]
+            new_out.append(record)
+
+        output_path = (
+            OUTPUT_DIR / j["dataset"] / j.get("split", out.parent.name) / "files" / out.with_suffix(".jsonl").name
+        )
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(output_path, "w") as f:
+            for gen in new_out:
+                f.write(json.dumps(gen) + "\n")
+
+        metadata = j["setup"]
+
+        if "params" in metadata:
+            metadata["model_args"] = metadata.pop("params")
+
+        if "prompt" in metadata:
+            metadata["prompt_template"] = metadata.pop("prompt")
+
+        with open(output_path.parent.parent / "metadata.json", "w") as f:
+            json.dump(metadata, f, indent=4, ensure_ascii=False)
+
+        # remove the old JSON file
+        out.unlink()
+
+    # ------------------
+    ann_outs = list(Path(ANNOTATIONS_DIR).glob("**/*.jsonl"))
+
+    for file_path in ann_outs:
+        with open(file_path, "r") as infile, open(file_path + ".tmp", "w") as outfile:
+            for line in infile:
+                obj = json.loads(line)
+                if "setup" in obj and "id" in obj["setup"]:
+                    obj["setup_id"] = obj["setup"]["id"]
+                    del obj["setup"]
+                outfile.write(json.dumps(obj) + "\n")
+        os.replace(file_path + ".tmp", file_path)

@@ -296,6 +296,7 @@ class LLMGen(Model):
     def postprocess_output(self, output):
         if self.config.get("extra_args", {}).get("remove_suffix", ""):
             suffix = self.config["extra_args"]["remove_suffix"]
+
             if output.endswith(suffix):
                 output = output[: -len(suffix)]
 
@@ -363,6 +364,7 @@ class OpenAIGen(LLMGen):
             logger.info(output)
 
             return {"prompt": prompt, "output": self.postprocess_output(output)}
+
         except Exception as e:
             traceback.print_exc()
             logger.error(e)

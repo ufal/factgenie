@@ -8,20 +8,12 @@ import os
 from slugify import slugify
 from factgenie.loaders.dataset import Dataset
 from factgenie.utils import resumable_download
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 
 class QuintdDataset(Dataset):
-    @classmethod
-    def postprocess_output(cls, output):
-        output["setup"]["id"] = slugify(output["model"])
-        output["setup"]["model"] = output["model"]
-        del output["setup"]["name"]
-        del output["model"]
-
-        return output
-
     @classmethod
     def download_dataset(
         cls,
@@ -60,27 +52,48 @@ class QuintdDataset(Dataset):
         output_url = "https://raw.githubusercontent.com/kasnerz/quintd/refs/heads/main/data/quintd-1/outputs/{split}/{dataset_id}/{extra_id}/{setup_id}.json"
 
         for split in splits:
-            os.makedirs(f"{out_download_dir}/{split}", exist_ok=True)
 
-            for output in outputs:
-                if split == "dev" and output == "gpt-3.5":
+            for setup_id in outputs:
+                if split == "dev" and setup_id == "gpt-3.5":
                     # we do not have these outputs
                     continue
 
+                out_path = Path(f"{out_download_dir}/{split}/{setup_id}")
+                os.makedirs(out_path / "files", exist_ok=True)
+
                 extra_id = extra_ids[split]
                 try:
-                    url = output_url.format(dataset_id=dataset_id, split=split, extra_id=extra_id, setup_id=output)
+                    url = output_url.format(dataset_id=dataset_id, split=split, extra_id=extra_id, setup_id=setup_id)
 
-                    response = json.loads(requests.get(url).content)
-                    j = cls.postprocess_output(response)
+                    j = json.loads(requests.get(url).content)
 
-                    with open(f"{out_download_dir}/{split}/{output}.json", "w") as f:
-                        json.dump(j, f, indent=4, ensure_ascii=False)
+                    with open(f"{out_download_dir}/{split}/{setup_id}/metadata.json", "w") as f:
+                        metadata = j["setup"]
+                        metadata["model_args"] = metadata.pop("params")
+                        metadata["prompt_template"] = metadata.pop("prompt")
 
-                    logger.info(f"Downloaded {split}/{output}.json")
+                        json.dump(metadata, f, indent=4, ensure_ascii=False)
+
+                    new_out = []
+                    for i, gen in enumerate(j["generated"]):
+                        record = {
+                            "dataset": dataset_id,
+                            "split": split,
+                            "setup_id": setup_id,
+                            "example_idx": i,
+                            "in": gen["in"],
+                            "out": gen["out"],
+                        }
+                        new_out.append(record)
+
+                    with open(out_path / "files" / f"{setup_id}.jsonl", "w") as f:
+                        for gen in new_out:
+                            f.write(json.dumps(gen) + "\n")
+
+                    logger.info(f"Downloaded outputs for {split}/{setup_id}")
                 except Exception as e:
                     traceback.print_exc()
-                    logger.warning(f"Could not download output file '{split}/{output}.json'")
+                    logger.warning(f"Could not download output file '{split}/{setup_id}.json'")
 
     @classmethod
     def download_annotations(cls, dataset_id, annotation_download_dir, splits):

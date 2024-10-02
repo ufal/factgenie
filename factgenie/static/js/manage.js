@@ -39,9 +39,9 @@ function updateSplits() {
     }
 }
 
-function deleteOutput(dataset, split, setup) {
+function deleteOutput(dataset, split, setup_id) {
     // ask for confirmation
-    if (!confirm(`Are you sure you want to delete the output for ${setup}?`)) {
+    if (!confirm(`Are you sure you want to delete the output for ${setup_id}?`)) {
         return;
     }
     $.post({
@@ -50,7 +50,7 @@ function deleteOutput(dataset, split, setup) {
         data: JSON.stringify({
             dataset: dataset,
             split: split,
-            setup: setup
+            setup_id: setup_id
         }),
         success: function (response) {
             console.log(response);

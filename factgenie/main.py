@@ -419,10 +419,10 @@ def delete_model_outputs():
     # get dataset, split, setup
     dataset_id = data.get("dataset")
     split = data.get("split")
-    setup = data.get("setup")
+    setup_id = data.get("setup_id")
 
     dataset = app.db["datasets_obj"][dataset_id]
-    utils.delete_model_outputs(dataset, split, setup)
+    utils.delete_model_outputs(dataset, split, setup_id)
 
     return utils.success()
 
@@ -516,7 +516,7 @@ def export_dataset():
 def export_outputs():
     dataset_id = request.args.get("dataset")
     split = request.args.get("split")
-    setup_id = request.args.get("setup")
+    setup_id = request.args.get("setup_id")
 
     return utils.export_outputs(app, dataset_id, split, setup_id)
 
