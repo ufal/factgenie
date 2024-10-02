@@ -1,6 +1,6 @@
 api_url: http://localhost:11434/api/
 extra_args:
-  rstrip: '"'
+  remove_suffix: '"'
 model: llama3
 model_args:
   num_predict: 1024

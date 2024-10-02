@@ -1,6 +1,6 @@
 api_url: ''
 extra_args:
-  rstrip: '"'
+  remove_suffix: '"'
 model: gpt-4o-mini-2024-07-18
 model_args: {}
 prompt_template: |-
