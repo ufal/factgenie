@@ -30,7 +30,7 @@ def get_example_info(j, campaign_id):
         "campaign_id": campaign_id,
         "dataset": j["dataset"],
         "example_idx": j["example_idx"],
-        "setup_id": j["setup"]["id"],
+        "setup_id": j["setup_id"],
         "split": j["split"],
     }
 
