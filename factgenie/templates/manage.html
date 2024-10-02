@@ -223,22 +223,22 @@
             <tbody>
               {% for dataset, splits in model_outputs.items() %}
               {% for split, setups in splits.items() %}
-              {% for setup, outputs in setups.items() %}
+              {% for setup_id, outputs in setups.items() %}
               <tr>
                 <td>{{ dataset }}</td>
                 <td>{{ split }}</td>
-                <td>{{ setup }}</td>
+                <td>{{ setup_id }}</td>
                 <td>{{ datasets[dataset].example_count[split] }}</td>
                 <td>
                   <a href="{{ host_prefix }}/browse?dataset={{ dataset }}&split={{ split }}&example_idx=0"
                     class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Show the outputs">
                     <i class="fa fa-eye"></i>
                   </a>
-                  <a href="{{ host_prefix }}/export_outputs?dataset={{ dataset }}&split={{ split }}&setup={{ setup }}"
+                  <a href="{{ host_prefix }}/export_outputs?dataset={{ dataset }}&split={{ split }}&setup_id={{ setup_id }}"
                     class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Export model outputs">
                     <i class="fa fa-download"></i>
                   </a>
-                  <a onclick="deleteOutput('{{ dataset }}', '{{ split }}', '{{ setup }}')"
+                  <a onclick="deleteOutput('{{ dataset }}', '{{ split }}', '{{ setup_id }}')"
                     class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Delete the output">
                     <i class="fa fa-trash"></i>
                   </a>

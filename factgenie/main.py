@@ -804,7 +804,7 @@ def save_config():
 def save_generation_outputs():
     data = request.get_json()
     campaign_id = data.get("campaignId")
-    model_name = data.get("modelName")
+    model_name = slugify(data.get("modelName"))
 
     utils.save_generation_outputs(app, campaign_id, model_name)
 

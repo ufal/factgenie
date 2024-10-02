@@ -665,7 +665,7 @@ def export_dataset(app, dataset_id):
 
 def export_outputs(app, dataset_id, split, setup_id):
     zip_buffer = BytesIO()
-    output_path = OUTPUT_DIR / dataset_id / split
+    output_path = OUTPUT_DIR / dataset_id / split / setup_id
 
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         for root, dirs, files in os.walk(output_path):
