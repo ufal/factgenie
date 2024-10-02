@@ -48,7 +48,6 @@ class Dataset(ABC):
 
         self.splits = kwargs.get("splits", ["train", "dev", "test"])
         self.description = kwargs.get("description", "")
-        self.type = kwargs.get("type", "default")
 
         # load data
         self.examples = {}
