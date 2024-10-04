@@ -88,7 +88,7 @@ class Campaign:
 
 class ExternalCampaign(Campaign):
     def get_stats(self):
-        return self.db["status"].value_counts().to_dict()
+        return {}
 
 
 class HumanCampaign(Campaign):
