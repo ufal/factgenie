@@ -61,16 +61,25 @@ See the following **wiki pages** that that will guide you through various use-ca
 | 👥 [Crowdsourcing Annotations](../../wiki/04-Crowdsourcing-Annotations) | How to annotate outputs using human crowdworkers.  |
 | ✍️  [Generating Outputs](../../wiki/05-Generating-Outputs)              | How to generate outputs using LLMs.                |
 | 📊 [Analyzing Annotations](../../wiki/06-Analyzing-Annotations)         | How to obtain statistics on collected annotations. |
-| 🧑‍💻 [Developer Notes](../../wiki/07-Developer-Notes)                     | How to contribute to the framework.                |
+| 🌱 [Contributing](../../wiki/07-Contributing)                           | How to contribute to factgenie.                    |
 
- 
-We provide multiple examples for you to get inspired when preparing your own experiments. In simple cases, you can even get without writing Python code completely!
+## 🔥 Tutorials
+We also provide a set of hands-on tutorials, showing how to employ factgenie on the [the dataset from the Shared Task in Evaluating Semantic Accuracy](https://github.com/ehudreiter/accuracySharedTask):
+
+| Tutorial                                                                                                                       | Description                                                                                      |
+| ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| [🏀 #1: Importing a custom dataset](../../wiki/00-Tutorials#-tutorial-1-importing-a-custom-dataset)                             | Loading the basketball statistics and model-generated basketball reports into the web interface. |
+| [💬 #2: Generating outputs](../../wiki/00-Tutorials#-tutorial-2-generating-outputs)                                             | Using Llama 3.1 with Ollama for generating basketball reports.                                   |
+| [📊 #3: Customizing data visualization](../../wiki/00-Tutorials#-tutorial-3-customizing-data-visualization)                     | Manually creating a custom dataset class for better data visualization.                          |
+| [🤖 #4: Annotating outputs with an LLM](../../wiki/00-Tutorials#-tutorial-4-annotating-outputs-with-an-llm)                     | Using GPT-4o for annotating errors in the basketball reports.                                    |
+| [👨‍💼 #5: Annotating outputs with human annotators](../../wiki/00-Tutorials#-tutorial-5-annotating-outputs-with-human-annotators) | Using human annotators for annotating errors in the basketball reports.                          |
+
 
 ## 💬 Cite us
 
-[Our paper](https://aclanthology.org/2024.inlg-demos.5/) is accepted for INLG 2024 System Demonstrations!
+[Our paper](https://aclanthology.org/2024.inlg-demos.5/) was published at INLG 2024 System Demonstrations!
 
-You can also find it on [arXiv](https://arxiv.org/abs/2407.17863).
+You can also find the paper on [arXiv](https://arxiv.org/abs/2407.17863).
 
 For citing us, please use the following BibTeX entry:
 ```bibtex
