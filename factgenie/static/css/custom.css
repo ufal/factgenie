@@ -922,3 +922,15 @@ a:hover {
 .table-datasets {
     cursor: pointer;
 }
+
+.bg-running {
+    background-color: #2d9f2a;
+}
+
+.bg-finished {
+    background-color: #2d8392;
+}
+
+.bg-idle {
+    background-color: #cdc83c;
+}
