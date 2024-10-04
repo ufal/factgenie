@@ -27,7 +27,7 @@ prompt_template: |
   - 2: Misleading: The fact in the text is misleading in the given context.
   - 3: Other: The text is problematic for another reason, e.g. grammatically or stylistically incorrect, irrelevant, or repetitive.
 
-  The list should be sorted by the position of the error in the text.
+  The list should be sorted by the position of the error in the text. Make sure that the annotations are not overlapping.
 
   *Example:*
   data:
