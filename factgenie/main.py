@@ -472,7 +472,7 @@ def duplicate_eval():
     data = request.get_json()
     mode = data.get("mode")
     campaign_id = data.get("campaignId")
-    new_campaign_id = data.get("newCampaignId")
+    new_campaign_id = slugify(data.get("newCampaignId"))
 
     ret = utils.duplicate_eval(app, mode, campaign_id, new_campaign_id)
 
