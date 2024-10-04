@@ -181,6 +181,7 @@ def annotate():
 
     campaign_id = request.args.get("campaign")
     campaign = utils.load_campaign(app, campaign_id=campaign_id, mode="crowdsourcing")
+
     annotator_id = request.args.get("PROLIFIC_PID", "test")
     session_id = request.args.get("SESSION_ID", "test")
     study_id = request.args.get("STUDY_ID", "test")

@@ -27,7 +27,6 @@ annotator_instructions: |
   Once you think you have marked all the errors present in the text, click the **✅ Mark example as complete** button (you can still update the annotation later). 
   
   You will be able to submit the annotations once they are all are marked as complete.
-annotator_prompt: "Drag your mouse over the text to annotate the selected category:"
 final_message: |
   Your annotations have been submitted.
 
