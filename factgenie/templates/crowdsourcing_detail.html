@@ -27,7 +27,10 @@
           <dt class="col-sm-3"> Page link </dt>
           <dd class="col-sm-9" id="metadata-status"> <span class="font-mono">{{ request.url | annotate_url
               }}?campaign={{
-              campaign_id }}</span> </dd>
+              campaign_id }}<span {% if metadata.config.service !='local'
+                %}style="display: none;{% endif %}">&annotatorId=FILL_YOUR_NAME_HERE</span></span> </dd>
+          <dt class="col-sm-3"> Service </dt>
+          <dd class="col-sm-9" id="metadata-service"> {{ metadata.config.service }} </dd>
           <dt class="col-sm-3"> Created </dt>
           <dd class="col-sm-9" id="metadata-created"> {{ metadata.created }} </dd>
           <dt class="col-sm-3"> Finished batches </dt>

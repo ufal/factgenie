@@ -7,6 +7,7 @@ annotation_span_categories:
     color: "#fff79f"
   - name: "Other"
     color: "#bbbbbb"
+service: prolific
 examples_per_batch: 10
 annotation_granularity: words
 sort_order: sort-example-ids-shuffle-setups

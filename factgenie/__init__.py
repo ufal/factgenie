@@ -26,3 +26,5 @@ if not MAIN_CONFIG_PATH.exists():
         "Please rename config_TEMPLATE.yml to config.yml. "
         "Change the password, update the host prefix, etc."
     )
+
+PREVIEW_STUDY_ID = "factgenie_preview"

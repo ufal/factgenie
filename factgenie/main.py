@@ -182,13 +182,12 @@ def annotate():
     campaign_id = request.args.get("campaign")
     campaign = utils.load_campaign(app, campaign_id=campaign_id, mode="crowdsourcing")
 
-    annotator_id = request.args.get("PROLIFIC_PID", "test")
-    session_id = request.args.get("SESSION_ID", "test")
-    study_id = request.args.get("STUDY_ID", "test")
+    service = campaign.metadata["config"]["service"]
+    service_ids = utils.get_service_ids(service, request.args)
 
     db = campaign.db
     metadata = campaign.metadata
-    annotation_set = utils.get_annotator_batch(app, campaign, db, annotator_id, session_id, study_id)
+    annotation_set = utils.get_annotator_batch(app, campaign, db, service_ids)
 
     if not annotation_set:
         # no more available examples
@@ -202,7 +201,7 @@ def annotate():
         f"campaigns/{campaign.campaign_id}/annotate.html",
         host_prefix=app.config["host_prefix"],
         annotation_set=annotation_set,
-        annotator_id=annotator_id,
+        annotator_id=service_ids["annotator_id"],
         metadata=metadata,
     )
 

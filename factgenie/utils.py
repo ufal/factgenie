@@ -49,6 +49,7 @@ from factgenie import (
     CROWDSOURCING_CONFIG_DIR,
     DATASET_CONFIG_PATH,
     DATASET_LOCAL_CONFIG_PATH,
+    PREVIEW_STUDY_ID,
 )
 
 file_handler = logging.FileHandler("error.log")
@@ -380,13 +381,15 @@ def select_batch_idx(db, seed):
     return batch_idx
 
 
-def get_annotator_batch(app, campaign, db, annotator_id, session_id, study_id):
+def get_annotator_batch(app, campaign, db, service_ids):
     # simple locking over the CSV file to prevent double writes
     with app.db["lock"]:
+        annotator_id = service_ids["annotator_id"]
+
         logging.info(f"Acquiring lock for {annotator_id}")
         start = int(time.time())
 
-        seed = random.seed(str(start) + annotator_id + session_id + study_id)
+        seed = random.seed(str(start) + str(service_ids.values()))
 
         try:
             batch_idx = select_batch_idx(db, seed)
@@ -394,7 +397,7 @@ def get_annotator_batch(app, campaign, db, annotator_id, session_id, study_id):
             # no available batches
             return []
 
-        if annotator_id != "test":
+        if annotator_id != PREVIEW_STUDY_ID:
             db = free_idle_examples(db)
 
             # update the CSV
@@ -408,14 +411,7 @@ def get_annotator_batch(app, campaign, db, annotator_id, session_id, study_id):
 
         for example in annotator_batch:
             example.update(
-                {
-                    "campaign_id": campaign.campaign_id,
-                    "batch_idx": batch_idx,
-                    "annotator_id": annotator_id,
-                    "session_id": session_id,
-                    "study_id": study_id,
-                    "start_timestamp": start,
-                }
+                {"campaign_id": campaign.campaign_id, "batch_idx": batch_idx, "start_timestamp": start, **service_ids}
             )
 
         logging.info(f"Releasing lock for {annotator_id}")
@@ -865,6 +861,27 @@ def generate_default_id(campaign_index, prefix):
     return default_campaign_id
 
 
+def get_service_ids(service, args):
+    # we always need to have at least the annotator_id
+    service_ids = {
+        "annotator_id": None,
+    }
+    if service == "local":
+        service_ids["annotator_id"] = args.get("annotatorId", PREVIEW_STUDY_ID)
+    elif service == "prolific":
+        service_ids["annotator_id"] = args.get("PROLIFIC_PID", PREVIEW_STUDY_ID)
+        service_ids["session_id"] = args.get("SESSION_ID", PREVIEW_STUDY_ID)
+        service_ids["study_id"] = args.get("STUDY_ID", PREVIEW_STUDY_ID)
+    elif service == "mturk":
+        service_ids["annotator_id"] = args.get("workerId", PREVIEW_STUDY_ID)
+        service_ids["session_id"] = args.get("assignmentId", PREVIEW_STUDY_ID)
+        service_ids["study_id"] = args.get("hitId", PREVIEW_STUDY_ID)
+    else:
+        raise ValueError(f"Unknown service {service}")
+
+    return service_ids
+
+
 def check_login(app, username, password):
     c_username = app.config["login"]["username"]
     c_password = app.config["login"]["password"]
@@ -1015,12 +1032,12 @@ def parse_llm_gen_config(config):
 def parse_crowdsourcing_config(config):
     config = {
         "annotator_instructions": config.get("annotatorInstructions"),
-        "annotator_prompt": config.get("annotatorPrompt"),
         "has_display_overlay": config.get("hasDisplayOverlay"),
         "final_message": config.get("finalMessage"),
         "examples_per_batch": int(config.get("examplesPerBatch")),
         "idle_time": int(config.get("idleTime")),
         "annotation_granularity": config.get("annotationGranularity"),
+        "service": config.get("service"),
         "sort_order": config.get("sortOrder"),
         "annotation_span_categories": config.get("annotationSpanCategories"),
         "flags": config.get("flags"),
@@ -1105,7 +1122,6 @@ def create_crowdsourcing_page(campaign_id, config):
             parts.append(f.read())
 
     instructions_html = markdown.markdown(config["annotator_instructions"])
-    annotator_prompt = config["annotator_prompt"]
     final_message_html = markdown.markdown(config["final_message"])
     has_display_overlay = config.get("has_display_overlay", True)
 
@@ -1114,7 +1130,6 @@ def create_crowdsourcing_page(campaign_id, config):
 
     rendered_content = template.render(
         instructions=instructions_html,
-        annotator_prompt=annotator_prompt,
         final_message=final_message_html,
         annotation_span_categories=config.get("annotation_span_categories", []),
         has_display_overlay='style="display: none"' if not has_display_overlay else "",

@@ -736,12 +736,13 @@ function gatherConfig() {
 
     if (window.mode == "crowdsourcing") {
         config.annotatorInstructions = annotatorInstructionsMDE.value();
-        config.annotatorPrompt = $("#annotatorPrompt").val();
+        // config.annotatorPrompt = $("#annotatorPrompt").val();
         config.finalMessage = finalMessageMDE.value();
         config.hasDisplayOverlay = $("#displayOverlay").is(":checked");
         config.examplesPerBatch = $("#examplesPerBatch").val();
         config.idleTime = $("#idleTime").val();
         config.annotationGranularity = $("#annotationGranularity").val();
+        config.service = $("#service").val();
         config.sortOrder = $("#sortOrder").val();
         config.annotationSpanCategories = getAnnotationSpanCategories();
         config.flags = getKeys($("#flags"));
@@ -1219,7 +1220,7 @@ function updateCrowdsourcingConfig() {
 
     if (crowdsourcingConfig === "[None]") {
         annotatorInstructionsMDE.value("");
-        $("#annotatorPrompt").val("");
+        // $("#annotatorPrompt").val("");
         finalMessageMDE.value("");
         $("#examplesPerBatch").val("");
         $("#idleTime").val("");
@@ -1231,22 +1232,23 @@ function updateCrowdsourcingConfig() {
     const cfg = window.configs[crowdsourcingConfig];
 
     const annotatorInstructions = cfg.annotator_instructions;
-    const annotatorPrompt = cfg.annotator_prompt;
     const finalMessage = cfg.final_message;
     const examplesPerBatch = cfg.examples_per_batch;
     const idleTime = cfg.idle_time;
     const annotationGranularity = cfg.annotation_granularity;
+    const service = cfg.service;
     const sortOrder = cfg.sort_order;
     const annotationSpanCategories = cfg.annotation_span_categories;
     const flags = cfg.flags;
     const options = cfg.options;
 
     annotatorInstructionsMDE.value(annotatorInstructions);
-    $("#annotatorPrompt").val(annotatorPrompt);
+    // $("#annotatorPrompt").val(annotatorPrompt);
     finalMessageMDE.value(finalMessage);
     $("#examplesPerBatch").val(examplesPerBatch);
     $("#idleTime").val(idleTime);
     $("#annotationGranularity").val(annotationGranularity);
+    $("#service").val(service);
     $("#sortOrder").val(sortOrder);
     $("#annotation-span-categories").empty();
 
