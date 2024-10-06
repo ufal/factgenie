@@ -1410,6 +1410,11 @@ def migrate():
 
     logger.warning(f"Keeping the following local datasets: {list(dataset_config.keys())}")
 
+    # if any dataset has `class: base.X`, rename it to `basic.X`
+    for dataset_id, dataset in dataset_config.items():
+        if dataset["class"].startswith("base."):
+            dataset_config[dataset_id]["class"] = dataset["class"].replace("base.", "basic.")
+
     with open(DATASET_CONFIG_PATH, "w") as f:
         yaml.dump(dataset_config, f, indent=2, allow_unicode=True)
 
