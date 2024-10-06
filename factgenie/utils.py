@@ -1405,7 +1405,7 @@ def migrate():
     with open(RESOURCES_CONFIG_PATH) as f:
         resources_config = yaml.safe_load(f)
 
-    standard_datasets = set(resources_config.keys()) + ["logicnlg", "xsum"]
+    standard_datasets = set(resources_config.keys()).union({"logicnlg", "xsum"})
     dataset_config = {k: v for k, v in dataset_config.items() if k not in standard_datasets}
 
     if dataset_config:
