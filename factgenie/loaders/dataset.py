@@ -167,7 +167,7 @@ class Dataset(ABC):
                     j = json.loads(line)
 
                     split = j["split"]
-                    setup_id = j["setup_id"]
+                    setup_id = slugify(j["setup_id"])
                     example_idx = j["example_idx"]
 
                     if split not in outputs:

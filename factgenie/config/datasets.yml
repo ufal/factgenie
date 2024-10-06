@@ -1,7 +1,7 @@
 easy-vqa:
   class: basic.HTMLDataset
   description: A toy visual question answering dataset. Provided as an example dataset
-    loaded by the <code>base.HTMLDataset</code> class.
+    loaded by the <code>basic.HTMLDataset</code> class.
   enabled: false
   splits:
   - test

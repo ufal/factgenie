@@ -970,6 +970,7 @@ function pauseLLMCampaign(campaignId) {
     $("#stop-button").hide();
     $("#download-button").show();
     $("#llm-progress").hide();
+    $("#metadata-status").html("idle");
 
     $.post({
         url: `${url_prefix}/llm_campaign/pause?mode=${mode}`,

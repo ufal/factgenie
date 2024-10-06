@@ -2,7 +2,7 @@ easy-vqa:
   class: basic.HTMLDataset
   data-link: https://owncloud.cesnet.cz/index.php/s/3JbbbAxSqX8PSNJ/download
   description: A toy visual question answering dataset. Provided as an example dataset
-    loaded by the <code>base.HTMLDataset</code> class.
+    loaded by the <code>basic.HTMLDataset</code> class.
   source: https://github.com/vzhou842/easy-VQA
   splits:
   - test
