@@ -11,11 +11,16 @@
                     <ul class="nav nav-pills">
                         <li class="nav-item">
                             <a class="nav-link active" aria-current="page" href="#tab-hf-dataset"
-                                data-bs-toggle="pill">Supported formats</a>
+                                data-bs-toggle="pill">Basic loaders</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#tab-download-dataset" data-bs-toggle="pill">Download a
+                                dataset</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#tab-custom-dataset" data-bs-toggle="pill">Custom dataset</a>
                         </li>
+
                     </ul>
                 </div>
 
@@ -37,6 +42,15 @@
                                 </ul>
                             </div>
                             <div class="mb-3">
+                                <label for="dataset-format" class="form-label">Dataset format</label>
+                                <select class="form-select" id="dataset-format">
+                                    <option value="text">Text</option>
+                                    <option value="jsonl">JSONL</option>
+                                    <option value="csv">CSV</option>
+                                    <option value="html">HTML</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
                                 <label for="dataset-id" class="form-label
                                     ">Dataset ID</label>
                                 <input class="form-control" type="text" id="dataset-id" name="dataset-id" required>
@@ -47,15 +61,7 @@
                                 <textarea class="form-control" id="dataset-description" name="dataset-description"
                                     rows="3"></textarea>
                             </div>
-                            <div class="mb-3">
-                                <label for="dataset-format" class="form-label">Dataset format</label>
-                                <select class="form-select" id="dataset-format">
-                                    <option value="text">Text</option>
-                                    <option value="jsonl">JSONL</option>
-                                    <option value="csv">CSV</option>
-                                    <option value="html">HTML</option>
-                                </select>
-                            </div>
+
                             <div class="row g-3 mb-3 align-items-center">
                                 <div class="col-auto">
                                     <span style="margin-left: 10px; margin-right: 10px;">Dataset files</span>
@@ -69,17 +75,48 @@
                             </div>
                         </form>
                         <div class="modal-footer">
-                            <button type="submit" class="btn btn-primary mt-3" onclick="uploadDataset();">Add
+                            <button type="submit" id="upload-dataset-btn" class="btn btn-primary mt-3"
+                                onclick="uploadDataset();">Upload
                                 dataset</button>
                         </div>
 
                     </div>
-                    <div id="tab-custom-dataset" role="tabpanel" class="tab-pane p-3" tabindex="0">
-                        <div class="alert alert-info" role="alert">
-                            To add a custom dataset, register the dataset in <code>loaders/datasets.yaml</code>.
+                    <div id="tab-download-dataset" role="tabpanel" class="tab-pane p-3" tabindex="1">
+                        <div class="alert alert-info blue-link" role="alert">
+                            <p>You can download a dataset from the list on the data management page.</p>
 
-                            You can either select from pre-existing classes or create a loader in <code>loaders</code>
-                            (subclassing the <code>Dataset</code> class).
+                            <p>After downloading the dataset, it will appear in the list.</p>
+
+                            <p>You can also help other users by adding your (or public) dataset to the list! See the
+                                contribution guidelines on <a href="https://github.com/ufal/factgenie/wiki"><b>
+                                        factgenie
+                                        wiki
+                                    </b></a>.</p>
+                        </div>
+                    </div>
+                    <div id="tab-custom-dataset" role="tabpanel" class="tab-pane p-3" tabindex="2">
+                        <div class="alert alert-info" role="alert">
+                            <p>To add a custom dataset locally, register the dataset in
+                                <code>loaders/datasets.yaml</code>.
+                            </p>
+
+                            <p>You can either select from pre-existing classes (see <code>loaders/basic.py</code>) or
+                                create a loader in
+                                <code>loaders</code>
+                                (subclassing the <code>Dataset</code> class).
+                            </p>
+
+                            <p>This an example <code>datasets.yaml</code> file:</p>
+                            <pre>
+datasets:
+  my-dataset:
+    class: my_dataset.MyDataset
+    description: Description of your dataset.
+    enabled: true
+    splits:
+    - dev
+    - test
+                            </pre>
                         </div>
 
                     </div>

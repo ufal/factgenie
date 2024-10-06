@@ -134,8 +134,7 @@
                   <i class="fa fa-user"></i>
                   <span style="margin-left: 5px; margin-right: 10px;">System message</span>
                   <div class="mb-2">
-                    <small class="form-text text-muted">For OpenAI API, this will be sent in the
-                      <code>system_message</code> parameter (optional).
+                    <small class="form-text text-muted">Role of the model (optional).
                     </small>
                   </div>
                 </div>
@@ -184,7 +183,9 @@
                   <i class="fa fa-cogs"></i>
                   <span style="margin-left: 10px; margin-right: 10px;">Model arguments</span>
                   <div class="mb-2">
-                    <small class="form-text text-muted">API arguments to be passed to the model
+                    <small class="form-text text-muted">API arguments to be passed to the model. Internally, we use
+                      <code>ast.literal_eval()</code> for determining the argument type. Use floating point
+                      format (e.g. 0.0) for the numbers that should be interpreted as floats.
                     </small>
                   </div>
                 </div>
@@ -291,3 +292,4 @@
   window.mode = "{{ mode }}";
 </script>
 <script src="{{ host_prefix }}/static/js/factgenie.js"></script>
+<script src="{{ host_prefix }}/static/js/utils.js"></script>

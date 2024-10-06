@@ -76,7 +76,7 @@
                         <datalist id="datalistOptionsLlm">
                             {% for filename in llm_configs.keys() %}
                             <!-- save the name without suffix to variable -->
-                            {% set config_name = filename.rstrip(".yaml") %}
+                            {% set config_name = filename.replace(".yaml", "") %}
                             <option value="{{ config_name }}">{{ filename }}</option>
                             {% endfor %}
                         </datalist>
@@ -110,7 +110,7 @@
                         <datalist id="datalistOptionsCrowdsourcing">
                             {% for filename in crowdsourcing_configs.keys() %}
                             <!-- save the name without suffix to variable -->
-                            {% set config_name = filename.rstrip(".yaml") %}
+                            {% set config_name = filename.replace(".yaml", "") %}
                             <option value="{{ config_name }}">{{ filename }}</option>
                             {% endfor %}
                         </datalist>

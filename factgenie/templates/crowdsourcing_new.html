@@ -100,14 +100,6 @@
                   <input type="checkbox" class="form-check-input" id="displayOverlay" name="displayOverlay" checked>
                 </div>
               </div>
-              <!-- textarea for annotator prompt -->
-              <div class="form-group mt-3">
-                <label for="annotatorPrompt">Annotator prompt</label>
-                <div class="mb-2">
-                  <small class="form-text text-muted">The message shown right before the annotated text.</small>
-                </div>
-                <textarea class="form-control" id="annotatorPrompt" name="annotatorPrompt" rows="1" required></textarea>
-              </div>
               <!-- textarea for final message -->
               <div class="form-group  mt-4">
                 <label for="finalMessage">Final message</label>
@@ -119,6 +111,17 @@
                 <textarea class="form-control" id="finalMessage" name="finalMessage" required></textarea>
               </div>
               <div class="form-group">
+                <label for="service">Service</label>
+                <div class="mb-2">
+                  <small class="form-text text-muted">Which crowdsourcing service will be used for the campaign.</small>
+                </div>
+                <select class="form-select" id="service" name="service">
+                  <option value="local">Local annotators only</option>
+                  <option value="prolific">Prolific</option>
+                  <option value="mturk">Amazon Mechanical Turk (beta)</option>
+                </select>
+              </div>
+              <div class="form-group  mt-4">
                 <label for="examplesPerBatch">Examples per batch</label>
                 <div class="mb-2">
                   <small class="form-text text-muted">Number of examples shown to each annotator </small>
@@ -297,3 +300,4 @@
   });
 </script>
 <script src="{{ host_prefix }}/static/js/factgenie.js"></script>
+<script src="{{ host_prefix }}/static/js/utils.js"></script>

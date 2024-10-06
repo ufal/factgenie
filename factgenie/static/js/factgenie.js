@@ -96,9 +96,9 @@ function fetchAnnotation(dataset, split, example_idx, annotation_idx) {
             }).appendTo('#outputarea');
 
             // filter the data to only include the setup we want
-            const setup_id = annotation_set[annotation_idx].setup.id;
+            const setup_id = annotation_set[annotation_idx].setup_id;
 
-            data.generated_outputs = data.generated_outputs.filter(o => o.setup.id == setup_id)[0];
+            data.generated_outputs = data.generated_outputs.filter(o => o.setup_id == setup_id)[0];
 
             examples_cached[annotation_idx] = data;
 
@@ -133,7 +133,7 @@ function loadAnnotations() {
 
                 for (const [annotation_idx, data] of Object.entries(examples_cached)) {
 
-                    var p = new Paragraph({ 'text': data.generated_outputs.generated, 'granularity': metadata.config.annotation_granularity });
+                    var p = new Paragraph({ 'text': data.generated_outputs.out, 'granularity': metadata.config.annotation_granularity });
 
                     paragraphs[`p${annotation_idx}`] = p;
                     regions[`p${annotation_idx}`] = `#out-text-${annotation_idx}`;
@@ -382,9 +382,9 @@ function changeExample(dataset, split, example_idx) {
 }
 
 function getAnnotatedOutput(output, campaign_id) {
-    const setup_id = output.setup.id;
+    const setup_id = output.setup_id;
     // replace newlines with any spaces around them with <br>
-    const content = output.generated.replace(/\\n/g, '<br>');
+    const content = output.out.replace(/\\n/g, '<br>');
 
     // if the campaign_id is in output.annotations, show the annotated content
     const annotations_campaign = output.annotations.filter(a => a.metadata.id == campaign_id);
@@ -435,11 +435,11 @@ function annotateContent(content, annotations, annotation_span_categories) {
         const end = start + text.length;
 
         const error_name = annotation_span_categories[annotationType].name;
-        const reason = annotation.reason;
+        const note = annotation.reason || annotation.note;
         let tooltip_text;
 
-        if (annotation.reason !== undefined) {
-            tooltip_text = `${error_name} (${reason})`;
+        if (note !== undefined && note !== "" && note !== null) {
+            tooltip_text = `${error_name} (${note})`;
         } else {
             tooltip_text = `${error_name}`;
         }
@@ -474,10 +474,7 @@ function updateDisplayedAnnotations() {
 }
 
 
-function createOutputBox(content, campaign_id, setup) {
-    const setup_id = setup.id;
-    const model = setup.model;
-
+function createOutputBox(content, campaign_id, setup_id) {
     var card = $('<div>', { class: `card output-box generated-output-box box-${setup_id} box-${campaign_id} box-${setup_id}-${campaign_id}` });
 
     var annotationBadge = (campaign_id !== "original") ? `<span class="small"><i class="fa fa-pencil"></i> ${campaign_id}</span>` : ""
@@ -489,10 +486,10 @@ function createOutputBox(content, campaign_id, setup) {
 
     var cardHeader = $('<div>', { class: "card-header card-header-collapse small", "data-bs-toggle": "collapse", "data-bs-target": `#out-${setup_id}-${campaign_id}` }).html(headerHTML);
     var cardBody = $('<div>', { class: "card-body show", id: `out-${setup_id}-${campaign_id}`, "aria-expanded": "true" });
-    var cardTitle = $('<h5>', { class: "card-title" }).text(model);
-    var cardText = $('<div>', { class: "card-text" }).html(content);
+    // var cardTitle = $('<h5>', { class: "card-title" }).text(setup_id);
+    var cardText = $('<div>', { class: "card-text mt-2" }).html(content);
 
-    cardBody.append(cardTitle);
+    // cardBody.append(cardTitle);
     cardBody.append(cardText);
     card.append(cardHeader);
     card.append(cardBody);
@@ -505,7 +502,7 @@ function createOutputBoxes(generated_outputs) {
 
     // sort outputs by setup id
     generated_outputs.sort(function (a, b) {
-        return a.setup.id.localeCompare(b.setup.id);
+        return a.setup_id.localeCompare(b.setup_id);
     });
 
     // find all campaign ids in output annotations
@@ -538,16 +535,16 @@ function createOutputBoxes(generated_outputs) {
 
     // add the annotated outputs
     for (const output of generated_outputs) {
-        groupDiv = $('<div>', { class: `output-group box-${output.setup.id} d-inline-flex gap-2` });
+        var groupDiv = $('<div>', { class: `output-group box-${output.setup_id} d-inline-flex gap-2` });
         groupDiv.appendTo("#outputarea");
 
-        plain_output = getAnnotatedOutput(output, "original");
-        card = createOutputBox(plain_output, "original", output.setup);
+        const plain_output = getAnnotatedOutput(output, "original");
+        card = createOutputBox(plain_output, "original", output.setup_id);
         card.appendTo(groupDiv);
 
         for (const campaign_id of campaign_ids) {
             const annotated_output = getAnnotatedOutput(output, campaign_id);
-            card = createOutputBox(annotated_output, campaign_id, output.setup);
+            card = createOutputBox(annotated_output, campaign_id, output.setup_id);
             card.appendTo(groupDiv);
             card.hide();
         }
@@ -713,8 +710,7 @@ function gatherComparisonData() {
         for (const dataset of campaign_datasets) {
             for (const split of campaign_splits) {
                 for (const output of campaign_outputs) {
-                    if (model_outs[dataset][split] !== undefined &&
-                        model_outs[dataset][split][output] !== undefined) {
+                    if (model_outs[dataset][split] !== undefined && output in model_outs[dataset][split]) {
                         combinations.push({ dataset: dataset, split: split, setup_id: output, example_cnt: datasets[dataset].example_count[split] });
                     }
                 }
@@ -724,7 +720,7 @@ function gatherComparisonData() {
         // get all available combinations of datasets and splits
         for (const dataset of campaign_datasets) {
             for (const split of campaign_splits) {
-                if (model_outs[dataset][split] !== undefined) {
+                if (split in model_outs[dataset]) {
                     combinations.push({ dataset: dataset, split: split, example_cnt: datasets[dataset].example_count[split] });
                 }
             }
@@ -740,12 +736,13 @@ function gatherConfig() {
 
     if (window.mode == "crowdsourcing") {
         config.annotatorInstructions = annotatorInstructionsMDE.value();
-        config.annotatorPrompt = $("#annotatorPrompt").val();
+        // config.annotatorPrompt = $("#annotatorPrompt").val();
         config.finalMessage = finalMessageMDE.value();
         config.hasDisplayOverlay = $("#displayOverlay").is(":checked");
         config.examplesPerBatch = $("#examplesPerBatch").val();
         config.idleTime = $("#idleTime").val();
         config.annotationGranularity = $("#annotationGranularity").val();
+        config.service = $("#service").val();
         config.sortOrder = $("#sortOrder").val();
         config.annotationSpanCategories = getAnnotationSpanCategories();
         config.flags = getKeys($("#flags"));
@@ -897,7 +894,7 @@ function startLLMCampaignListener(campaignId) {
         const example = payload.annotation;
         const dataset = example.dataset;
         const split = example.split;
-        const setup_id = example.setup.id;
+        const setup_id = example.setup_id;
         const example_idx = example.example_idx;
         const rowId = `${dataset}-${split}-${setup_id}-${example_idx}`;
         const annotation_button = $(`#annotBtn${rowId}`);
@@ -921,6 +918,14 @@ function startLLMCampaignListener(campaignId) {
         if (progress == 100) {
             source.close();
             console.log("Closing the connection");
+
+            $("#metadata-status").html("finished");
+            $("#run-button").hide();
+            $("#download-button").show();
+            $("#stop-button").hide();
+            $("#llm-progress").hide();
+
+            $("#log-area").text(response.final_message);
 
             if (window.mode == "llm_gen") {
                 $("#save-generations-button").show();
@@ -955,16 +960,6 @@ function runLLMCampaign(campaignId) {
                 $("#llm-progress").hide();
             } else {
                 console.log(response);
-
-                if (response.status == "finished") {
-                    $("#metadata-status").html("finished");
-                    $("#run-button").hide();
-                    $("#download-button").show();
-                    $("#stop-button").hide();
-                    $("#llm-progress").hide();
-
-                    $("#log-area").text(response.final_message);
-                }
             }
         }
     });
@@ -975,6 +970,7 @@ function pauseLLMCampaign(campaignId) {
     $("#stop-button").hide();
     $("#download-button").show();
     $("#llm-progress").hide();
+    $("#metadata-status").html("idle");
 
     $.post({
         url: `${url_prefix}/llm_campaign/pause?mode=${mode}`,
@@ -984,36 +980,6 @@ function pauseLLMCampaign(campaignId) {
         }),
         success: function (response) {
             console.log(response);
-        }
-    });
-}
-
-function deleteCampaign(campaignId, source) {
-    // ask for confirmation
-    if (!confirm(`Are you sure you want to delete the campaign ${campaignId}? All the data will be lost!`)) {
-        return;
-    }
-
-    $.post({
-        url: `${url_prefix}/delete_campaign`,
-        contentType: 'application/json', // Specify JSON content type
-        data: JSON.stringify({
-            campaignId: campaignId,
-            source: source,
-            mode: window.mode
-        }),
-        success: function (response) {
-            console.log(response);
-
-            if (response.success !== true) {
-                alert(response.error);
-            } else {
-                // remove the campaign from the list
-                $(`#campaign-${campaignId}`).remove();
-
-                // reload the page
-                location.reload();
-            }
         }
     });
 }
@@ -1255,7 +1221,7 @@ function updateCrowdsourcingConfig() {
 
     if (crowdsourcingConfig === "[None]") {
         annotatorInstructionsMDE.value("");
-        $("#annotatorPrompt").val("");
+        // $("#annotatorPrompt").val("");
         finalMessageMDE.value("");
         $("#examplesPerBatch").val("");
         $("#idleTime").val("");
@@ -1267,22 +1233,23 @@ function updateCrowdsourcingConfig() {
     const cfg = window.configs[crowdsourcingConfig];
 
     const annotatorInstructions = cfg.annotator_instructions;
-    const annotatorPrompt = cfg.annotator_prompt;
     const finalMessage = cfg.final_message;
     const examplesPerBatch = cfg.examples_per_batch;
     const idleTime = cfg.idle_time;
     const annotationGranularity = cfg.annotation_granularity;
+    const service = cfg.service;
     const sortOrder = cfg.sort_order;
     const annotationSpanCategories = cfg.annotation_span_categories;
     const flags = cfg.flags;
     const options = cfg.options;
 
     annotatorInstructionsMDE.value(annotatorInstructions);
-    $("#annotatorPrompt").val(annotatorPrompt);
+    // $("#annotatorPrompt").val(annotatorPrompt);
     finalMessageMDE.value(finalMessage);
     $("#examplesPerBatch").val(examplesPerBatch);
     $("#idleTime").val(idleTime);
     $("#annotationGranularity").val(annotationGranularity);
+    $("#service").val(service);
     $("#sortOrder").val(sortOrder);
     $("#annotation-span-categories").empty();
 

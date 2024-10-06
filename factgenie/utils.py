@@ -18,41 +18,39 @@ import inspect
 import importlib
 import zipfile
 import markdown
+import traceback
+
+import urllib
+from tqdm import tqdm
 
 from io import BytesIO
 from slugify import slugify
 from flask import jsonify, make_response
 from collections import defaultdict
 from pathlib import Path
-from factgenie.campaigns import HumanCampaign, LLMCampaignEval, LLMCampaignGen, CampaignStatus, ExampleStatus
-from factgenie.loaders.dataset import Dataset, DATA_DIR, OUTPUT_DIR
+from factgenie.campaigns import (
+    HumanCampaign,
+    LLMCampaignEval,
+    ExternalCampaign,
+    LLMCampaignGen,
+    CampaignStatus,
+    ExampleStatus,
+)
 from jinja2 import Template
 
-PACKAGE_DIR = Path(__file__).parent
-ROOT_DIR = PACKAGE_DIR.parent
-TEMPLATES_DIR = PACKAGE_DIR / "templates"
-STATIC_DIR = PACKAGE_DIR / "static"
-ANNOTATIONS_DIR = PACKAGE_DIR / "annotations"
-GENERATIONS_DIR = PACKAGE_DIR / "generations"
-LLM_EVAL_CONFIG_DIR = PACKAGE_DIR / "config" / "llm-eval"
-LLM_GEN_CONFIG_DIR = PACKAGE_DIR / "config" / "llm-gen"
-CROWDSOURCING_CONFIG_DIR = PACKAGE_DIR / "config" / "crowdsourcing"
-
-DATASET_CONFIG_PATH = PACKAGE_DIR / "loaders" / "datasets.yml"
-if not DATASET_CONFIG_PATH.exists():
-    raise ValueError(
-        f"Invalid path to datasets.yml {DATASET_CONFIG_PATH=}. "
-        "Please rename datasets_TEMPLATE.yml to datasets.yml. "
-        "Update the list of datasets you want to use, "
-        "update the ollama API url, etc."
-    )
-MAIN_CONFIG = PACKAGE_DIR / "config.yml"
-if not MAIN_CONFIG.exists():
-    raise ValueError(
-        f"Invalid path to config.yml {MAIN_CONFIG=}. "
-        "Please rename config_TEMPLATE.yml to config.yml. "
-        "Change the password, update the host prefix, etc."
-    )
+from factgenie import (
+    ANNOTATIONS_DIR,
+    GENERATIONS_DIR,
+    OUTPUT_DIR,
+    DATA_DIR,
+    TEMPLATES_DIR,
+    LLM_EVAL_CONFIG_DIR,
+    LLM_GEN_CONFIG_DIR,
+    CROWDSOURCING_CONFIG_DIR,
+    RESOURCES_CONFIG_PATH,
+    DATASET_CONFIG_PATH,
+    PREVIEW_STUDY_ID,
+)
 
 file_handler = logging.FileHandler("error.log")
 file_handler.setLevel(logging.ERROR)
@@ -180,6 +178,8 @@ def generate_campaign_index(app, force_reload=True):
                     campaign = LLMCampaignEval(campaign_id=campaign_id)
                 elif campaign_source == "llm_gen":
                     campaign = LLMCampaignGen(campaign_id=campaign_id)
+                elif campaign_source == "external":
+                    campaign = ExternalCampaign(campaign_id=campaign_id)
                 elif campaign_source == "hidden":
                     continue
                 else:
@@ -188,11 +188,27 @@ def generate_campaign_index(app, force_reload=True):
 
                 campaigns[campaign_source][campaign_id] = campaign
             except:
+                traceback.print_exc()
                 logger.error(f"Error while loading campaign {campaign_dir}")
 
     app.db["campaign_index"] = campaigns
 
     return app.db["campaign_index"]
+
+
+def get_sorted_campaign_list(app, sources):
+    campaign_index = generate_campaign_index(app, force_reload=True)
+
+    campaigns = []
+    for source in sources:
+        campaigns.extend(campaign_index[source].values())
+
+    campaigns.sort(key=lambda x: x.metadata["created"], reverse=True)
+    campaigns = {
+        c.metadata["id"]: {"metadata": c.metadata, "stats": c.get_stats(), "data": c.db.to_dict(orient="records")}
+        for c in campaigns
+    }
+    return campaigns
 
 
 def load_annotations_for_campaign(subdir):
@@ -206,6 +222,9 @@ def load_annotations_for_campaign(subdir):
     with open(metadata_path) as f:
         metadata = json.load(f)
 
+    if metadata["source"] == "hidden":
+        return None
+
     jsonl_files = (ANNOTATIONS_DIR / subdir / "files").glob("*.jsonl")
 
     for jsonl_file in jsonl_files:
@@ -218,7 +237,7 @@ def load_annotations_for_campaign(subdir):
                     slugify(annotation["dataset"]),
                     slugify(annotation["split"]),
                     annotation["example_idx"],
-                    slugify(annotation["setup"]["id"]),
+                    slugify(annotation["setup_id"]),
                 )
                 annotations_campaign[key].append(annotation)
 
@@ -245,7 +264,6 @@ def generate_annotation_index(app):
             logger.error(f"Error while loading annotations for {subdir}")
 
     app.db["annotation_index"] = annotations
-
     return annotations
 
 
@@ -287,10 +305,10 @@ def get_example_data(app, dataset_id, split, example_idx):
     # prefix all the "/files" calls with "app.config["host_prefix"]"
     html = html.replace('src="/files', f'src="{app.config["host_prefix"]}/files')
 
-    generated_outputs = dataset.get_generated_outputs_for_idx(split=split, output_idx=example_idx)
+    generated_outputs = dataset.get_outputs_for_idx(split=split, output_idx=example_idx)
 
     for i, output in enumerate(generated_outputs):
-        setup_id = output["setup"]["id"]
+        setup_id = output["setup_id"]
         annotations = get_annotations(app, dataset_id, split, example_idx, setup_id)
 
         generated_outputs[i]["annotations"] = annotations
@@ -313,13 +331,10 @@ def get_model_outputs_overview(app, datasets, non_empty=False):
         model_outputs[dataset_id] = {}
 
         for split in splits:
-            model_outputs[dataset_id][split] = {}
-            outputs = dataset.get_generated_outputs_for_split(split)
+            outputs = dataset.get_outputs_for_split(split)
 
-            for setup_id, output in outputs.items():
-                output_info = {}
-
-                model_outputs[dataset_id][split][setup_id] = output_info
+            # extract all key values from the outputs
+            model_outputs[dataset_id][split] = {setup_id: len(output) for setup_id, output in outputs.items()}
 
     if non_empty:
         for dataset_id, splits in model_outputs.items():
@@ -366,13 +381,15 @@ def select_batch_idx(db, seed):
     return batch_idx
 
 
-def get_annotator_batch(app, campaign, db, annotator_id, session_id, study_id):
+def get_annotator_batch(app, campaign, db, service_ids):
     # simple locking over the CSV file to prevent double writes
     with app.db["lock"]:
+        annotator_id = service_ids["annotator_id"]
+
         logging.info(f"Acquiring lock for {annotator_id}")
         start = int(time.time())
 
-        seed = random.seed(str(start) + annotator_id + session_id + study_id)
+        seed = random.seed(str(start) + str(service_ids.values()))
 
         try:
             batch_idx = select_batch_idx(db, seed)
@@ -380,7 +397,7 @@ def get_annotator_batch(app, campaign, db, annotator_id, session_id, study_id):
             # no available batches
             return []
 
-        if annotator_id != "test":
+        if annotator_id != PREVIEW_STUDY_ID:
             db = free_idle_examples(db)
 
             # update the CSV
@@ -394,14 +411,7 @@ def get_annotator_batch(app, campaign, db, annotator_id, session_id, study_id):
 
         for example in annotator_batch:
             example.update(
-                {
-                    "campaign_id": campaign.campaign_id,
-                    "batch_idx": batch_idx,
-                    "annotator_id": annotator_id,
-                    "session_id": session_id,
-                    "study_id": study_id,
-                    "start_timestamp": start,
-                }
+                {"campaign_id": campaign.campaign_id, "batch_idx": batch_idx, "start_timestamp": start, **service_ids}
             )
 
         logging.info(f"Releasing lock for {annotator_id}")
@@ -409,7 +419,7 @@ def get_annotator_batch(app, campaign, db, annotator_id, session_id, study_id):
     return annotator_batch
 
 
-def generate_llm_campaign_db(mode, datasets: Dict[str, Dataset], campaign_id, campaign_data):
+def generate_llm_campaign_db(mode, datasets, campaign_id, campaign_data):
     # load all outputs
     all_examples = []
 
@@ -493,9 +503,23 @@ def generate_campaign_db(app, campaign_data, config):
     return df
 
 
+def load_resources_config():
+    with open(RESOURCES_CONFIG_PATH) as f:
+        config = yaml.safe_load(f)
+
+    return config
+
+
 def load_dataset_config():
+    if not DATASET_CONFIG_PATH.exists():
+        with open(DATASET_CONFIG_PATH, "w") as f:
+            f.write("---\n")
+
     with open(DATASET_CONFIG_PATH) as f:
         config = yaml.safe_load(f)
+
+    if config is None:
+        config = {}
 
     return config
 
@@ -507,10 +531,10 @@ def save_dataset_config(config):
 
 def set_dataset_enabled(app, dataset_id, enabled):
     config = load_dataset_config()
-    config["datasets"][dataset_id]["enabled"] = enabled
+    config[dataset_id]["enabled"] = enabled
 
     if enabled:
-        dataset = instantiate_dataset(dataset_id, config["datasets"][dataset_id])
+        dataset = instantiate_dataset(dataset_id, config[dataset_id])
         app.db["datasets_obj"][dataset_id] = dataset
     else:
         app.db["datasets_obj"].pop(dataset_id, None)
@@ -518,11 +542,11 @@ def set_dataset_enabled(app, dataset_id, enabled):
     save_dataset_config(config)
 
 
-def get_dataset_overview(app):
+def get_local_dataset_overview(app):
     config = load_dataset_config()
     overview = {}
 
-    for dataset_id, dataset_config in config["datasets"].items():
+    for dataset_id, dataset_config in config.items():
         class_name = dataset_config["class"]
         params = dataset_config.get("params", {})
         is_enabled = dataset_config.get("enabled", True)
@@ -532,6 +556,11 @@ def get_dataset_overview(app):
 
         if is_enabled:
             dataset = app.db["datasets_obj"].get(dataset_id)
+
+            if dataset is None:
+                logger.warning(f"Dataset {dataset_id} is enabled but not loaded")
+                continue
+
             dataset.outputs = dataset.load_generated_outputs(dataset.output_path)
 
             example_count = {split: dataset.get_example_count(split) for split in dataset.get_splits()}
@@ -551,28 +580,60 @@ def get_dataset_overview(app):
     return overview
 
 
-def get_dataset_classes():
-    module_name = "factgenie.loaders"
-    module = importlib.import_module(module_name)
+def get_datasets_for_download(app):
+    config = load_resources_config()
 
-    classes = {}
+    return config
 
-    # for each submodule, find all classes subclassing `Dataset`
-    # then do { "submodule.class": class }
-    for name, obj in inspect.getmembers(module):
-        if inspect.ismodule(obj):
-            submodule = obj
-            for name, obj in inspect.getmembers(submodule):
-                if inspect.isclass(obj) and issubclass(obj, Dataset) and obj != Dataset:
-                    submodule_name = obj.__module__[len(module_name) + 1 :]
-                    classes[f"{submodule_name}.{obj.__name__}"] = obj
 
-    return classes
+def download_dataset(app, dataset_id):
+    config = load_resources_config()
+    dataset_config = config.get(dataset_id)
+
+    if dataset_config is None:
+        raise ValueError(f"Dataset {dataset_id} not found in the download config")
+
+    submodule, class_name = dataset_config["class"].split(".")
+
+    dataset_cls = get_dataset_class(submodule, class_name)
+    download_dir = DATA_DIR / dataset_id
+    output_dir = OUTPUT_DIR / dataset_id
+    annotations_dir = ANNOTATIONS_DIR
+
+    os.makedirs(download_dir, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
+
+    dataset_cls.download(
+        dataset_id=dataset_id,
+        data_download_dir=download_dir,
+        out_download_dir=output_dir,
+        annotation_download_dir=annotations_dir,
+        splits=dataset_config["splits"],
+        outputs=dataset_config.get("outputs", []),
+        dataset_config=dataset_config,
+    )
+
+    # add an entry in the dataset config
+    config = load_dataset_config()
+
+    config[dataset_id] = {
+        "class": dataset_config["class"],
+        "description": dataset_config.get("description", ""),
+        "splits": dataset_config["splits"],
+        "enabled": True,
+    }
+
+    dataset = instantiate_dataset(dataset_id, config[dataset_id])
+    app.db["datasets_obj"][dataset_id] = dataset
+
+    save_dataset_config(config)
+
+    return dataset
 
 
 def delete_dataset(app, dataset_id):
     config = load_dataset_config()
-    config["datasets"].pop(dataset_id, None)
+    config.pop(dataset_id, None)
     save_dataset_config(config)
 
     # remove the data directory
@@ -583,7 +644,7 @@ def delete_dataset(app, dataset_id):
 
 def export_dataset(app, dataset_id):
     zip_buffer = BytesIO()
-    data_path = f"{DATA_DIR}/{dataset_id}"
+    data_path = DATA_DIR / dataset_id
 
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         for root, dirs, files in os.walk(data_path):
@@ -603,7 +664,7 @@ def export_dataset(app, dataset_id):
 
 def export_outputs(app, dataset_id, split, setup_id):
     zip_buffer = BytesIO()
-    output_path = f"{OUTPUT_DIR}/{dataset_id}/{split}"
+    output_path = OUTPUT_DIR / dataset_id / split / setup_id
 
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         for root, dirs, files in os.walk(output_path):
@@ -621,13 +682,19 @@ def export_outputs(app, dataset_id, split, setup_id):
     return response
 
 
-def instantiate_dataset(dataset_id, dataset_config):
-    submodule, class_name = dataset_config["class"].split(".")
-
+def get_dataset_class(submodule, class_name):
     # Dynamically import the class
     module = importlib.import_module("factgenie.loaders")
     submodule = getattr(module, submodule)
     dataset_class = getattr(submodule, class_name)
+
+    return dataset_class
+
+
+def instantiate_dataset(dataset_id, dataset_config):
+    submodule, class_name = dataset_config["class"].split(".")
+
+    dataset_class = get_dataset_class(submodule, class_name)
 
     return dataset_class(dataset_id, **dataset_config)
 
@@ -635,7 +702,8 @@ def instantiate_dataset(dataset_id, dataset_config):
 def instantiate_datasets():
     config = load_dataset_config()
     datasets = {}
-    for dataset_id, dataset_config in config["datasets"].items():
+
+    for dataset_id, dataset_config in config.items():
         is_enabled = dataset_config.get("enabled", True)
 
         if not is_enabled:
@@ -646,12 +714,12 @@ def instantiate_datasets():
     return datasets
 
 
-def upload_dataset(dataset_id, dataset_description, dataset_format, dataset_data):
+def upload_dataset(app, dataset_id, dataset_description, dataset_format, dataset_data):
     params = {
-        "text": {"suffix": "txt", "class": "base.PlainTextDataset", "type": "default"},
-        "jsonl": {"suffix": "jsonl", "class": "base.JSONLDataset", "type": "json"},
-        "csv": {"suffix": "csv", "class": "base.CSVDataset", "type": "table"},
-        "html": {"suffix": "zip", "class": "base.HTMLDataset", "type": "default"},
+        "text": {"suffix": "txt", "class": "basic.PlainTextDataset", "type": "default"},
+        "jsonl": {"suffix": "jsonl", "class": "basic.JSONLDataset", "type": "json"},
+        "csv": {"suffix": "csv", "class": "basic.CSVDataset", "type": "table"},
+        "html": {"suffix": "zip", "class": "basic.HTMLDataset", "type": "default"},
     }
     dataset_id = slugify(dataset_id)
     data_dir = f"factgenie/data/{dataset_id}"
@@ -667,28 +735,35 @@ def upload_dataset(dataset_id, dataset_description, dataset_format, dataset_data
         # dataset_data is the file object
         for split, data in dataset_data.items():
             binary_file = BytesIO(bytes(data))
+
+            # check if there is at least one HTML file in the top-level directory
             with zipfile.ZipFile(binary_file, "r") as zip_ref:
+                for file in zip_ref.namelist():
+                    if file.endswith(".html") and "/" not in file:
+                        break
+                else:
+                    raise ValueError("No HTML files found in the zip archive")
+
                 zip_ref.extractall(f"{data_dir}/{split}")
 
     # add an entry in the dataset config
     config = load_dataset_config()
-    config["datasets"][dataset_id] = {
+    config[dataset_id] = {
         "class": params[dataset_format]["class"],
         "description": dataset_description,
-        "type": params[dataset_format]["type"],
         "splits": list(dataset_data.keys()),
-        "enabled": False,
+        "enabled": True,
     }
     save_dataset_config(config)
 
+    app.db["datasets_obj"][dataset_id] = instantiate_dataset(dataset_id, config[dataset_id])
+
 
 def upload_model_outputs(dataset, split, setup_id, model_outputs):
-    path = Path(f"{dataset.output_path}/{split}")
+    path = Path(f"{dataset.output_path}/{split}/{setup_id}/files")
     path.mkdir(parents=True, exist_ok=True)
 
-    model_outputs = model_outputs.strip()
-    generated = [{"out": out} for out in model_outputs.split("\n")]
-
+    generated = model_outputs.strip().split("\n")
     setup_id = slugify(setup_id)
 
     if setup_id in dataset.outputs[split]:
@@ -699,23 +774,37 @@ def upload_model_outputs(dataset, split, setup_id, model_outputs):
             f"Output count mismatch for {setup_id} in {split}: {len(generated)} vs {len(dataset.examples[split])}"
         )
 
-    j = {
-        "dataset": dataset.id,
-        "split": split,
-        "setup": {"id": setup_id},
-        "generated": generated,
-    }
-    dataset.outputs[split][setup_id] = j
+    dataset.outputs[split][setup_id] = {}
 
-    with open(f"{path}/{setup_id}.json", "w") as f:
-        json.dump(j, f, indent=4)
+    with open(f"{path}/{setup_id}.jsonl", "w") as f:
+        for i, out in enumerate(generated):
+            j = {
+                "dataset": dataset.id,
+                "split": split,
+                "setup_id": setup_id,
+                "example_idx": i,
+                "out": out,
+            }
+            f.write(json.dumps(j) + "\n")
+
+            dataset.outputs[split][setup_id][i] = j
+
+    with open(f"{path.parent}/metadata.json", "w") as f:
+        json.dump(
+            {
+                "id": setup_id,
+                "created": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            },
+            f,
+            indent=4,
+        )
 
 
 def delete_model_outputs(dataset, split, setup_id):
-    path = Path(f"{dataset.output_path}/{split}/{setup_id}.json")
+    path = Path(f"{dataset.output_path}/{split}/{setup_id}")
 
     if path.exists():
-        path.unlink()
+        shutil.rmtree(path)
 
     dataset.outputs[split].pop(setup_id, None)
 
@@ -775,6 +864,27 @@ def generate_default_id(campaign_index, prefix):
     return default_campaign_id
 
 
+def get_service_ids(service, args):
+    # we always need to have at least the annotator_id
+    service_ids = {
+        "annotator_id": None,
+    }
+    if service == "local":
+        service_ids["annotator_id"] = args.get("annotatorId", PREVIEW_STUDY_ID)
+    elif service == "prolific":
+        service_ids["annotator_id"] = args.get("PROLIFIC_PID", PREVIEW_STUDY_ID)
+        service_ids["session_id"] = args.get("SESSION_ID", PREVIEW_STUDY_ID)
+        service_ids["study_id"] = args.get("STUDY_ID", PREVIEW_STUDY_ID)
+    elif service == "mturk":
+        service_ids["annotator_id"] = args.get("workerId", PREVIEW_STUDY_ID)
+        service_ids["session_id"] = args.get("assignmentId", PREVIEW_STUDY_ID)
+        service_ids["study_id"] = args.get("hitId", PREVIEW_STUDY_ID)
+    else:
+        raise ValueError(f"Unknown service {service}")
+
+    return service_ids
+
+
 def check_login(app, username, password):
     c_username = app.config["login"]["username"]
     c_password = app.config["login"]["password"]
@@ -792,7 +902,7 @@ def save_annotation(annotator_id, campaign_id, dataset_id, split, setup_id, exam
         "annotator_group": 0,
         "annotator_id": annotator_id,
         "dataset": dataset_id,
-        "setup": {"id": setup_id, "model": setup_id},
+        "setup_id": setup_id,
         "split": split,
         "example_idx": example_idx,
         "annotations": annotation_set,
@@ -813,8 +923,10 @@ def save_output(campaign_id, dataset_id, split, example_idx, output, start_time)
     record = {
         "dataset": dataset_id,
         "split": split,
+        "setup_id": campaign_id,
         "example_idx": example_idx,
-        "generated": {"in": prompt, "out": generated},
+        "in": prompt,
+        "out": generated,
     }
 
     with open(os.path.join(save_dir, f"{dataset_id}-{split}-{start_time}.jsonl"), "a") as f:
@@ -923,12 +1035,12 @@ def parse_llm_gen_config(config):
 def parse_crowdsourcing_config(config):
     config = {
         "annotator_instructions": config.get("annotatorInstructions"),
-        "annotator_prompt": config.get("annotatorPrompt"),
         "has_display_overlay": config.get("hasDisplayOverlay"),
         "final_message": config.get("finalMessage"),
         "examples_per_batch": int(config.get("examplesPerBatch")),
         "idle_time": int(config.get("idleTime")),
         "annotation_granularity": config.get("annotationGranularity"),
+        "service": config.get("service"),
         "sort_order": config.get("sortOrder"),
         "annotation_span_categories": config.get("annotationSpanCategories"),
         "flags": config.get("flags"),
@@ -1013,7 +1125,6 @@ def create_crowdsourcing_page(campaign_id, config):
             parts.append(f.read())
 
     instructions_html = markdown.markdown(config["annotator_instructions"])
-    annotator_prompt = config["annotator_prompt"]
     final_message_html = markdown.markdown(config["final_message"])
     has_display_overlay = config.get("has_display_overlay", True)
 
@@ -1022,7 +1133,6 @@ def create_crowdsourcing_page(campaign_id, config):
 
     rendered_content = template.render(
         instructions=instructions_html,
-        annotator_prompt=annotator_prompt,
         final_message=final_message_html,
         annotation_span_categories=config.get("annotation_span_categories", []),
         has_display_overlay='style="display: none"' if not has_display_overlay else "",
@@ -1063,8 +1173,10 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, th
         example = dataset.get_example(split, example_idx)
 
         if mode == "llm_eval":
-            output = dataset.get_generated_output_by_idx(split=split, output_idx=example_idx, setup_id=setup_id)
-            output = model.annotate_example(example, output)
+            generated_output = dataset.get_output_for_idx_by_setup(
+                split=split, output_idx=example_idx, setup_id=setup_id
+            )
+            output = model.annotate_example(example, generated_output)
 
         elif mode == "llm_gen":
             output = model.generate_output(example)
@@ -1088,8 +1200,8 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, th
             record = save_output(campaign_id, dataset_id, split, example_idx, output, start_time)
 
             # solely for the frontend
-            record["setup"] = {"id": setup_id, "model": setup_id}
-            record["output"] = record.pop("generated")["out"]
+            record["setup_id"] = setup_id
+            record["output"] = record.pop("out")
 
         db.loc[i, "status"] = ExampleStatus.FINISHED
         db.loc[i, "end"] = int(time.time())
@@ -1120,41 +1232,259 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, th
     return jsonify(success=True, status=campaign.metadata["status"], final_message=final_message)
 
 
-def save_generation_outputs(app, campaign_id, model_name):
+def save_generation_outputs(app, campaign_id, setup_id):
     """
-    Load the files from the `GENERATIONS_DIR` and convert them to a single JSON file which we save into the `OUTPUT_DIR`.
+    Load the files from the `GENERATIONS_DIR` and save them in the appropriate subdirectory in `OUTPUT_DIR`.
     """
 
     campaign = load_campaign(app, campaign_id, mode="llm_gen")
     metadata = campaign.metadata
 
     # load the metadata
-    with open(os.path.join(GENERATIONS_DIR, campaign_id, "metadata.json")) as f:
+    with open(GENERATIONS_DIR / campaign_id / "metadata.json") as f:
         metadata = json.load(f)
 
     # load the outputs
     outputs = defaultdict(list)
 
-    for file in os.listdir(os.path.join(GENERATIONS_DIR, campaign_id, "files")):
+    for file in os.listdir(GENERATIONS_DIR / campaign_id / "files"):
         if file.endswith(".jsonl"):
-            with open(os.path.join(GENERATIONS_DIR, campaign_id, "files", file)) as f:
+            with open(GENERATIONS_DIR / campaign_id / "files" / file) as f:
                 for line in f:
                     record = json.loads(line)
+                    # replace the campaign_id with the desired setup_id
+                    record["setup_id"] = setup_id
                     key = (record["dataset"], record["split"])
                     outputs[key].append(record)
 
-    setup = metadata["config"]
-    setup["params"] = setup.pop("model_args")
-    setup["id"] = model_name
-
     # save the outputs
     for (dataset_id, split), examples in outputs.items():
-        path = os.path.join(OUTPUT_DIR, dataset_id, split)
-        os.makedirs(path, exist_ok=True)
+        path = OUTPUT_DIR / dataset_id / split / setup_id
+        os.makedirs(path / "files", exist_ok=True)
 
-        generated = [e["generated"] for e in examples]
+        # save the metadata
+        with open(path / f"metadata.json", "w") as f:
+            json.dump(metadata, f, indent=4)
 
-        with open(os.path.join(path, f"{model_name}.json"), "w") as f:
-            json.dump({"dataset": dataset_id, "setup": setup, "generated": generated}, f, indent=4)
+        with open(path / "files" / f"{setup_id}.jsonl", "w") as f:
+            for example in examples:
+                f.write(json.dumps(example) + "\n")
 
     return success()
+
+
+# source: https://github.com/lhotse-speech/lhotse/blob/bc2c0a294b1437b90d1581d4f214348d2f8bfc12/lhotse/utils.py#L465
+def resumable_download(
+    url,
+    filename,
+    force_download,
+    completed_file_size=None,
+    missing_ok=True,
+):
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+
+    # Check if the file exists and get its size
+    file_exists = os.path.exists(filename)
+    if file_exists:
+        if force_download:
+            logging.info(f"Removing existing file and downloading from scratch because force_download=True: {filename}")
+            os.unlink(filename)
+            file_size = 0
+        else:
+            file_size = os.path.getsize(filename)
+
+        if completed_file_size and file_size == completed_file_size:
+            return
+    else:
+        file_size = 0
+
+    # Set the request headers to resume downloading
+    # Also set user-agent header to stop picky servers from complaining with 403
+    ua_headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_4) AppleWebKit/603.1.30 (KHTML, like Gecko) Version/10.1 Safari/603.1.30",
+    }
+
+    headers = {
+        "Range": "bytes={}-".format(file_size),
+        **ua_headers,
+    }
+
+    # Create a request object with the URL and headers
+    req = urllib.request.Request(url, headers=headers)
+
+    # Open the file for writing in binary mode and seek to the end
+    # r+b is needed in order to allow seeking at the beginning of a file
+    # when downloading from scratch
+    mode = "r+b" if file_exists else "wb"
+    with open(filename, mode) as f:
+
+        def _download(rq, size):
+            f.seek(size, 0)
+            # just in case some garbage was written to the file, truncate it
+            f.truncate()
+
+            # Open the URL and read the contents in chunks
+            with urllib.request.urlopen(rq) as response:
+                chunk_size = 1024
+                total_size = int(response.headers.get("content-length", 0)) + size
+                with tqdm(
+                    total=total_size,
+                    initial=size,
+                    unit="B",
+                    unit_scale=True,
+                    desc=str(filename),
+                ) as pbar:
+                    while True:
+                        chunk = response.read(chunk_size)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        pbar.update(len(chunk))
+
+        try:
+            _download(req, file_size)
+        except urllib.error.HTTPError as e:
+            # "Request Range Not Satisfiable" means the requested range
+            # starts after the file ends OR that the server does not support range requests.
+            if e.code == 404 and missing_ok:
+                logging.warning(f"{url} does not exist (error 404). Skipping this file.")
+                if Path(filename).is_file():
+                    os.remove(filename)
+            elif e.code == 416:
+                content_range = e.headers.get("Content-Range", None)
+                if content_range is None:
+                    # sometimes, the server actually supports range requests
+                    # but does not return the Content-Range header with 416 code
+                    # This is out of spec, but let us check twice for pragmatic reasons.
+                    head_req = urllib.request.Request(url, method="HEAD")
+                    head_res = urllib.request.urlopen(head_req)
+                    if head_res.headers.get("Accept-Ranges", "none") != "none":
+                        content_length = head_res.headers.get("Content-Length")
+                        content_range = f"bytes */{content_length}"
+
+                if content_range == f"bytes */{file_size}":
+                    # If the content-range returned by server also matches the file size,
+                    # then the file is already downloaded
+                    logging.info(f"File already downloaded: {filename}")
+                else:
+                    logging.info("Server does not support range requests - attempting downloading from scratch")
+                    _download(urllib.request.Request(url, headers=ua_headers), 0)
+            else:
+                raise e
+
+
+def migrate():
+    """
+    Ensure backwards compatibility after changes in the app
+    """
+    from factgenie import OLD_DATASET_CONFIG_PATH, OLD_MAIN_CONFIG_PATH, MAIN_CONFIG_PATH
+    import shutil
+
+    # if an old config file exist, we perform the migration
+    if not OLD_MAIN_CONFIG_PATH.exists():
+        return
+
+    logger.warning("Factgenie updated, performing migration tasks...")
+
+    # ------------------
+    # update old config files
+    # ------------------
+
+    logger.warning("Moving config.yml to config/config.yml")
+    shutil.move(OLD_MAIN_CONFIG_PATH, MAIN_CONFIG_PATH)
+
+    logger.warning("Moving loaders/datasets.yml to config/datasets.yml")
+    shutil.move(OLD_DATASET_CONFIG_PATH, DATASET_CONFIG_PATH)
+
+    # load the dataset config, keep only the datasets that are not available for download (i.e. not in the resources.yml)
+    with open(DATASET_CONFIG_PATH) as f:
+        dataset_config = yaml.safe_load(f)
+        # use ids as top level keys
+        dataset_config = dataset_config["datasets"]
+
+    with open(RESOURCES_CONFIG_PATH) as f:
+        resources_config = yaml.safe_load(f)
+
+    standard_datasets = set(resources_config.keys()).union({"logicnlg", "xsum"})
+    dataset_config = {k: v for k, v in dataset_config.items() if k not in standard_datasets}
+
+    if dataset_config:
+        logger.warning(f"Keeping the following local datasets: {list(dataset_config.keys())}")
+
+        logger.warning(
+            f"You may need to manually update loaders of the datasets you added locally in the previous version of factgenie. You can find their configurations in {DATASET_CONFIG_PATH}."
+        )
+
+    # if any dataset has `class: base.X`, rename it to `basic.X`
+    for dataset_id, dataset in dataset_config.items():
+        if dataset["class"].startswith("base."):
+            dataset_config[dataset_id]["class"] = dataset["class"].replace("base.", "basic.")
+
+    with open(DATASET_CONFIG_PATH, "w") as f:
+        yaml.dump(dataset_config, f, indent=2, allow_unicode=True)
+
+    # ------------------
+    # convert old model outputs to the new JSONL format
+    # ------------------
+    logger.warning("Converting old model outputs to a new JSONL format...")
+    outs = list(Path(OUTPUT_DIR).glob("**/*.json"))
+
+    # ignore metadata.json
+    outs = [out for out in outs if not out.name == "metadata.json"]
+
+    for out in outs:
+        with open(out) as f:
+            j = json.load(f)
+
+        logger.warning(f"Converting old model outputs to a new JSONL format for {j['dataset']}...")
+
+        new_out = []
+        for i, gen in enumerate(j["generated"]):
+            record = {
+                "dataset": j["dataset"],
+                "split": j.get("split", out.parent.name),
+                "setup_id": j["setup"]["id"],
+                "example_idx": i,
+                "out": gen["out"],
+            }
+            if gen.get("in"):
+                record["in"] = gen["in"]
+            new_out.append(record)
+
+        output_path = (
+            OUTPUT_DIR / j["dataset"] / j.get("split", out.parent.name) / "files" / out.with_suffix(".jsonl").name
+        )
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(output_path, "w") as f:
+            for gen in new_out:
+                f.write(json.dumps(gen) + "\n")
+
+        metadata = j["setup"]
+
+        if "params" in metadata:
+            metadata["model_args"] = metadata.pop("params")
+
+        if "prompt" in metadata:
+            metadata["prompt_template"] = metadata.pop("prompt")
+
+        with open(output_path.parent.parent / "metadata.json", "w") as f:
+            json.dump(metadata, f, indent=4, ensure_ascii=False)
+
+        # remove the old JSON file
+        out.unlink()
+
+    ann_outs = list(Path(ANNOTATIONS_DIR).glob("**/*.jsonl"))
+
+    logger.warning("Updating annotation outputs...")
+    for file_path in ann_outs:
+        with open(file_path, "r") as infile, open(file_path + ".tmp", "w") as outfile:
+            for line in infile:
+                obj = json.loads(line)
+                if "setup" in obj and "id" in obj["setup"]:
+                    obj["setup_id"] = obj["setup"]["id"]
+                    del obj["setup"]
+                outfile.write(json.dumps(obj) + "\n")
+        os.replace(file_path + ".tmp", file_path)
+
+    logger.warning("Migration complete")

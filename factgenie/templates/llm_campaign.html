@@ -34,6 +34,7 @@
               <th scope="col">Id</th>
               <th scope="col">Created</th>
               <th scope="col">Status</th>
+              <th scope="col">Examples</th>
               <th scope="col">Actions</th>
             </tr>
           </thead>
@@ -44,6 +45,8 @@
                   class="blue-link">{{
                   campaign.metadata.id }}</a></td>
               <td>{{ campaign.metadata.created }}</td>
+              <td><span class="badge bg-{{ campaign.metadata.status }}">{{ campaign.metadata.status
+                  }}</span></td>
               <!-- <td>{{ campaign.stats }}</td> -->
               <td> {% for status, count in campaign.stats.items() %}
                 <span class="badge bg-secondary">{{ status }}: {{ count }}</span>
@@ -84,3 +87,4 @@
   window.mode = "{{ mode }}";
 </script>
 <script src="{{ host_prefix }}/static/js/factgenie.js"></script>
+<script src="{{ host_prefix }}/static/js/utils.js"></script>

@@ -11,13 +11,12 @@ from flask.cli import FlaskGroup
 @click.command()
 def list_datasets():
     import yaml
-    from factgenie.utils import DATASET_CONFIG_PATH
 
     """List all available datasets."""
     with open(DATASET_CONFIG_PATH) as f:
         config = yaml.safe_load(f)
 
-    for dataset_id, _ in config["datasets"].items():
+    for dataset_id, _ in config.items():
         print(dataset_id)
 
 
@@ -43,7 +42,7 @@ def run_llm_campaign(
     campaign_data = [{"dataset": dataset_id, "split": split, "setup_id": setup_id}]
 
     config = utils.load_dataset_config()
-    dataset_config = config["datasets"][dataset_id]
+    dataset_config = config[dataset_id]
     datasets = {dataset_id: utils.instantiate_dataset(dataset_id, dataset_config)}
 
     if mode == "llm_eval" and not setup_id:
@@ -68,30 +67,8 @@ def create_app(**kwargs):
     import coloredlogs
     import os
     from factgenie.main import app
-    from factgenie import utils
-    from factgenie.utils import ROOT_DIR, MAIN_CONFIG, check_login, GENERATIONS_DIR, ANNOTATIONS_DIR
-
-    with open(MAIN_CONFIG) as f:
-        config = yaml.safe_load(f)
-
-    os.makedirs(GENERATIONS_DIR, exist_ok=True)
-    os.makedirs(ANNOTATIONS_DIR, exist_ok=True)
-
-    app.config.update(config)
-    app.config["root_dir"] = ROOT_DIR
-
-    assert check_login(
-        app, config["login"]["username"], config["login"]["password"]
-    ), "Login should pass for valid user"
-    assert not check_login(app, "dummy_non_user_name", "dummy_bad_password"), "Login should fail for dummy user"
-
-    app.db["datasets_obj"] = utils.instantiate_datasets()
-
-    if config["debug"] is False:
-        logging.getLogger("werkzeug").disabled = True
 
     logger = logging.getLogger(__name__)
-    logger.info("Application ready")
 
     file_handler = logging.FileHandler("error.log")
     file_handler.setLevel(logging.ERROR)
@@ -107,6 +84,37 @@ def create_app(**kwargs):
         logger=logger,
         fmt="%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s",
     )
+
+    from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, GENERATIONS_DIR, ANNOTATIONS_DIR, DATA_DIR, OUTPUT_DIR
+    from factgenie import utils
+    from factgenie.utils import check_login, migrate
+
+    # --- compatibility with older versions ---
+    migrate()
+    # --- end of compatibility with older versions ---
+
+    with open(MAIN_CONFIG_PATH) as f:
+        config = yaml.safe_load(f)
+
+    os.makedirs(ANNOTATIONS_DIR, exist_ok=True)
+    os.makedirs(GENERATIONS_DIR, exist_ok=True)
+    os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    app.config.update(config)
+    app.config["root_dir"] = ROOT_DIR
+
+    assert check_login(
+        app, config["login"]["username"], config["login"]["password"]
+    ), "Login should pass for valid user"
+    assert not check_login(app, "dummy_non_user_name", "dummy_bad_password"), "Login should fail for dummy user"
+
+    app.db["datasets_obj"] = utils.instantiate_datasets()
+
+    if config["debug"] is False:
+        logging.getLogger("werkzeug").disabled = True
+
+    logger.info("Application ready")
 
     app.config.update(SECRET_KEY=os.urandom(24))
 

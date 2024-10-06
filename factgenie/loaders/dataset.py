@@ -1,16 +1,39 @@
 #!/usr/bin/env python3
 import logging
+import requests
 import json
+import os
+import zipfile
+import importlib
+import inspect
+
+
 from pathlib import Path
 from collections import defaultdict
 from slugify import slugify
 from abc import ABC, abstractmethod
 
+from factgenie import DATA_DIR, OUTPUT_DIR
+
 logger = logging.getLogger(__name__)
 
-BASE_DIR = "factgenie"
-DATA_DIR = f"{BASE_DIR}/data"
-OUTPUT_DIR = f"{BASE_DIR}/outputs"
+
+def get_dataset_classes():
+    module_name = "factgenie.loaders"
+    module = importlib.import_module(module_name)
+
+    classes = {}
+
+    # for each submodule, find all classes subclassing `Dataset`
+    for name, obj in inspect.getmembers(module):
+        if inspect.ismodule(obj):
+            submodule = obj
+            for name, obj in inspect.getmembers(submodule):
+                if inspect.isclass(obj) and issubclass(obj, Dataset) and obj != Dataset:
+                    submodule_name = obj.__module__[len(module_name) + 1 :]
+                    classes[f"{submodule_name}.{obj.__name__}"] = obj
+
+    return classes
 
 
 class Dataset(ABC):
@@ -20,12 +43,11 @@ class Dataset(ABC):
 
     def __init__(self, dataset_id, **kwargs):
         self.id = dataset_id
-        self.data_path = f"{DATA_DIR}/{self.id}"
-        self.output_path = f"{OUTPUT_DIR}/{self.id}"
+        self.data_path = DATA_DIR / self.id
+        self.output_path = OUTPUT_DIR / self.id
 
         self.splits = kwargs.get("splits", ["train", "dev", "test"])
         self.description = kwargs.get("description", "")
-        self.type = kwargs.get("type", "default")
 
         # load data
         self.examples = {}
@@ -80,6 +102,42 @@ class Dataset(ABC):
         """
         pass
 
+    @classmethod
+    def download(
+        cls,
+        dataset_id,
+        data_download_dir,
+        out_download_dir,
+        annotation_download_dir,
+        splits,
+        outputs,
+        dataset_config,
+        **kwargs,
+    ):
+        """
+        Download the dataset (optionally along with model outputs and annotations) from an external source.
+
+        Does not need to be implemented if the dataset is added locally into the `data` directory.
+
+        Parameters
+        ----------
+        dataset_id : str
+            ID of the dataset.
+        data_download_dir : str
+            Path to the directory where the dataset should be downloaded.
+        out_download_dir : str
+            Path to the directory where the outputs should be downloaded (optional).
+        annotation_download_dir : str
+            Path to the directory where the annotations should be downloaded (optional).
+        splits : list
+            List of splits to download.
+        outputs : list
+            List of outputs to download.
+        dataset_config : dict
+            Dataset configuration.
+        """
+        pass
+
     # --------------------------------
     # end TODO
     # --------------------------------
@@ -100,19 +158,27 @@ class Dataset(ABC):
         """
         outputs = defaultdict(dict)
 
-        for split in self.get_splits():
-            split_dir = Path(output_path) / split
-            if not split_dir.exists():
-                outs = []
-            outs = list(split_dir.glob("*.json"))
+        # find recursively all JSONL files in the output directory
+        outs = list(Path(output_path).glob("**/*.jsonl"))
 
-            outputs[split] = defaultdict()
+        for out in outs:
+            with open(out) as f:
+                for line in f:
+                    j = json.loads(line)
 
-            for out in outs:
-                with open(out) as f:
-                    j = json.load(f)
-                    setup_id = slugify(j["setup"]["id"])
-                    outputs[split][setup_id] = j
+                    split = j["split"]
+                    setup_id = slugify(j["setup_id"])
+                    example_idx = j["example_idx"]
+
+                    if split not in outputs:
+                        outputs[split] = {}
+
+                    if setup_id not in outputs[split]:
+                        outputs[split][setup_id] = {}
+
+                    outputs[split][setup_id][example_idx] = j
+
+                logger.info(f"Loaded output file: {out}")
 
         return outputs
 
@@ -127,40 +193,34 @@ class Dataset(ABC):
         """
         return examples
 
-    def get_generated_outputs_for_split(self, split):
+    def get_outputs_for_split(self, split):
         """
         Get the list of generated outputs for the given split.
         """
         return self.outputs[split]
 
-    def get_generated_output_by_idx(self, split, output_idx, setup_id):
+    def get_output_for_idx_by_setup(self, split, output_idx, setup_id):
         """
         Get the generated output for the given split, output index, and setup ID.
         """
         if setup_id in self.outputs[split]:
             model_out = self.outputs[split][setup_id]
 
-            if output_idx < len(model_out["generated"]):
-                return model_out["generated"][output_idx]["out"]
+            if output_idx in model_out:
+                return model_out[output_idx]["out"]
 
         logger.warning(f"No output found for {setup_id=}, {output_idx=}, {split=}")
         return None
 
-    def get_generated_outputs_for_idx(self, split, output_idx):
+    def get_outputs_for_idx(self, split, output_idx):
         """
         Get the generated outputs for the given split and output index.
         """
         outs_all = []
 
-        for setup_id, outs in self.outputs[split].items():
-            if output_idx >= len(outs["generated"]):
-                continue
-
-            out = {}
-            out["setup"] = {"id": setup_id}
-            out["generated"] = outs["generated"][output_idx]["out"]
-
-            outs_all.append(out)
+        for outs in self.outputs[split].values():
+            if output_idx in outs:
+                outs_all.append(outs[output_idx])
 
         return outs_all
 

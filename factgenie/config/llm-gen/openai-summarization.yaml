@@ -1,7 +1,7 @@
 api_url: ''
 extra_args:
-  rstrip: '"'
-model: gpt-3.5-turbo-1106
+  remove_suffix: '"'
+model: gpt-4o-mini-2024-07-18
 model_args: {}
 prompt_template: |-
   Given the original text:

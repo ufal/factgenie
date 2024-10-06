@@ -20,14 +20,17 @@
 
     <div class="mt-5">
       <a href="{{ host_prefix }}/crowdsourcing" class="btn btn-outline-secondary mb-5">← List of campaigns</a>
-      <h3><img src="{{ host_prefix }}/static/img/human_eval.png" class="inline-icon"> <b>{{ campaign_id }}</b></h3>
+      <h3><img src="{{ host_prefix }}/static/img/crowdsourcing.png" class="inline-icon"> <b>{{ campaign_id }}</b></h3>
       <div id="metadata-block" class="mt-3">
         <hr>
         <dl class="row">
           <dt class="col-sm-3"> Page link </dt>
           <dd class="col-sm-9" id="metadata-status"> <span class="font-mono">{{ request.url | annotate_url
               }}?campaign={{
-              campaign_id }}</span> </dd>
+              campaign_id }}<span {% if metadata.config.service !='local'
+                %}style="display: none;{% endif %}">&annotatorId=FILL_YOUR_NAME_HERE</span></span> </dd>
+          <dt class="col-sm-3"> Service </dt>
+          <dd class="col-sm-9" id="metadata-service"> {{ metadata.config.service }} </dd>
           <dt class="col-sm-3"> Created </dt>
           <dd class="col-sm-9" id="metadata-created"> {{ metadata.created }} </dd>
           <dt class="col-sm-3"> Finished batches </dt>
@@ -92,7 +95,7 @@
                   <!-- link, open in new tab -->
                   <a href="{{ host_prefix }}/browse?dataset={{ batch.dataset }}&split={{ batch.split }}&example_idx={{ e.example_idx }}"
                     class="btn btn-outline-secondary btn-sm" target="_blank">
-                    {{ e.dataset }}-{{ e.split }}-{{ e.setup.id }}-{{ e.example_idx }}</a>
+                    {{ e.dataset }}-{{ e.split }}-{{ e.setup_id }}-{{ e.example_idx }}</a>
                   {% endfor %}
                 </div>
               </td>
@@ -138,3 +141,4 @@
   window.campaigns = "{{ campaigns }}";
 </script>
 <script src="{{ host_prefix }}/static/js/factgenie.js"></script>
+<script src="{{ host_prefix }}/static/js/utils.js"></script>

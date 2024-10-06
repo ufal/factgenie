@@ -6,17 +6,17 @@ model: llama3
 # If you run ollama at the same machine as factgenie let's use just localhost.
 api_url: http://localhost:11434/api/
 model_args:
-  max_tokens: 1024
-  num_beams: 1
-  temperature: 0.0
-  top_p: 1.0
-  top_k: 0.0
-  do_sample: false 
+model_args:
+  num_ctx: 8192
+  num_predict: 1024
   seed: 42
+  temperature: 1.0
+  top_k: 50
+  top_p: 0.9
 system_msg: "You are an expert data-to-text system. You understand structured data and you can correctly operate with units and numerical values. You are designed to output plain text summaries from structured data input."
 start_with: "Sure, here is the required output:\n\""
 extra_args:
-  rstrip: '"'
+  remove_suffix: '"'
 prompt_template: |
   Given the data:
   ```

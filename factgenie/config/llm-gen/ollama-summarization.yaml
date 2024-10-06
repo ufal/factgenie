@@ -1,15 +1,14 @@
 api_url: http://localhost:11434/api/
 extra_args:
-  rstrip: '"'
+  remove_suffix: '"'
 model: llama3
 model_args:
-  do_sample: 'false'
-  max_tokens: '1024'
-  num_beams: '1'
-  seed: '42'
-  temperature: '0'
-  top_k: '0'
-  top_p: '1'
+  num_ctx: 8192
+  num_predict: 1024
+  seed: 42
+  temperature: 1.0
+  top_k: 50
+  top_p: 0.9
 prompt_template: |-
   Given the original text:
   """

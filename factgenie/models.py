@@ -16,8 +16,10 @@ import time
 import requests
 import copy
 
+from ast import literal_eval
+
 # logging.basicConfig(format="%(message)s", level=logging.INFO, datefmt="%H:%M:%S")
-coloredlogs.install(level="INFO", fmt="%(asctime)s %(levelname)s %(message)s")
+# coloredlogs.install(level="INFO", fmt="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 DIR_PATH = os.path.dirname(__file__)
@@ -38,6 +40,7 @@ class ModelFactory:
             "llm_gen": {
                 "openai_gen": OpenAIGen,
                 "ollama_gen": OllamaGen,
+                "tgwebui_gen": TextGenerationWebuiGen,
             },
         }
 
@@ -72,15 +75,11 @@ class Model:
         if "model_args" not in self.config:
             return
 
-        # TODO more robust typing. See https://github.com/ufal/factgenie/issues/93
-        # The argument list taken from https://github.com/ollama/ollama/blob/main/docs/modelfile.md
-        for arg in ["mirostat_eta", "mirostat_tau", "repeat_penalty", "temperature", "tfs_z", "top_p", "min_p"]:
-            if arg in self.config["model_args"]:
-                self.config["model_args"][arg] = float(self.config["model_args"][arg])
-
-        for arg in ["mirostat", "num_ctx", "repeat_last_n", "seed", "max_tokens", "num_predict", "top_k"]:
-            if arg in self.config["model_args"]:
-                self.config["model_args"][arg] = int(self.config["model_args"][arg])
+        for arg in self.config["model_args"]:
+            try:
+                self.config["model_args"][arg] = literal_eval(self.config["model_args"][arg])
+            except:
+                pass
 
     def validate_config(self, config):
         for field in self.get_required_fields():
@@ -158,7 +157,15 @@ class LLMMetric(Model):
     def prompt(self, data, text):
         assert isinstance(text, str) and len(text) > 0, f"Text must be a non-empty string, got {text=}"
         data_for_prompt = self.preprocess_data_for_prompt(data)
-        return self.config["prompt_template"].format(data=data_for_prompt, text=text)
+
+        prompt_template = self.config["prompt_template"]
+
+        # we used to require replacing any curly braces with double braces
+        # to support existing prompts, we replace any double braces with single braces
+        # this should not do much harm, as the prompts usually do contain double braces (but remove this in the future?)
+        prompt_template = prompt_template.replace("{{", "{").replace("}}", "}")
+
+        return prompt_template.replace("{data}", str(data_for_prompt)).replace("{text}", text)
 
     def annotate_example(self, data, text):
         raise NotImplementedError("Override this method in the subclass to call the LLM API")
@@ -287,13 +294,24 @@ class LLMGen(Model):
         }
 
     def postprocess_output(self, output):
-        if self.config.get("extra_args", {}).get("rstrip", ""):
-            output = output.rstrip(self.config["extra_args"]["rstrip"])
+        if self.config.get("extra_args", {}).get("remove_suffix", ""):
+            suffix = self.config["extra_args"]["remove_suffix"]
+
+            if output.endswith(suffix):
+                output = output[: -len(suffix)]
 
         return output
 
     def prompt(self, data):
-        return self.config["prompt_template"].format(data=data)
+        prompt_template = self.config["prompt_template"]
+        data = self.preprocess_data_for_prompt(data)
+
+        # we used to require replacing any curly braces with double braces
+        # to support existing prompts, we replace any double braces with single braces
+        # this should not do much harm, as the prompts usually do contain double braces (but remove this in the future?)
+        prompt_template = prompt_template.replace("{{", "{").replace("}}", "}")
+
+        return prompt_template.replace("{data}", str(data))
 
     def preprocess_data_for_prompt(self, data):
         """Override this method to change the format how the data is presented in the prompt. See self.prompt() method for usage."""
@@ -342,6 +360,55 @@ class OpenAIGen(LLMGen):
                 messages=messages,
                 **self.config.get("model_args", {}),
             )
+            output = response.choices[0].message.content
+            logger.info(output)
+
+            return {"prompt": prompt, "output": self.postprocess_output(output)}
+
+        except Exception as e:
+            traceback.print_exc()
+            logger.error(e)
+            return {"error": str(e)}
+
+
+class TextGenerationWebuiGen(LLMGen):
+    def __init__(self, config):
+        super().__init__(config)
+
+    def get_required_fields(self):
+        return {"type": str, "prompt_template": str, "model": str, "api_url": str, "extra_args": dict}
+
+    def get_optional_fields(self):
+        return {
+            "system_msg": str,
+            "model_args": dict,
+            "start_with": str,
+        }
+
+    def generate_output(self, data):
+        try:
+            prompt = self.prompt(data)
+            api_url = self.config["api_url"]
+            api_key = self.config["extra_args"]["api_key"]
+
+            messages = [
+                {"role": "user", "content": prompt},
+            ]
+
+            if self.config.get("start_with"):
+                messages.append({"role": "assistant", "content": self.config["start_with"]})
+
+            model_args = self.config.get("model_args", {})
+            logger.debug(f"Calling Text Generation Webui API with prompt: {prompt}")
+            response = requests.post(
+                api_url,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {api_key}",
+                },
+                json={"model": self.config["model"], "messages": messages, **model_args},
+            )
+
             output = response.choices[0].message.content
             logger.info(output)
 

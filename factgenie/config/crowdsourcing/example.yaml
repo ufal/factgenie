@@ -7,6 +7,7 @@ annotation_span_categories:
     color: "#fff79f"
   - name: "Other"
     color: "#bbbbbb"
+service: prolific
 examples_per_batch: 10
 annotation_granularity: words
 sort_order: sort-example-ids-shuffle-setups
@@ -27,7 +28,6 @@ annotator_instructions: |
   Once you think you have marked all the errors present in the text, click the **✅ Mark example as complete** button (you can still update the annotation later). 
   
   You will be able to submit the annotations once they are all are marked as complete.
-annotator_prompt: "Drag your mouse over the text to annotate the selected category:"
 final_message: |
   Your annotations have been submitted.
 

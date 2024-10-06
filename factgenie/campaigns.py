@@ -10,7 +10,7 @@ import coloredlogs
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
-coloredlogs.install(level="INFO", logger=logger, fmt="%(asctime)s %(levelname)s %(message)s")
+# coloredlogs.install(level="INFO", logger=logger, fmt="%(asctime)s %(levelname)s %(message)s")
 
 
 DIR_PATH = os.path.dirname(__file__)
@@ -85,11 +85,10 @@ class Campaign:
         with open(self.metadata_path) as f:
             self.metadata = json.load(f)
 
-    def get_stats(self):
-        # group by batch_idx, keep the first row of each group
-        batch_stats = self.db.groupby("batch_idx").first()
 
-        return batch_stats["status"].value_counts().to_dict()
+class ExternalCampaign(Campaign):
+    def get_stats(self):
+        return {}
 
 
 class HumanCampaign(Campaign):
@@ -104,7 +103,7 @@ class HumanCampaign(Campaign):
                 {
                     "dataset": row["dataset"],
                     "split": row["split"],
-                    "setup": {"id": row["setup_id"]},
+                    "setup_id": row["setup_id"],
                     "example_idx": row["example_idx"],
                     "annotator_group": row["annotator_group"],
                 }
@@ -141,6 +140,12 @@ class HumanCampaign(Campaign):
 
         return overview_db
 
+    def get_stats(self):
+        # group by batch_idx, keep the first row of each group
+        batch_stats = self.db.groupby("batch_idx").first()
+
+        return batch_stats["status"].value_counts().to_dict()
+
 
 class LLMCampaign(Campaign):
     def get_stats(self):
@@ -156,7 +161,7 @@ class LLMCampaignEval(LLMCampaign):
         # get the finished examples
         finished_examples = self.get_finished_examples()
         example_index = {
-            (ex["dataset"], ex["split"], ex["setup"]["id"], ex["example_idx"]): str(ex) for ex in finished_examples
+            (ex["dataset"], ex["split"], ex["setup_id"], ex["example_idx"]): str(ex) for ex in finished_examples
         }
 
         self.load_db()
@@ -193,8 +198,7 @@ class LLMCampaignGen(LLMCampaign):
             key = (row["dataset"], row["split"], row["example_idx"])
             example = ast.literal_eval(example_index.get(key, "{}"))
 
-            generated = example.get("generated", {})
-            overview_db.at[i, "output"] = str(generated.get("out", ""))
+            overview_db.at[i, "output"] = str(example.get("out", ""))
 
         overview_db = overview_db.to_dict(orient="records")
         return overview_db

@@ -27,6 +27,7 @@ from slugify import slugify
 
 from factgenie.campaigns import HumanCampaign, CampaignStatus, ExampleStatus, ANNOTATIONS_DIR, GENERATIONS_DIR
 from factgenie.models import ModelFactory
+from factgenie.loaders.dataset import get_dataset_classes
 import factgenie.utils as utils
 import factgenie.analysis as analysis
 
@@ -145,14 +146,7 @@ def about():
 def analyze():
     logger.info(f"Analysis page loaded")
 
-    campaign_index = utils.generate_campaign_index(app, force_reload=True)
-
-    campaigns = list(campaign_index["llm_eval"].values()) + list(campaign_index["crowdsourcing"].values())
-    campaigns.sort(key=lambda x: x.metadata["created"], reverse=True)
-    campaigns = {
-        c.metadata["id"]: {"metadata": c.metadata, "stats": c.get_stats(), "data": c.db.to_dict(orient="records")}
-        for c in campaigns
-    }
+    campaigns = utils.get_sorted_campaign_list(app, sources=["crowdsourcing", "llm_eval"])
 
     return render_template(
         "analyze.html",
@@ -169,7 +163,7 @@ def analyze_detail():
 
     campaign = utils.load_campaign(app, campaign_id=campaign_id, mode=source)
 
-    datasets = utils.get_dataset_overview(app)
+    datasets = utils.get_local_dataset_overview(app)
     statistics = analysis.compute_statistics(app, campaign, datasets)
 
     return render_template(
@@ -187,13 +181,13 @@ def annotate():
 
     campaign_id = request.args.get("campaign")
     campaign = utils.load_campaign(app, campaign_id=campaign_id, mode="crowdsourcing")
-    annotator_id = request.args.get("PROLIFIC_PID", "test")
-    session_id = request.args.get("SESSION_ID", "test")
-    study_id = request.args.get("STUDY_ID", "test")
+
+    service = campaign.metadata["config"]["service"]
+    service_ids = utils.get_service_ids(service, request.args)
 
     db = campaign.db
     metadata = campaign.metadata
-    annotation_set = utils.get_annotator_batch(app, campaign, db, annotator_id, session_id, study_id)
+    annotation_set = utils.get_annotator_batch(app, campaign, db, service_ids)
 
     if not annotation_set:
         # no more available examples
@@ -207,7 +201,7 @@ def annotate():
         f"campaigns/{campaign.campaign_id}/annotate.html",
         host_prefix=app.config["host_prefix"],
         annotation_set=annotation_set,
-        annotator_id=annotator_id,
+        annotator_id=service_ids["annotator_id"],
         metadata=metadata,
     )
 
@@ -229,8 +223,14 @@ def browse():
     else:
         display_example = None
 
-    datasets = utils.get_dataset_overview(app)
+    datasets = utils.get_local_dataset_overview(app)
     datasets = {k: v for k, v in datasets.items() if v["enabled"]}
+
+    if not datasets:
+        return render_template(
+            "no_datasets.html",
+            host_prefix=app.config["host_prefix"],
+        )
 
     return render_template(
         "browse.html",
@@ -333,7 +333,7 @@ def crowdsourcing_create():
 @app.route("/crowdsourcing/new", methods=["GET", "POST"])
 @login_required
 def crowdsourcing_new():
-    datasets = utils.get_dataset_overview(app)
+    datasets = utils.get_local_dataset_overview(app)
     datasets = {k: v for k, v in datasets.items() if v["enabled"]}
 
     model_outs = utils.get_model_outputs_overview(app, datasets, non_empty=True)
@@ -364,7 +364,7 @@ def compute_agreement():
     # flatten the campaigns
     campaigns = {k: v for source in campaign_index.values() for k, v in source.items()}
 
-    datasets = utils.get_dataset_overview(app)
+    datasets = utils.get_local_dataset_overview(app)
 
     try:
         results = analysis.compute_inter_annotator_agreement(
@@ -386,9 +386,8 @@ def delete_campaign():
     data = request.get_json()
     campaign_name = data.get("campaignId")
     source = data.get("source")
-    mode = data.get("mode")
 
-    if mode == "llm_gen":
+    if source == "llm_gen":
         target_dir = GENERATIONS_DIR
     else:
         target_dir = ANNOTATIONS_DIR
@@ -420,10 +419,25 @@ def delete_model_outputs():
     # get dataset, split, setup
     dataset_id = data.get("dataset")
     split = data.get("split")
-    setup = data.get("setup")
+    setup_id = data.get("setup_id")
 
     dataset = app.db["datasets_obj"][dataset_id]
-    utils.delete_model_outputs(dataset, split, setup)
+    utils.delete_model_outputs(dataset, split, setup_id)
+
+    return utils.success()
+
+
+@app.route("/download_dataset", methods=["POST"])
+@login_required
+def download_dataset():
+    data = request.get_json()
+    dataset_id = data.get("datasetId")
+
+    try:
+        utils.download_dataset(app, dataset_id)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": f"Error while downloading dataset: {e}"})
 
     return utils.success()
 
@@ -457,7 +471,7 @@ def duplicate_eval():
     data = request.get_json()
     mode = data.get("mode")
     campaign_id = data.get("campaignId")
-    new_campaign_id = data.get("newCampaignId")
+    new_campaign_id = slugify(data.get("newCampaignId"))
 
     ret = utils.duplicate_eval(app, mode, campaign_id, new_campaign_id)
 
@@ -502,7 +516,7 @@ def export_dataset():
 def export_outputs():
     dataset_id = request.args.get("dataset")
     split = request.args.get("split")
-    setup_id = request.args.get("setup")
+    setup_id = request.args.get("setup_id")
 
     return utils.export_outputs(app, dataset_id, split, setup_id)
 
@@ -569,7 +583,7 @@ def llm_campaign_create():
 
     data = request.get_json()
 
-    campaign_id = data.get("campaignId")
+    campaign_id = slugify(data.get("campaignId"))
     campaign_data = data.get("campaignData")
     config = data.get("config")
 
@@ -627,7 +641,7 @@ def llm_campaign_new():
     if not mode:
         return "The `mode` argument was not specified", 404
 
-    datasets = utils.get_dataset_overview(app)
+    datasets = utils.get_local_dataset_overview(app)
     datasets = {k: v for k, v in datasets.items() if v["enabled"]}
 
     non_empty = True if mode == "llm_eval" else False
@@ -668,14 +682,19 @@ def llm_campaign_run():
     app.db["threads"][campaign_id] = {
         "running": True,
     }
-    campaign = utils.load_campaign(app, campaign_id=campaign_id, mode=mode)
-    threads = app.db["threads"]
-    datasets = app.db["datasets_obj"]
 
-    config = campaign.metadata["config"]
-    model = ModelFactory.from_config(config, mode=mode)
+    try:
+        campaign = utils.load_campaign(app, campaign_id=campaign_id, mode=mode)
+        threads = app.db["threads"]
+        datasets = app.db["datasets_obj"]
 
-    return utils.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, threads)
+        config = campaign.metadata["config"]
+        model = ModelFactory.from_config(config, mode=mode)
+
+        return utils.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, threads)
+    except Exception as e:
+        traceback.print_exc()
+        return utils.error(f"Error while running campaign: {e}")
 
 
 @app.route("/llm_campaign/progress/<campaign_id>", methods=["GET"])
@@ -713,21 +732,49 @@ def llm_campaign_pause():
     return resp
 
 
+@app.route("/llm_eval/detail", methods=["GET", "POST"])
+@login_required
+def llm_eval():
+    campaign_id = request.args.get("campaign")
+
+    # redirect to /llm_campaign with the mode set to llm_eval, keeping the campaign_id
+    return redirect(f"{app.config['host_prefix']}/llm_campaign/detail?mode=llm_eval&campaign={campaign_id}")
+
+
+@app.route("/llm_gen/detail", methods=["GET", "POST"])
+@login_required
+def llm_gen():
+    campaign_id = request.args.get("campaign")
+
+    # redirect to /llm_campaign with the mode set to llm_gen, keeping the campaign_id
+    return redirect(f"{app.config['host_prefix']}/llm_campaign/detail?mode=llm_gen&campaign={campaign_id}")
+
+
 @app.route("/manage", methods=["GET", "POST"])
 @login_required
 def manage():
-    datasets = utils.get_dataset_overview(app)
-    dataset_classes = list(utils.get_dataset_classes().keys())
+    datasets = utils.get_local_dataset_overview(app)
+    dataset_classes = list(get_dataset_classes().keys())
 
     datasets_enabled = {k: v for k, v in datasets.items() if v["enabled"]}
     model_outputs = utils.get_model_outputs_overview(app, datasets_enabled)
+
+    datasets_for_download = utils.get_datasets_for_download(app)
+
+    # set as `downloaded` the datasets that are already downloaded
+    for dataset_id in datasets_for_download.keys():
+        datasets_for_download[dataset_id]["downloaded"] = dataset_id in datasets
+
+    campaigns = utils.get_sorted_campaign_list(app, sources=["crowdsourcing", "llm_eval", "llm_gen", "external"])
 
     return render_template(
         "manage.html",
         datasets=datasets,
         dataset_classes=dataset_classes,
+        datasets_for_download=datasets_for_download,
         host_prefix=app.config["host_prefix"],
         model_outputs=model_outputs,
+        campaigns=campaigns,
     )
 
 
@@ -757,7 +804,7 @@ def save_config():
 def save_generation_outputs():
     data = request.get_json()
     campaign_id = data.get("campaignId")
-    model_name = data.get("modelName")
+    model_name = slugify(data.get("modelName"))
 
     utils.save_generation_outputs(app, campaign_id, model_name)
 
@@ -817,7 +864,7 @@ def upload_dataset():
     # Process each file in the dataset
 
     try:
-        utils.upload_dataset(dataset_id, dataset_description, dataset_format, dataset_data)
+        utils.upload_dataset(app, dataset_id, dataset_description, dataset_format, dataset_data)
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": f"Error while uploading dataset: {e}"})

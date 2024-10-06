@@ -29,10 +29,6 @@ function addDatasetSplit() {
     datasetSplits.append(newSplit);
 }
 
-$("#dataset-select-overview").on("change", showModelOutputs);
-$("#dataset-select").on("change", updateSplits);
-
-
 function updateSplits() {
     const dataset = $('#dataset-select').val();
 
@@ -43,48 +39,9 @@ function updateSplits() {
     }
 }
 
-
-
-function showModelOutputs() {
-    // add a row to #model-out-table for each model output
-
-    const dataset = $('#dataset-select-overview').val();
-    const outputs = modelOutputs[dataset];
-    const table = $('#model-out-table tbody');
-    table.empty();
-
-    // we need to iterate of triple nested dict
-    for (const [split, setups] of Object.entries(outputs)) {
-        for (const [setup, outputs] of Object.entries(setups)) {
-            const examples = datasets[dataset].example_count[split];
-            const row = `<tr>
-                <td>${dataset}</td>
-                <td>${split}</td>
-                <td>${setup}</td>
-                <td>${examples}</td>
-                <td>
-                    <a href="${url_prefix}/browse?dataset=${dataset}&split=${split}&example_idx=0" class="btn btn-outline-secondary"
-                        data-bs-toggle="tooltip" title="Show the outputs">
-                        <i class="fa fa-eye"></i>
-                    </a>
-                    <a href="${url_prefix}/export_outputs?dataset=${dataset}&split=${split}&setup=${setup}" class="btn btn-outline-secondary"
-                    data-bs-toggle="tooltip" title="Download model outputs">
-                    <i class="fa fa-download"></i>
-                </a>
-                    <a onclick="deleteOutput('${dataset}', '${split}', '${setup}')" class="btn btn-outline-danger"
-                    data-bs-toggle="tooltip" title="Delete the output">
-                    <i class="fa fa-trash"></i>
-                    </a>
-                </td>
-            </tr>`;
-            table.append(row);
-        }
-    }
-}
-
-function deleteOutput(dataset, split, setup) {
+function deleteOutput(dataset, split, setup_id) {
     // ask for confirmation
-    if (!confirm(`Are you sure you want to delete the output for ${setup}?`)) {
+    if (!confirm(`Are you sure you want to delete the output for ${setup_id}?`)) {
         return;
     }
     $.post({
@@ -93,7 +50,7 @@ function deleteOutput(dataset, split, setup) {
         data: JSON.stringify({
             dataset: dataset,
             split: split,
-            setup: setup
+            setup_id: setup_id
         }),
         success: function (response) {
             console.log(response);
@@ -116,6 +73,8 @@ function uploadDataset() {
     const dataset = {};
     var filesToRead = $("#dataset-files").children().length;
 
+    $("#upload-dataset-btn").text("Uploading...").prop("disabled", true);
+
     // Function to send the POST request
     function sendRequest() {
         $.post({
@@ -132,6 +91,7 @@ function uploadDataset() {
 
                 if (response.success !== true) {
                     alert(response.error);
+                    $("#upload-dataset-btn").text("Upload dataset").prop("disabled", false);
                 } else {
                     // reload
                     location.reload();
@@ -168,6 +128,40 @@ function uploadDataset() {
             reader.readAsText(splitFile);
         }
     });
+}
+
+
+function downloadDataset(datasetId) {
+    $(`#btn-download-${datasetId}`).hide();
+    // add a loading spinner
+    $(`#row-actions-${datasetId}`).append(`
+        <div class="spinner-border text-secondary" role="status" id="spinner-download-${datasetId}">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    `);
+
+    $.post({
+        url: `${url_prefix}/download_dataset`,
+        contentType: 'application/json', // Specify JSON content type
+        data: JSON.stringify({
+            datasetId: datasetId,
+        }),
+        success: function (response) {
+            console.log(response);
+
+            if (response.success !== true) {
+                alert(response.error);
+                $(`#spinner-download-${datasetId}`).remove();
+                $(`#btn-download-${datasetId}`).show();
+            } else {
+                // remove the spinner
+                // $(`#spinner-download-${datasetId}`).remove();
+                // $(`#check-downloaded-${datasetId}`).show();
+                location.reload();
+            }
+        }
+    });
+
 }
 
 function deleteDataset(datasetId) {
@@ -258,6 +252,13 @@ function setDatasetEnabled(name, enabled) {
     });
 }
 
+function detailFormatter(index, row) {
+    const keys = Object.keys(row).filter(key => key.match(/^\d+$/));
+    const key = keys[keys.length - 1];
+
+    return row[key];
+}
+
 
 function enableTooltips() {
     // enable tooltips
@@ -269,10 +270,37 @@ function enableTooltips() {
 
 
 $(document).ready(function () {
-    if (window.mode == "manage") {
-        $("#dataset-select-overview").val(Object.keys(datasets)[0]).trigger("change");
-        updateSplits();
+    $("#dataset-select-overview").val(Object.keys(datasets)[0]).trigger("change");
+    updateSplits();
+
+    // Function to activate the tab based on the anchor
+    function activateTabFromAnchor() {
+        var anchor = window.location.hash.substring(1);
+        if (anchor) {
+            var tabToActivate = $('a[data-anchor="' + anchor + '"]');
+            if (tabToActivate.length) {
+                tabToActivate.tab('show');
+            }
+        }
     }
+
+    // Add click event listener to update the URL
+    $('a[data-bs-toggle="pill"]').on('click', function (e) {
+        var anchor = $(this).data('anchor');
+        if (anchor) {
+            window.location.hash = anchor;
+        }
+    });
+
+    // Activate the tab based on the URL anchor on page load
+    activateTabFromAnchor();
+
+    // Re-activate the tab if the URL hash changes
+    $(window).on('hashchange', function () {
+        activateTabFromAnchor();
+    });
+
+
     // $("#page-input").val(example_idx);
     enableTooltips();
 });
