@@ -1405,10 +1405,15 @@ def migrate():
     with open(RESOURCES_CONFIG_PATH) as f:
         resources_config = yaml.safe_load(f)
 
-    standard_datasets = set(resources_config.keys())
+    standard_datasets = set(resources_config.keys()) + ["logicnlg", "xsum"]
     dataset_config = {k: v for k, v in dataset_config.items() if k not in standard_datasets}
 
-    logger.warning(f"Keeping the following local datasets: {list(dataset_config.keys())}")
+    if dataset_config:
+        logger.warning(f"Keeping the following local datasets: {list(dataset_config.keys())}")
+
+        logger.warning(
+            f"You may need to manually update loaders of the datasets you added locally in the previous version of factgenie. You can find their configurations in {DATASET_CONFIG_PATH}."
+        )
 
     # if any dataset has `class: base.X`, rename it to `basic.X`
     for dataset_id, dataset in dataset_config.items():
