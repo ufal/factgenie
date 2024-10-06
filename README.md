@@ -18,11 +18,12 @@ Annotate LLM outputs with a lightweight, self-hosted web application 🌈
 </div>
 
 ## 📢  News
+- **08/10/2024** - We added  [step-by-step walkthrougs](../../wiki/00-Tutorials) on using factgenie for generating and annotating outputs for a dataset of basketball reports 🏀
+- **07/10/2024** - Example datasets have been removed from the repository. Instead, you can find them in the "external resources" section on the data management page.
 - **24/09/2024** - We introduced a brand new factgenie logo!
 - **19/09/2024** - On the Analytics page, you can now see detailed statistics about annotations and compute inter-annotator agreement 📈
 - **16/09/2024** - You can now collect extra inputs from the annotators for each example using sliders and selectboxes. 
 - **16/09/2024** - We added an option to generate outputs for the inputs with LLMs directly within factgenie! 🦾
-- **10/09/2024** - We improved UX for the annotation and browsing interfaces. See the summary of changes [here](https://github.com/ufal/factgenie/pull/71).
 
 ## 👉️ How can factgenie help you?
 Outputs from large language models (LLMs) may contain errors: semantic, factual, and lexical. 
@@ -64,7 +65,7 @@ See the following **wiki pages** that that will guide you through various use-ca
 | 🌱 [Contributing](../../wiki/07-Contributing)                           | How to contribute to factgenie.                    |
 
 ## 🔥 Tutorials
-We also provide a set of hands-on tutorials, showing how to employ factgenie on the [the dataset from the Shared Task in Evaluating Semantic Accuracy](https://github.com/ehudreiter/accuracySharedTask):
+We also provide step-by-step walkthroughs showing how to employ factgenie on the [the dataset from the Shared Task in Evaluating Semantic Accuracy](https://github.com/ehudreiter/accuracySharedTask):
 
 | Tutorial                                                                                                                       | Description                                                                                      |
 | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |

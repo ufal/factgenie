@@ -13,14 +13,14 @@ CROWDSOURCING_CONFIG_DIR = PACKAGE_DIR / "config" / "crowdsourcing"
 DATA_DIR = PACKAGE_DIR / "data"
 OUTPUT_DIR = PACKAGE_DIR / "outputs"
 
+RESOURCES_CONFIG_PATH = PACKAGE_DIR / "config" / "resources.yml"
 DATASET_CONFIG_PATH = PACKAGE_DIR / "config" / "datasets.yml"
-DATASET_LOCAL_CONFIG_PATH = PACKAGE_DIR / "config" / "datasets_local.yml"
 
 OLD_DATASET_CONFIG_PATH = PACKAGE_DIR / "loaders" / "datasets.yml"
 OLD_MAIN_CONFIG_PATH = PACKAGE_DIR / "config.yml"
 
 MAIN_CONFIG_PATH = PACKAGE_DIR / "config" / "config.yml"
-if not MAIN_CONFIG_PATH.exists():
+if not MAIN_CONFIG_PATH.exists() and not OLD_MAIN_CONFIG_PATH.exists():
     raise ValueError(
         f"Invalid path to config.yml {MAIN_CONFIG_PATH=}. "
         "Please rename config_TEMPLATE.yml to config.yml. "

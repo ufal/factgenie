@@ -47,8 +47,8 @@ from factgenie import (
     LLM_EVAL_CONFIG_DIR,
     LLM_GEN_CONFIG_DIR,
     CROWDSOURCING_CONFIG_DIR,
+    RESOURCES_CONFIG_PATH,
     DATASET_CONFIG_PATH,
-    DATASET_LOCAL_CONFIG_PATH,
     PREVIEW_STUDY_ID,
 )
 
@@ -503,31 +503,34 @@ def generate_campaign_db(app, campaign_data, config):
     return df
 
 
-def load_dataset_download_config():
+def load_resources_config():
+    with open(RESOURCES_CONFIG_PATH) as f:
+        config = yaml.safe_load(f)
+
+    return config
+
+
+def load_dataset_config():
+    if not DATASET_CONFIG_PATH.exists():
+        with open(DATASET_CONFIG_PATH, "w") as f:
+            f.write("---\n")
+
     with open(DATASET_CONFIG_PATH) as f:
         config = yaml.safe_load(f)
 
-    return config
-
-
-def load_dataset_local_config():
-    if not DATASET_LOCAL_CONFIG_PATH.exists():
-        with open(DATASET_LOCAL_CONFIG_PATH, "w") as f:
-            f.write("")
-
-    with open(DATASET_LOCAL_CONFIG_PATH) as f:
-        config = yaml.safe_load(f)
+    if config is None:
+        config = {}
 
     return config
 
 
-def save_dataset_local_config(config):
-    with open(DATASET_LOCAL_CONFIG_PATH, "w") as f:
+def save_dataset_config(config):
+    with open(DATASET_CONFIG_PATH, "w") as f:
         yaml.dump(config, f, indent=2, allow_unicode=True)
 
 
 def set_dataset_enabled(app, dataset_id, enabled):
-    config = load_dataset_local_config()
+    config = load_dataset_config()
     config[dataset_id]["enabled"] = enabled
 
     if enabled:
@@ -536,11 +539,11 @@ def set_dataset_enabled(app, dataset_id, enabled):
     else:
         app.db["datasets_obj"].pop(dataset_id, None)
 
-    save_dataset_local_config(config)
+    save_dataset_config(config)
 
 
 def get_local_dataset_overview(app):
-    config = load_dataset_local_config()
+    config = load_dataset_config()
     overview = {}
 
     for dataset_id, dataset_config in config.items():
@@ -578,13 +581,13 @@ def get_local_dataset_overview(app):
 
 
 def get_datasets_for_download(app):
-    config = load_dataset_download_config()
+    config = load_resources_config()
 
     return config
 
 
 def download_dataset(app, dataset_id):
-    config = load_dataset_download_config()
+    config = load_resources_config()
     dataset_config = config.get(dataset_id)
 
     if dataset_config is None:
@@ -611,7 +614,7 @@ def download_dataset(app, dataset_id):
     )
 
     # add an entry in the dataset config
-    config = load_dataset_local_config()
+    config = load_dataset_config()
 
     config[dataset_id] = {
         "class": dataset_config["class"],
@@ -623,15 +626,15 @@ def download_dataset(app, dataset_id):
     dataset = instantiate_dataset(dataset_id, config[dataset_id])
     app.db["datasets_obj"][dataset_id] = dataset
 
-    save_dataset_local_config(config)
+    save_dataset_config(config)
 
     return dataset
 
 
 def delete_dataset(app, dataset_id):
-    config = load_dataset_local_config()
+    config = load_dataset_config()
     config.pop(dataset_id, None)
-    save_dataset_local_config(config)
+    save_dataset_config(config)
 
     # remove the data directory
     shutil.rmtree(f"factgenie/data/{dataset_id}", ignore_errors=True)
@@ -697,7 +700,7 @@ def instantiate_dataset(dataset_id, dataset_config):
 
 
 def instantiate_datasets():
-    config = load_dataset_local_config()
+    config = load_dataset_config()
     datasets = {}
 
     for dataset_id, dataset_config in config.items():
@@ -744,14 +747,14 @@ def upload_dataset(app, dataset_id, dataset_description, dataset_format, dataset
                 zip_ref.extractall(f"{data_dir}/{split}")
 
     # add an entry in the dataset config
-    config = load_dataset_local_config()
+    config = load_dataset_config()
     config[dataset_id] = {
         "class": params[dataset_format]["class"],
         "description": dataset_description,
         "splits": list(dataset_data.keys()),
         "enabled": True,
     }
-    save_dataset_local_config(config)
+    save_dataset_config(config)
 
     app.db["datasets_obj"][dataset_id] = instantiate_dataset(dataset_id, config[dataset_id])
 
@@ -1386,17 +1389,26 @@ def migrate():
     # ------------------
     # update old config files
     # ------------------
-    logger.warning("Moving loaders/datasets.yml to config/datasets_local.yml")
-    shutil.move(OLD_DATASET_CONFIG_PATH, DATASET_CONFIG_PATH)
 
-    logger.debug("Moving config.yml to config/config.yml")
+    logger.warning("Moving config.yml to config/config.yml")
     shutil.move(OLD_MAIN_CONFIG_PATH, MAIN_CONFIG_PATH)
 
-    # load `DATASET_CONFIG_PATH` and if it has as the only key `datasets`, use its values as top level keys
+    logger.warning("Moving loaders/datasets.yml to config/datasets.yml")
+    shutil.move(OLD_DATASET_CONFIG_PATH, DATASET_CONFIG_PATH)
+
+    # load the dataset config, keep only the datasets that are not available for download (i.e. not in the resources.yml)
     with open(DATASET_CONFIG_PATH) as f:
         dataset_config = yaml.safe_load(f)
-        if "datasets" in dataset_config:
-            dataset_config = dataset_config["datasets"]
+        # use ids as top level keys
+        dataset_config = dataset_config["datasets"]
+
+    with open(RESOURCES_CONFIG_PATH) as f:
+        resources_config = yaml.safe_load(f)
+
+    standard_datasets = set(resources_config.keys())
+    dataset_config = {k: v for k, v in dataset_config.items() if k not in standard_datasets}
+
+    logger.warning(f"Keeping the following local datasets: {list(dataset_config.keys())}")
 
     with open(DATASET_CONFIG_PATH, "w") as f:
         yaml.dump(dataset_config, f, indent=2, allow_unicode=True)
@@ -1404,6 +1416,7 @@ def migrate():
     # ------------------
     # convert old model outputs to the new JSONL format
     # ------------------
+    logger.warning("Converting old model outputs to a new JSONL format...")
     outs = list(Path(OUTPUT_DIR).glob("**/*.json"))
 
     # ignore metadata.json
@@ -1451,9 +1464,9 @@ def migrate():
         # remove the old JSON file
         out.unlink()
 
-    # ------------------
     ann_outs = list(Path(ANNOTATIONS_DIR).glob("**/*.jsonl"))
 
+    logger.warning("Updating annotation outputs...")
     for file_path in ann_outs:
         with open(file_path, "r") as infile, open(file_path + ".tmp", "w") as outfile:
             for line in infile:
@@ -1463,3 +1476,5 @@ def migrate():
                     del obj["setup"]
                 outfile.write(json.dumps(obj) + "\n")
         os.replace(file_path + ".tmp", file_path)
+
+    logger.warning("Migration complete")

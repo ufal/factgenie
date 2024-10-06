@@ -13,7 +13,7 @@ def list_datasets():
     import yaml
 
     """List all available datasets."""
-    with open(DATASET_LOCAL_CONFIG_PATH) as f:
+    with open(DATASET_CONFIG_PATH) as f:
         config = yaml.safe_load(f)
 
     for dataset_id, _ in config.items():
@@ -41,7 +41,7 @@ def run_llm_campaign(
     campaign_id = slugify(campaign_id)
     campaign_data = [{"dataset": dataset_id, "split": split, "setup_id": setup_id}]
 
-    config = utils.load_dataset_local_config()
+    config = utils.load_dataset_config()
     dataset_config = config[dataset_id]
     datasets = {dataset_id: utils.instantiate_dataset(dataset_id, dataset_config)}
 
@@ -67,11 +67,27 @@ def create_app(**kwargs):
     import coloredlogs
     import os
     from factgenie.main import app
+
+    logger = logging.getLogger(__name__)
+
+    file_handler = logging.FileHandler("error.log")
+    file_handler.setLevel(logging.ERROR)
+
+    logging.basicConfig(
+        format="%(levelname)s (%(filename)s:%(lineno)d) - %(message)s",
+        level=app.config.get("logging_level", "INFO"),
+        handlers=[file_handler, logging.StreamHandler()],
+    )
+    logger = logging.getLogger(__name__)
+    coloredlogs.install(
+        level=app.config.get("logging_level", "INFO"),
+        logger=logger,
+        fmt="%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s",
+    )
+
     from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, GENERATIONS_DIR, ANNOTATIONS_DIR, DATA_DIR, OUTPUT_DIR
     from factgenie import utils
     from factgenie.utils import check_login, migrate
-
-    logger = logging.getLogger(__name__)
 
     # --- compatibility with older versions ---
     migrate()
@@ -99,21 +115,6 @@ def create_app(**kwargs):
         logging.getLogger("werkzeug").disabled = True
 
     logger.info("Application ready")
-
-    file_handler = logging.FileHandler("error.log")
-    file_handler.setLevel(logging.ERROR)
-
-    logging.basicConfig(
-        format="%(levelname)s (%(filename)s:%(lineno)d) - %(message)s",
-        level=app.config.get("logging_level", "INFO"),
-        handlers=[file_handler, logging.StreamHandler()],
-    )
-    logger = logging.getLogger(__name__)
-    coloredlogs.install(
-        level=app.config.get("logging_level", "INFO"),
-        logger=logger,
-        fmt="%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s",
-    )
 
     app.config.update(SECRET_KEY=os.urandom(24))
 
