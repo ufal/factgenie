@@ -883,11 +883,12 @@ function startLLMCampaignListener(campaignId) {
     source.onmessage = function (event) {
         // update the progress bar
         var payload = JSON.parse(event.data);
-        var finished_examples = payload.finished_examples_cnt;
-        var progress = Math.round((finished_examples / window.llm_examples) * 100);
-        $("#llm-progress-bar").css("width", `${progress}%`);
-        $("#llm-progress-bar").attr("aria-valuenow", progress);
-        $("#metadata-example-cnt").html(`${finished_examples} / ${window.llm_examples}`);
+        var finished_examples = payload.stats.finished;
+        var total_examples = payload.stats.total;
+        var progress = Math.round((finished_examples / total_examples) * 100);
+        $(`#llm-progress-bar-${campaignId}`).css("width", `${progress}%`);
+        $(`#llm-progress-bar-${campaignId}`).attr("aria-valuenow", progress);
+        $("#metadata-example-cnt").html(`${finished_examples} / ${total_examples}`);
         console.log(`Received progress: ${progress}%`);
 
         // update the annotation button
@@ -919,11 +920,11 @@ function startLLMCampaignListener(campaignId) {
             source.close();
             console.log("Closing the connection");
 
-            $("#metadata-status").html("finished");
-            $("#run-button").hide();
-            $("#download-button").show();
-            $("#stop-button").hide();
-            $("#llm-progress").hide();
+            $(`#metadata-status`).html("finished");
+            $(`#run-button-${campaignId}`).hide();
+            // $(`#download-button`).show();
+            $(`#stop-button-${campaignId}`).hide();
+            // $(`#llm-progress-${campaignId}`).hide();
 
             $("#log-area").text(response.final_message);
 
@@ -936,10 +937,10 @@ function startLLMCampaignListener(campaignId) {
 }
 
 function runLLMCampaign(campaignId) {
-    $("#run-button").hide();
-    $("#stop-button").show();
-    $("#llm-progress").show();
-    $("#metadata-status").html("running");
+    $(`#run-button-${campaignId}`).hide();
+    $(`#stop-button-${campaignId}`).show();
+    // $(`#llm-progress-${campaignId}`).show();
+    $(`#metadata-status`).html("running");
 
     startLLMCampaignListener(campaignId);
 
@@ -954,10 +955,10 @@ function runLLMCampaign(campaignId) {
                 $("#log-area").text(JSON.stringify(response.error));
                 console.log(JSON.stringify(response));
 
-                $("#metadata-status").html("error");
-                $("#run-button").show();
-                $("#stop-button").hide();
-                $("#llm-progress").hide();
+                $(`#metadata-status`).html("error");
+                $(`#run-button-${campaignId}`).show();
+                $(`#stop-button-${campaignId}`).hide();
+                // $(`#llm-progress-${campaignId}`).hide();
             } else {
                 console.log(response);
             }
@@ -966,11 +967,11 @@ function runLLMCampaign(campaignId) {
 }
 
 function pauseLLMCampaign(campaignId) {
-    $("#run-button").show();
-    $("#stop-button").hide();
-    $("#download-button").show();
-    $("#llm-progress").hide();
-    $("#metadata-status").html("idle");
+    $(`#run-button-${campaignId}`).show();
+    $(`#stop-button-${campaignId}`).hide();
+    // $(`#download-button`).show();
+    // $(`#llm-progress-${campaignId}`).hide();
+    $(`#metadata-status`).html("idle");
 
     $.post({
         url: `${url_prefix}/llm_campaign/pause?mode=${mode}`,
@@ -982,6 +983,35 @@ function pauseLLMCampaign(campaignId) {
             console.log(response);
         }
     });
+}
+function updateCampaignConfig(campaignId) {
+    // collect values of all .campaign-metadata inputs, for each input also extract the key in `data-key`
+    var config = {};
+    $(".campaign-metadata").each(function () {
+        const key = $(this).data("key");
+        const value = $(this).val();
+        config[key] = value;
+    });
+
+    $.post({
+        url: `${url_prefix}/llm_campaign/update_metadata?mode=${mode}`,
+        contentType: 'application/json',
+        data: JSON.stringify({
+            campaignId: campaignId,
+            config: config
+        }),
+        success: function (response) {
+            console.log(response);
+            $(".update-config-btn").removeClass("btn-danger").addClass("btn-success").text("Saved!");
+
+            setTimeout(function () {
+                $(`#config-modal-${campaignId}`).modal('hide');
+                $(".update-config-btn").removeClass("btn-success").addClass("btn-danger").text("Overwrite metadata");
+            }, 1500);
+
+        }
+    });
+
 }
 
 function addAnnotationSpanCategory() {

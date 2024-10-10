@@ -1210,9 +1210,10 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, th
         db.loc[i, "status"] = ExampleStatus.FINISHED
         db.loc[i, "end"] = int(time.time())
         campaign.update_db(db)
-
-        finished_examples_cnt = len(campaign.get_finished_examples())
-        payload = {"finished_examples_cnt": finished_examples_cnt, "annotation": record}
+        
+        stats = campaign.get_stats()
+        finished_examples_cnt = stats["finished"]
+        payload = {"campaign_id": campaign_id, "stats": stats, "annotation": record}
 
         msg = format_sse(data=json.dumps(payload))
         if announcer is not None:

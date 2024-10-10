@@ -149,7 +149,11 @@ class HumanCampaign(Campaign):
 
 class LLMCampaign(Campaign):
     def get_stats(self):
-        return self.db["status"].value_counts().to_dict()
+        return {
+            "total": len(self.db),
+            "finished": len(self.db[self.db["status"] == ExampleStatus.FINISHED]),
+            "free": len(self.db[self.db["status"] == ExampleStatus.FREE]),
+        }
 
 
 class LLMCampaignEval(LLMCampaign):

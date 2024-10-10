@@ -12,6 +12,11 @@
   <script src="{{ host_prefix }}/static/js/popper.min.js"></script>
   <script src="{{ host_prefix }}/static/js/bootstrap.min.js"></script>
 
+
+  <link rel="stylesheet" href="{{ host_prefix }}/static/css/bootstrap-table.min.css">
+  <link rel="stylesheet" href="{{ host_prefix }}/static/css/bootstrap-icons.css">
+  <script src="{{ host_prefix }}/static/js/bootstrap-table.min.js"></script>
+
 </head>
 
 <body>
@@ -28,44 +33,83 @@
         <b>List of LLM {% if mode == 'llm_eval' %}evaluation{% else %}generation{% endif %} campaigns</b>
       </h3>
       <div id="campaigns">
-        <table class="table table-hover">
+        <table data-toggle="table" data-pagination="true" data-page-size="10" data-pagination-parts="['pageList']"
+          data-searchable="false" data-classes="table table-hover table-llm-campaigns">
           <thead>
             <tr>
-              <th scope="col">Id</th>
-              <th scope="col">Created</th>
-              <th scope="col">Status</th>
-              <th scope="col">Examples</th>
-              <th scope="col">Actions</th>
+              <th scope="col" data-sortable="true">Id</th>
+              <th scope="col" data-sortable="true">Created</th>
+              <th scope="col" data-sortable="true">Status</th>
+              {% if mode == 'llm_eval' %}
+              <th scope="col" data-width="400">Labels</th>
+              {% endif %}
+              <th scope="col" data-width="50">Progress</th>
+              <th scope="col" data-align="right" data-width="300">Actions</th>
             </tr>
           </thead>
           <tbody>
             {% for name, campaign in campaigns.items() %}
             <tr>
+              {% set metadata = campaign.metadata %}
               <td><a href="{{ host_prefix }}/llm_campaign/detail?mode={{ mode }}&campaign={{ campaign.metadata.id }}"
                   class="blue-link">{{
-                  campaign.metadata.id }}</a></td>
-              <td>{{ campaign.metadata.created }}</td>
-              <td><span class="badge bg-{{ campaign.metadata.status }}">{{ campaign.metadata.status
+                  metadata.id }}</a></td>
+              <td>{{ metadata.created }}</td>
+              <td><span class="badge bg-{{ metadata.status }}">{{ metadata.status
                   }}</span></td>
               <!-- <td>{{ campaign.stats }}</td> -->
-              <td> {% for status, count in campaign.stats.items() %}
-                <span class="badge bg-secondary">{{ status }}: {{ count }}</span>
+              {% if mode == 'llm_eval' %}
+              <td style="padding-right: 1rem !important;">{% for category in metadata.config.annotation_span_categories
+                %}
+                <span class="badge" style="background-color: {{ category.color }}; color: rgb(60, 65, 73); ">{{
+                  category.name
+                  }}</span>
                 {% endfor %}
               </td>
+              {% endif %}
+              <td style="padding-right: 1rem !important;">
+                <div class="progress" id="llm-progress-{{ metadata.id }}">
+                  <div class="progress-bar progress-bar-animated" role="progressbar" aria-valuemin="0"
+                    id="llm-progress-bar-{{ metadata.id }}" aria-valuemax="100"
+                    style="width: {{ (campaign.stats.finished) / (campaign.stats.total) * 100 }}%; ">
+                  </div>
+                </div>
+              </td>
               <td>
-                <a href="{{ host_prefix }}/export_campaign_outputs?campaign={{ campaign.metadata.id }}&mode={{ mode }}"
-                  class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Export annotations">
+                <a onclick="runLLMCampaign('{{ metadata.id }}')" class="btn btn-outline-secondary"
+                  data-bs-toggle="tooltip" id="run-button-{{ metadata.id }}" title="Run" {% if
+                  metadata.status=='finished' or metadata.status=='running' %} style="display: none;" {% endif %}>
+                  <i class="fa fa-play"></i>
+                </a>
+                <a onclick="pauseLLMCampaign('{{ metadata.id }}')" class="btn btn-outline-secondary"
+                  data-bs-toggle="tooltip" id="stop-button-{{ metadata.id }}" title="Stop evaluation" {% if
+                  metadata.status!='running' %} style="display: none;" {% endif %}>
+                  <i class="fa fa-pause"></i>
+                </a>
+                <!-- {% if metadata.status=='finished' %}
+                <a class="btn btn-outline-secondary" style="visibility: hidden;"><i class="fa fa-play"></i>
+                </a>
+                {% endif %} -->
+                <a href="{{ host_prefix }}/export_campaign_outputs?campaign={{ metadata.id }}&mode={{ mode }}"
+                  class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Download results">
                   <i class="fa fa-download"></i>
                 </a>
+                <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
+                  data-bs-target="#config-modal-{{ metadata.id }}"><i class="fa fa-cog"></i></a>
+                {% if mode == 'llm_eval' %}
+                <a href="{{ host_prefix }}/analyze/detail?campaign={{ metadata.id }}&source={{ mode }}" type="button"
+                  class="btn btn-outline-secondary"><i class="fa fa-area-chart"></i></a>
+                {% endif %}
                 <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#duplicate-eval-modal-{{
-                  campaign.metadata.id }}">
+                  metadata.id }}">
                   <i class="fa fa-clone"></i>
                 </a>
-                <a onclick="deleteCampaign('{{ campaign.metadata.id }}', '{{ mode }}')" class="btn btn-outline-danger"
+                <a onclick="deleteCampaign('{{ metadata.id }}', '{{ mode }}')" class="btn btn-outline-danger"
                   data-bs-toggle="tooltip" title="Delete the campaign">
                   <i class="fa fa-trash"></i>
                 </a>
               </td>
+              {% include 'forms/config_modal.html' %}
             </tr>
             {% if mode == 'llm_gen' %}
             {% include 'forms/duplicate_gen_modal.html' %}

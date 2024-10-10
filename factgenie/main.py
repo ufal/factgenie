@@ -697,6 +697,22 @@ def llm_campaign_run():
         return utils.error(f"Error while running campaign: {e}")
 
 
+@app.route("/llm_campaign/update_metadata", methods=["POST"])
+@login_required
+def llm_campaign_update_config():
+    data = request.get_json()
+    mode = request.args.get("mode")
+
+    campaign_id = data.get("campaignId")
+    config = data.get("config")
+
+    campaign = utils.load_campaign(app, campaign_id=campaign_id, mode=mode)
+    campaign.metadata["config"] = config
+    campaign.update_metadata()
+
+    return utils.success()
+
+
 @app.route("/llm_campaign/progress/<campaign_id>", methods=["GET"])
 @login_required
 def listen(campaign_id):

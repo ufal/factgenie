@@ -934,3 +934,7 @@ a:hover {
 .bg-idle {
     background-color: #c5b232;
 }
+
+.progress-bar {
+    background-color: #0175ac;
+}
