@@ -709,7 +709,11 @@ def instantiate_datasets():
         if not is_enabled:
             continue
 
-        datasets[dataset_id] = instantiate_dataset(dataset_id, dataset_config)
+        try:
+            datasets[dataset_id] = instantiate_dataset(dataset_id, dataset_config)
+        except Exception as e:
+            logger.error(f"Error while loading dataset {dataset_id}")
+            traceback.print_exc()
 
     return datasets
 
