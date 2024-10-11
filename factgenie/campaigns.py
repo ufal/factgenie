@@ -71,6 +71,7 @@ class Campaign:
         return examples_finished
 
     def update_db(self, db):
+        self.db = db
         db.to_csv(self.db_path, index=False)
 
     def load_db(self):
