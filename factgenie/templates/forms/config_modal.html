@@ -1,35 +1,21 @@
-<div class="modal fade" id="config-modal-{{ metadata.id }}" tabindex="-1">
+{% set campaign_id = metadata.id %}
+
+<div class="modal fade" id="config-modal-{{
+    campaign_id }}" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="config-modal-label">{{ metadata.id }}</h5>
+                <h5 class="modal-title" id="about-modal-label">{{
+                    campaign_id }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+
             <div class="modal-body">
-                <!-- warning -->
-                <div class="alert alert-warning" role="alert">
-                    <i class="fa fa-exclamation-triangle"></i> The campaign configuration should be altered by advanced
-                    users
-                    only. Invalid
-                    values can lead to unexpected behavior.
-                </div>
-                <div class="alert alert-danger" role="alert">
-                    <i class="fa fa-exclamation-triangle"></i> Changing the configuration will erase the collected
-                    annotations.
-                </div>
-                <div id='configarea' class="tab-pane sidepanel-panel mb-3" role="tabpanel" tabindex="0">
-                    {% for key, value in metadata.config.items() %}
-                    <label for="{{ key }}-input">
-                        <b>{{ key }}</b>
-                    </label>
-                    <input type="text" class="form-control campaign-metadata" data-key="{{ key }}" id="{{ key }}-input"
-                        value="{{ value }}">
-                    {% endfor %}
-                </div>
-                <button type="button" class="btn btn-danger update-config-btn"
-                    onclick="updateCampaignConfig('{{ metadata.id }}')">Overwrite
-                    metadata</button>
+                {% include 'forms/config_form.html' %}
+
             </div>
         </div>
+
     </div>
+
 </div>

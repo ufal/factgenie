@@ -1,0 +1,18 @@
+<div class="alert alert-danger" role="alert">
+    <i class="fa fa-exclamation-triangle"></i> The campaign configuration should be altered only by
+    advanced
+    users. Invalid
+    values can lead to unexpected behavior.
+</div>
+<div id='configarea-{{ campaign_id }}' class="tab-pane sidepanel-panel mb-3" role="tabpanel" tabindex="0">
+    {% for key, value in metadata.config.items() %}
+    <label for="{{ key }}-input">
+        <b>{{ key }}</b>
+    </label>
+    <textarea rows="1" class="form-control campaign-metadata-{{ campaign_id }}" data-key="{{ key }}"
+        id="{{ key }}-input">{{ value }}</textarea>
+    {% endfor %}
+</div>
+<button type="button" class="btn btn-danger update-config-btn"
+    onclick="updateCampaignConfig('{{ campaign_id }}')">Update
+    configuration</button>

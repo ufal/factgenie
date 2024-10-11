@@ -304,13 +304,14 @@ def crowdsourcing_detail():
     campaign = utils.load_campaign(app, campaign_id=campaign_id, mode="crowdsourcing")
 
     overview = campaign.get_overview()
-    finished_examples = [x for x in overview if x["status"] == ExampleStatus.FINISHED]
+    stats = campaign.get_stats()
 
     return render_template(
         "crowdsourcing_detail.html",
+        mode="crowdsourcing",
         campaign_id=campaign_id,
         overview=overview,
-        finished_examples=finished_examples,
+        stats=stats,
         metadata=campaign.metadata,
         host_prefix=app.config["host_prefix"],
     )
@@ -412,9 +413,9 @@ def compute_agreement():
 def delete_campaign():
     data = request.get_json()
     campaign_name = data.get("campaignId")
-    source = data.get("source")
+    mode = data.get("mode")
 
-    if source == "llm_gen":
+    if mode == "llm_gen":
         target_dir = GENERATIONS_DIR
     else:
         target_dir = ANNOTATIONS_DIR
@@ -733,6 +734,7 @@ def llm_campaign_update_config():
     campaign_id = data.get("campaignId")
     config = data.get("config")
 
+    config = utils.parse_campaign_config(config)
     campaign = utils.load_campaign(app, campaign_id=campaign_id, mode=mode)
     campaign.metadata["config"] = config
     campaign.update_metadata()

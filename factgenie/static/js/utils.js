@@ -1,28 +1,24 @@
-function deleteCampaign(campaignId, source) {
-    // ask for confirmation
-    if (!confirm(`Are you sure you want to delete the campaign ${campaignId}? All the data will be lost!`)) {
-        return;
-    }
+function detailFormatter(index, row) {
+    const keys = Object.keys(row).filter(key => key.match(/^\d+$/));
+    const key = keys[keys.length - 1];
 
-    $.post({
-        url: `${url_prefix}/delete_campaign`,
-        contentType: 'application/json', // Specify JSON content type
-        data: JSON.stringify({
-            campaignId: campaignId,
-            source: source,
-        }),
-        success: function (response) {
-            console.log(response);
+    return row[key];
+}
 
-            if (response.success !== true) {
-                alert(response.error);
-            } else {
-                // remove the campaign from the list
-                $(`#campaign-${campaignId}`).remove();
+function detailFilter(index, row) {
+    // for all key value pairs in row, check if we can make a jquery object out of the value
+    // if we can, check if the text of the object is "finished"
+    // if it is, return true
 
-                // reload the page
-                location.reload();
+    for (const key in row) {
+        const value = row[key];
+        try {
+            const $value = $(value);
+            if ($value.text().trim() === "finished") {
+                return true;
             }
+        } catch (e) {
+            // pass
         }
-    });
+    }
 }

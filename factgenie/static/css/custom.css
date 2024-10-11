@@ -923,18 +923,27 @@ a:hover {
     cursor: pointer;
 }
 
+.progress-bar {
+    background-color: #0175ac;
+}
+
 .bg-running {
-    background-color: #2d9f2a;
+    /* background-color: #2d9f2a; */
+    background-color: #d6ba1f;
 }
 
 .bg-finished {
-    background-color: #2d8392;
+    background-color: #0175ac;
 }
 
 .bg-idle {
-    background-color: #c5b232;
+    background-color: rgb(108, 117, 125);
 }
 
-.progress-bar {
-    background-color: #0175ac;
+.bg-assigned {
+    background-color: #d6ba1f;
+}
+
+.bg-free {
+    background-color: rgb(108, 117, 125);
 }

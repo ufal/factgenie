@@ -932,7 +932,7 @@ function createHumanCampaign() {
 
 function startLLMCampaignListener(campaignId) {
     var source = new EventSource(`${url_prefix}/llm_campaign/progress/${campaignId}`);
-    console.log("Listening for progress events");
+    console.log(`Listening for progress events for campaign ${campaignId}`);
 
     source.onmessage = function (event) {
         // update the progress bar
@@ -942,7 +942,7 @@ function startLLMCampaignListener(campaignId) {
         var progress = Math.round((finished_examples / total_examples) * 100);
         $(`#llm-progress-bar-${campaignId}`).css("width", `${progress}%`);
         $(`#llm-progress-bar-${campaignId}`).attr("aria-valuenow", progress);
-        $("#metadata-example-cnt").html(`${finished_examples} / ${total_examples}`);
+        $(`#metadata-example-cnt-${campaignId}`).html(`${finished_examples} / ${total_examples}`);
         console.log(`Received progress: ${progress}%`);
 
         // update the annotation button
@@ -968,19 +968,19 @@ function startLLMCampaignListener(campaignId) {
 
         // update the status
         const status_button = $(`#statusBtn${rowId}`);
-        status_button.text("finished");
+        setExampleStatus("finished", status_button);
 
         if (progress == 100) {
             source.close();
             console.log("Closing the connection");
 
-            $(`#metadata-status`).html("finished");
-            $(`#run-button-${campaignId}`).hide();
-            // $(`#download-button`).show();
-            $(`#stop-button-${campaignId}`).hide();
-            // $(`#llm-progress-${campaignId}`).hide();
 
-            $("#log-area").text(response.final_message);
+            setCampaignStatus(campaignId, "finished");
+            $(`#run-button-${campaignId}`).hide();
+            $(`#stop-button-${campaignId}`).hide();
+            $(`#download-button-${campaignId}`).show();
+
+            $("#log-area").text(payload.final_message);
 
             if (window.mode == "llm_gen") {
                 $("#save-generations-button").show();
@@ -990,11 +990,21 @@ function startLLMCampaignListener(campaignId) {
     };
 }
 
+function setCampaignStatus(campaignId, status) {
+    $(`#metadata-status-${campaignId}`).html(status);
+    $(`#metadata-status-${campaignId}`).removeClass("bg-idle bg-running bg-finished bg-error");
+    $(`#metadata-status-${campaignId}`).addClass(`bg-${status}`);
+}
+
+function setExampleStatus(status, button) {
+    button.removeClass("btn-free btn-finished");
+    button.addClass(`btn-${status}`);
+}
+
 function runLLMCampaign(campaignId) {
     $(`#run-button-${campaignId}`).hide();
     $(`#stop-button-${campaignId}`).show();
-    // $(`#llm-progress-${campaignId}`).show();
-    $(`#metadata-status`).html("running");
+    setCampaignStatus(campaignId, "running");
 
     startLLMCampaignListener(campaignId);
 
@@ -1006,13 +1016,13 @@ function runLLMCampaign(campaignId) {
         }),
         success: function (response) {
             if (response.success !== true) {
+                alert(response.error);
                 $("#log-area").text(JSON.stringify(response.error));
                 console.log(JSON.stringify(response));
 
-                $(`#metadata-status`).html("error");
+                setCampaignStatus(campaignId, "idle");
                 $(`#run-button-${campaignId}`).show();
                 $(`#stop-button-${campaignId}`).hide();
-                // $(`#llm-progress-${campaignId}`).hide();
             } else {
                 console.log(response);
             }
@@ -1023,9 +1033,7 @@ function runLLMCampaign(campaignId) {
 function pauseLLMCampaign(campaignId) {
     $(`#run-button-${campaignId}`).show();
     $(`#stop-button-${campaignId}`).hide();
-    // $(`#download-button`).show();
-    // $(`#llm-progress-${campaignId}`).hide();
-    $(`#metadata-status`).html("idle");
+    setCampaignStatus(campaignId, "idle");
 
     $.post({
         url: `${url_prefix}/llm_campaign/pause?mode=${mode}`,
@@ -1039,9 +1047,9 @@ function pauseLLMCampaign(campaignId) {
     });
 }
 function updateCampaignConfig(campaignId) {
-    // collect values of all .campaign-metadata inputs, for each input also extract the key in `data-key`
+    // collect values of all .campaign-metadata textareas, for each input also extract the key in `data-key`
     var config = {};
-    $(".campaign-metadata").each(function () {
+    $(`.campaign-metadata-${campaignId}`).each(function () {
         const key = $(this).data("key");
         const value = $(this).val();
         config[key] = value;

@@ -11,12 +11,17 @@
   <script src="{{ host_prefix }}/static/js/jquery.min.js"></script>
   <script src="{{ host_prefix }}/static/js/popper.min.js"></script>
   <script src="{{ host_prefix }}/static/js/bootstrap.min.js"></script>
+
+
+  <link rel="stylesheet" href="{{ host_prefix }}/static/css/bootstrap-table.min.css">
+  <link rel="stylesheet" href="{{ host_prefix }}/static/css/bootstrap-icons.css">
+  <script src="{{ host_prefix }}/static/js/bootstrap-table.min.js"></script>
 </head>
 
 <body>
   {% include 'navbar.html' %}
 
-  <div class="container w-50 mt-5">
+  <div class="container w-75 mt-5">
 
     <div class="mt-5">
       <a href="{{ host_prefix }}/crowdsourcing" class="btn btn-outline-secondary mb-5">← List of campaigns</a>
@@ -25,7 +30,8 @@
         <hr>
         <dl class="row">
           <dt class="col-sm-3"> Page link </dt>
-          <dd class="col-sm-9" id="metadata-status"> <span class="font-mono">{{ request.url | annotate_url
+          <dd class="col-sm-9" id="metadata-status-{{ campaign_id }}"> <span class="font-mono">{{ request.url |
+              annotate_url
               }}?campaign={{
               campaign_id }}<span {% if metadata.config.service !='local'
                 %}style="display: none;{% endif %}">&annotatorId=FILL_YOUR_NAME_HERE</span></span> </dd>
@@ -33,24 +39,45 @@
           <dd class="col-sm-9" id="metadata-service"> {{ metadata.config.service }} </dd>
           <dt class="col-sm-3"> Created </dt>
           <dd class="col-sm-9" id="metadata-created"> {{ metadata.created }} </dd>
-          <dt class="col-sm-3"> Finished batches </dt>
-          <dd class="col-sm-9" id="metadata-example-cnt"> {{ finished_examples | length }} / {{ overview | length }}
+          <dt class="col-sm-3"> Status </dt>
+          <dd class="col-sm-9" id="metadata-example-cnt-{{ campaign_id }}">
+            <div id="metadata-example-cnt-{{ campaign_id }}">
+              {{ stats.finished }} <i class="fa fa-check"></i>
+              {{ stats.assigned }} <i class="fa fa-edit"></i>
+              {{ stats.free }} <i class="fa fa-clock-o"></i></div>
           </dd>
         </dl>
         <div>
+          <a href="{{ host_prefix }}/annotate?campaign={{ metadata.id }}" class="btn btn-outline-secondary"
+            data-bs-toggle="tooltip" title="Preview the crowdsourcing page">
+            <i class="fa fa-eye"></i> Preview annotation page
+          </a>
           <a href="{{ host_prefix }}/export_campaign_outputs?mode=crowdsourcing&campaign={{ campaign_id }}"
-            class="btn btn-outline-secondary" data-bs-toggle="tooltip" id="download-button" title="Export annotations"
-            {% if metadata.status=='idle' %} style="display: none;" {% endif %}>
+            class="btn btn-outline-secondary" data-bs-toggle="tooltip" id="download-button-{{ metadata.id }}"
+            title="Export annotations" {% if metadata.status=='idle' %} style="display: none;" {% endif %}>
             <i class="fa fa-download"></i> Download annotations
           </a>
+          <a onclick="clearCampaign('{{campaign_id }}', '{{ mode }}')" class="btn btn-outline-secondary"
+            data-bs-toggle=" tooltip" title="Clear the campaign">
+            <i class="fa fa-recycle"></i> Clear annotations
+          </a>
           <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
-            data-bs-target="#config-modal-{{ campaign_id }}"><i class="fa fa-cog"></i> Show
-            configuration</a>
+            data-bs-target="#config-modal-{{ campaign_id }}"><i class="fa fa-cog"></i> Show configuration</a>
           <a href="{{ host_prefix }}/analyze/detail?campaign={{ campaign_id }}&source=crowdsourcing" type="button"
             class="btn btn-outline-secondary"><i class="fa fa-area-chart"></i> View statistics</a>
           <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
             data-bs-target="#campaign-help-modal"><i class="fa fa-question-circle">
             </i> Help</a>
+        </div>
+        <div class="progress mt-3" id="crowdsourcing-progress-{{ metadata.id }}">
+          <div class="progress-bar bg-finished" role="progressbar"
+            id="crowdsourcing-progress-bar-{{ metadata.id }}-finished"
+            style="width: {{ (stats.finished) / (stats.total) * 100 }}%; ">
+          </div>
+          <div class="progress-bar bg-assigned" role="progressbar"
+            id="crowdsourcing-progress-bar-{{ metadata.id }}-assigned"
+            style="width: {{ (stats.assigned) / (stats.total) * 100 }}%; ">
+          </div>
         </div>
         <div id="log-area" class="font-monospace mt-3"></div>
         <hr>
@@ -58,16 +85,21 @@
 
       <div id="campaign-status">
         <h4>Batches</h4>
-        <table class="table table-sm table-striped">
+        <table data-toggle="table" data-pagination="true" data-page-size="100" data-pagination-parts="['pageList']"
+          data-detail-view-icon="true" data-search-align="left" data-detail-view="true"
+          data-detail-formatter="detailFormatter" data-searchable="false"
+          data-icons='{"detailOpen": "bi-chevron-down", "detailClose": "bi-chevron-up"}'
+          data-classes="table table-sm  table-striped table-crowsourcing-detail">
           <thead>
             <tr>
-              <th scope="col">Batch id</th>
-              <th scope="col">Size</th>
-              <th scope="col">Status</th>
-              <th scope="col">Annotator id</th>
-              <th scope="col">Start time</th>
-              <th scope="col">Elapsed time</th>
+              <th scope="col" data-sortable="true">Batch id</th>
+              <th scope="col" data-sortable="true">Size</th>
+              <th scope="col" data-sortable="true">Status</th>
+              <th scope="col" data-sortable="true">Annotator id</th>
+              <th scope="col" data-sortable="true">Start time</th>
+              <th scope="col" data-sortable="true">Elapsed time</th>
               <th scope="col">Actions</th>
+              <th scope="col" data-visible="false">Examples</th>
             </tr>
           </thead>
           <tbody>
@@ -76,19 +108,20 @@
             <tr>
               <td>{{ batch.batch_idx }}</td>
               <td>{{ batch.example_cnt }}</td>
-              <td><span id="statusBtn{{ rowId }}" class="badge bg-secondary">{{ batch.status }}</span>
+              <td><span id="statusBtn{{ rowId }}" class="badge bg-{{ batch.status }}">{{ batch.status }}</span>
               </td>
               <td>{{ batch.annotator_id }}</td>
               <td>{{ batch.start | ctime }}</td>
               <td>{{ batch | elapsed }}</td>
               <td>
-                <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" href="#collapseExample{{ rowId }}"
-                  role="button" aria-expanded="false" id="annotBtn{{ rowId }}" aria-controls="collapseExample">
-                  <i class="fa fa-list-alt"></i>
+                <a class="btn btn-sm btn-outline-secondary"
+                  onclick="clearOutput('{{ metadata.id }}', '{{ mode }}', '{{ batch.batch_idx }}')"
+                  data-bs-toggle="tooltip" title="Clear outputs" id="clearOutput{{ rowId }}"
+                  aria-controls="collapseExample" {% if batch.status !='finished' %} style="display: none;" {% endif %}>
+                  <i class="fa fa-recycle"></i>
                 </a>
               </td>
-            <tr class="collapse" id="collapseExample{{ rowId }}">
-              <td colspan="7">
+              <td style="display: none;">
                 <div class="card card-body" style="display: block !important;">
                   <b>examples:</b>
                   {% for e in batch.example_details %}
@@ -99,10 +132,7 @@
                   {% endfor %}
                 </div>
               </td>
-            </tr>
-            <!-- correct striping -->
-            <tr>
-            </tr>
+
       </div>
       </tr>
       {% endfor %}
@@ -139,6 +169,7 @@
   // variable to be used in factgenie.js
   window.url_prefix = "{{ host_prefix }}";
   window.campaigns = "{{ campaigns }}";
+  window.mode = "crowdsourcing";
 </script>
 <script src="{{ host_prefix }}/static/js/factgenie.js"></script>
 <script src="{{ host_prefix }}/static/js/utils.js"></script>

@@ -19,6 +19,7 @@ import importlib
 import zipfile
 import markdown
 import traceback
+import ast
 
 import urllib
 from tqdm import tqdm
@@ -527,6 +528,20 @@ def load_dataset_config():
 def save_dataset_config(config):
     with open(DATASET_CONFIG_PATH, "w") as f:
         yaml.dump(config, f, indent=2, allow_unicode=True)
+
+
+def parse_campaign_config(config):
+    def parse_value(value):
+        try:
+            # Try to parse the value as a literal (int, list, dict, etc.)
+            parsed_value = ast.literal_eval(value)
+            return parsed_value
+        except (ValueError, SyntaxError):
+            # If parsing fails, return the value as a string
+            return value
+
+    parsed_config = {key: parse_value(value) for key, value in config.items()}
+    return parsed_config
 
 
 def set_dataset_enabled(app, dataset_id, enabled):
@@ -1210,7 +1225,7 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, th
         db.loc[i, "status"] = ExampleStatus.FINISHED
         db.loc[i, "end"] = int(time.time())
         campaign.update_db(db)
-        
+
         stats = campaign.get_stats()
         finished_examples_cnt = stats["finished"]
         payload = {"campaign_id": campaign_id, "stats": stats, "annotation": record}
