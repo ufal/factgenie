@@ -766,6 +766,60 @@ function gatherConfig() {
     return config;
 }
 
+function deleteCampaign(campaignId, mode) {
+    // ask for confirmation
+    if (!confirm(`Are you sure you want to delete the campaign ${campaignId}? All the data will be lost!`)) {
+        return;
+    }
+
+    $.post({
+        url: `${url_prefix}/delete_campaign`,
+        contentType: 'application/json', // Specify JSON content type
+        data: JSON.stringify({
+            campaignId: campaignId,
+            mode: mode,
+        }),
+        success: function (response) {
+            console.log(response);
+
+            if (response.success !== true) {
+                alert(response.error);
+            } else {
+                // remove the campaign from the list
+                $(`#campaign-${campaignId}`).remove();
+
+                // reload the page
+                location.reload();
+            }
+        }
+    });
+}
+
+function clearOutput(campaignId, mode, idx) {
+    // ask for confirmation
+    if (!confirm(`Are you sure you want to clear the collected outputs (id: ${idx})?`)) {
+        return;
+    }
+    $.post({
+        url: `${url_prefix}/clear_output`,
+        contentType: 'application/json', // Specify JSON content type
+        data: JSON.stringify({
+            campaignId: campaignId,
+            mode: mode,
+            idx: idx,
+        }),
+        success: function (response) {
+            console.log(response);
+
+            if (response.success !== true) {
+                alert(response.error);
+            } else {
+                // reload the page
+                location.reload();
+            }
+        }
+    });
+}
 
 function createLLMCampaign() {
     const campaignId = $('#campaignId').val();
@@ -1006,12 +1060,30 @@ function updateCampaignConfig(campaignId) {
 
             setTimeout(function () {
                 $(`#config-modal-${campaignId}`).modal('hide');
-                $(".update-config-btn").removeClass("btn-success").addClass("btn-danger").text("Overwrite metadata");
+                $(".update-config-btn").removeClass("btn-success").addClass("btn-danger").text("Update configuration");
             }, 1500);
 
         }
     });
+}
 
+function clearCampaign(campaignId) {
+    // ask for confirmation
+    if (!confirm("Are you sure you want to clear all campaign outputs?")) {
+        return;
+    }
+    $.post({
+        url: `${url_prefix}/clear_campaign`,
+        contentType: 'application/json',
+        data: JSON.stringify({
+            campaignId: campaignId,
+            mode: mode
+        }),
+        success: function (response) {
+            console.log(response);
+            window.location.reload();
+        }
+    });
 }
 
 function addAnnotationSpanCategory() {

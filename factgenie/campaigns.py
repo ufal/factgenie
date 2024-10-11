@@ -86,6 +86,36 @@ class Campaign:
         with open(self.metadata_path) as f:
             self.metadata = json.load(f)
 
+    def clear_all_outputs(self):
+        # remove files
+        for jsonl_file in glob.glob(os.path.join(self.dir, "files/*.jsonl")):
+            os.remove(jsonl_file)
+
+        self.db["status"] = ExampleStatus.FREE
+        self.db["annotator_id"] = ""
+        self.db["start"] = ""
+        self.update_db(self.db)
+
+        self.metadata["status"] = CampaignStatus.IDLE
+        self.update_metadata()
+
+    def clear_single_output(self, idx, idx_type="example_idx"):
+        # Identify the rows where idx_type matches idx
+        mask = self.db[idx_type] == idx
+
+        # Update the DataFrame using .loc
+        self.db.loc[mask, "status"] = ExampleStatus.FREE
+        self.db.loc[mask, "annotator_id"] = ""
+        self.db.loc[mask, "start"] = ""
+
+        self.update_db(self.db)
+
+        if self.metadata["status"] == CampaignStatus.FINISHED:
+            self.metadata["status"] = CampaignStatus.IDLE
+            self.update_metadata()
+
+        # TODO should we remove the output file as well?
+
 
 class ExternalCampaign(Campaign):
     def get_stats(self):
@@ -145,7 +175,15 @@ class HumanCampaign(Campaign):
         # group by batch_idx, keep the first row of each group
         batch_stats = self.db.groupby("batch_idx").first()
 
-        return batch_stats["status"].value_counts().to_dict()
+        return {
+            "total": len(batch_stats),
+            "assigned": len(batch_stats[batch_stats["status"] == ExampleStatus.ASSIGNED]),
+            "finished": len(batch_stats[batch_stats["status"] == ExampleStatus.FINISHED]),
+            "free": len(batch_stats[batch_stats["status"] == ExampleStatus.FREE]),
+        }
+
+    def clear_output(self, idx):
+        self.clear_single_output(idx, idx_type="batch_idx")
 
 
 class LLMCampaign(Campaign):
@@ -155,6 +193,9 @@ class LLMCampaign(Campaign):
             "finished": len(self.db[self.db["status"] == ExampleStatus.FINISHED]),
             "free": len(self.db[self.db["status"] == ExampleStatus.FREE]),
         }
+
+    def clear_output(self, idx):
+        self.clear_single_output(idx, idx_type="example_idx")
 
 
 class LLMCampaignEval(LLMCampaign):

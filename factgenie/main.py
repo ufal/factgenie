@@ -241,6 +241,33 @@ def browse():
     )
 
 
+@app.route("/clear_campaign", methods=["GET", "POST"])
+@login_required
+def clear_campaign():
+    data = request.get_json()
+    campaign_id = data.get("campaignId")
+    mode = data.get("mode")
+
+    campaign = utils.load_campaign(app, campaign_id=campaign_id, mode=mode)
+    campaign.clear_all_outputs()
+
+    return utils.success()
+
+
+@app.route("/clear_output", methods=["GET", "POST"])
+@login_required
+def clear_output():
+    data = request.get_json()
+    campaign_id = data.get("campaignId")
+    mode = data.get("mode")
+    idx = int(data.get("idx"))
+
+    campaign = utils.load_campaign(app, campaign_id=campaign_id, mode=mode)
+    campaign.clear_output(idx)
+
+    return utils.success()
+
+
 @app.route("/crowdsourcing", methods=["GET", "POST"])
 @login_required
 def crowdsourcing():
