@@ -11,6 +11,7 @@ from flask.cli import FlaskGroup
 @click.command()
 def list_datasets():
     import yaml
+    from factgenie import DATASET_CONFIG_PATH
 
     """List all available datasets."""
     with open(DATASET_CONFIG_PATH) as f:
