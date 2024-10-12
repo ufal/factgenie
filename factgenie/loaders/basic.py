@@ -97,11 +97,12 @@ class PlainTextDataset(BasicDataset):
 
 class JSONDataset(BasicDataset):
     def load_examples(self, split, data_path):
-        examples = []
-
-        with open(f"{data_path}/{split}.json") as f:
-            examples = json.load(f)
-
+        examples_path = data_path / f"{split}.json"
+        if not examples_path.exists():
+            examples = []
+        else:
+            with open(examples_path) as f:
+                examples = json.load(f)
         return examples
 
     def render(self, example):

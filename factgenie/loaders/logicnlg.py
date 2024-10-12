@@ -71,8 +71,12 @@ class LogicNLG(HFDataset):
         return examples
 
     def load_examples(self, split, data_path):
-        with open(data_path / split / "examples.json") as f:
-            examples = json.load(f)
+        examples_path = data_path / split / "examples.json"
+        if not examples_path.exists():
+            examples = []
+        else:
+            with open(examples_path) as f:
+                examples = json.load(f)
         return examples
 
     def render(self, example):
