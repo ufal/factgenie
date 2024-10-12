@@ -4,36 +4,35 @@ from setuptools import find_packages, setup
 
 project_root = Path(__file__).parent
 install_requires = [
-    "coloredlogs",
+    "coloredlogs>=15.0.1",
     "datasets>=2.9.0",
-    "flask-sse",
+    "Flask-SSE>=1.0.0",
     "Flask>=2.2.2",
-    "gunicorn",
-    "json2table",
-    "lxml",
-    "markdown",
-    "natsort",
-    "openai",
-    "python-slugify",
-    "pyyaml",
-    "requests",
-    "scipy",
-    "tinyhtml",
+    "json2table>=1.1.5",
+    "lxml>=5.3.0",
+    "Markdown>=3.7.0",
+    "natsort>=8.4.0",
+    "openai>=1.51.2",
+    "python-slugify>=8.0.4",
+    "PyYAML>=6.0.2",
+    "requests>=2.32.3",
+    "scipy>=1.14.1",
+    "tinyhtml>=1.2.0",
 ]
 
 setup(
     name="factgenie",
     version="0.0.1",
     python_requires=">=3.8",
-    description="factgenie: A Toolkit for Annotating and Visualizing LLM Hallucinations.",
-    author="Zdenek Kasner, Ondrej Dusek",
+    description="Lightweight self-hosted span annotation tool",
+    # contributors as on GitHub
+    author="Zdenek Kasner, Ondrej Platek, Patricia Schmidtova, Dave Howcroft, Ondrej Dusek",
     author_email="kasner@ufal.mff.cuni.cz",
     long_description=(project_root / "README.md").read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",
     url="https://github.com/kasnerz/factgenie",
     license="Apache-2.0 License",
     packages=find_packages(exclude=["test", "test.*"]),
-    # package_dir={"": "src"},
     package_data={
         "factgenie": ["static/css/*", "static/img/*", "static/js/*", "templates/*"],
     },
@@ -47,12 +46,14 @@ setup(
     install_requires=install_requires,
     extras_require={
         "dev": [
-            "wheel",
-            "black",
+            "wheel>=0.44.0",
+            # Set exact version of black formatter to avoid merge conflicts due to different setup.
+            # See also pyproject.toml and setup of line length (to 120 characters)
+            "black==24.10.0",
             "ipdb",
         ],
         "deploy": [
-            "gunicorn",
+            "gunicorn>=23.0.0",
         ],
     },
     classifiers=[

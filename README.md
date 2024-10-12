@@ -45,7 +45,7 @@ Make sure you have Python 3 installed (the project is tested with Python 3.10).
 
 After cloning the repository, the following commands install the package and start the web server:
 ```
-pip install -e .
+pip install -e .[dev,deploy]
 factgenie run --host=127.0.0.1 --port 5000
 ```
 
