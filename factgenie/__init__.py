@@ -23,8 +23,8 @@ MAIN_CONFIG_PATH = PACKAGE_DIR / "config" / "config.yml"
 if not MAIN_CONFIG_PATH.exists() and not OLD_MAIN_CONFIG_PATH.exists():
     raise ValueError(
         f"Invalid path to config.yml {MAIN_CONFIG_PATH=}. "
-        "Please rename config_TEMPLATE.yml to config.yml. "
-        "Change the password, update the host prefix, etc."
+        "Please copy config_TEMPLATE.yml to config.yml "
+        "and change the password, update the host prefix, etc."
     )
 
 PREVIEW_STUDY_ID = "factgenie_preview"
