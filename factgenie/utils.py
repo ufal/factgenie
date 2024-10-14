@@ -573,8 +573,14 @@ def get_local_dataset_overview(app):
             dataset = app.db["datasets_obj"].get(dataset_id)
 
             if dataset is None:
-                logger.warning(f"Dataset {dataset_id} is enabled but not loaded")
-                continue
+                logger.warning(f"Dataset {dataset_id} is enabled but not loaded, loading...")
+                try:
+                    dataset = instantiate_dataset(dataset_id, dataset_config)
+                    app.db["datasets_obj"][dataset_id] = dataset
+                except Exception as e:
+                    logger.error(f"Error while loading dataset {dataset_id}")
+                    traceback.print_exc()
+                    continue
 
             dataset.outputs = dataset.load_generated_outputs(dataset.output_path)
 
