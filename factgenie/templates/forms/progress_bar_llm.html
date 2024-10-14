@@ -1,0 +1,9 @@
+<div class="small" id="metadata-example-cnt-{{ campaign_id }}">{{ campaign.stats.finished }} / {{
+    campaign.stats.total
+    }}</div>
+<div class="progress" id="llm-progress-{{ campaign.metadata.id }}">
+    <div class="progress-bar progress-bar-animated" role="progressbar" aria-valuemin="0"
+        id="llm-progress-bar-{{ campaign.metadata.id }}" aria-valuemax="100"
+        style="width: {{ (campaign.stats.finished) / (campaign.stats.total) * 100 }}%; ">
+    </div>
+</div>

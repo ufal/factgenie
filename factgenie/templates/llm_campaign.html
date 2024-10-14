@@ -73,15 +73,7 @@
               </td>
               {% endif %} -->
               <td>
-                <div class="small" id="metadata-example-cnt-{{ campaign_id }}">{{ campaign.stats.finished }} / {{
-                  campaign.stats.total
-                  }}</div>
-                <div class="progress" id="llm-progress-{{ metadata.id }}">
-                  <div class="progress-bar progress-bar-animated" role="progressbar" aria-valuemin="0"
-                    id="llm-progress-bar-{{ metadata.id }}" aria-valuemax="100"
-                    style="width: {{ (campaign.stats.finished) / (campaign.stats.total) * 100 }}%; ">
-                  </div>
-                </div>
+                {% include 'forms/progress_bar_llm.html' %}
               </td>
               <td>
                 <a onclick="runLLMCampaign('{{ metadata.id }}')" class="btn btn-outline-secondary"

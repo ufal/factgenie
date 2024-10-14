@@ -66,20 +66,7 @@
               <td>{{ campaign.metadata.created }}</td>
               <!-- <td>{{ campaign.stats }}</td> -->
               <td>
-                <div class="small" id="metadata-example-cnt-{{ campaign_id }}">
-                  {{ campaign.stats.finished }} <i class="fa fa-check"></i>
-                  {{ campaign.stats.assigned }} <i class="fa fa-edit"></i>
-                  {{ campaign.stats.free }} <i class="fa fa-clock-o"></i></div>
-                <div class="progress" id="crowdsourcing-progress-{{ metadata.id }}-finished">
-                  <div class="progress-bar bg-finished" role="progressbar"
-                    id="crowdsourcing-progress-bar-{{ metadata.id }}"
-                    style="width: {{ (campaign.stats.finished) / (campaign.stats.total) * 100 }}%; ">
-                  </div>
-                  <div class="progress-bar bg-assigned" role="progressbar"
-                    id="crowdsourcing-progress-bar-{{ metadata.id }}-assigned"
-                    style="width: {{ (campaign.stats.assigned) / (campaign.stats.total) * 100 }}%; ">
-                  </div>
-                </div>
+                {% include 'forms/progress_bar_crowdsourcing.html' %}
               </td>
               <td>
                 <a href="{{ host_prefix }}/annotate?campaign={{ campaign.metadata.id }}"
