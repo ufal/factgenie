@@ -163,23 +163,26 @@ class Dataset(ABC):
 
         for out in outs:
             with open(out) as f:
-                for line in f:
-                    j = json.loads(line)
+                for line_num, line in enumerate(f):
+                    try:
+                        j = json.loads(line)
 
-                    j["setup_id"] = slugify(j["setup_id"])
+                        j["setup_id"] = slugify(j["setup_id"])
 
-                    split = j["split"]
-                    setup_id = j["setup_id"]
-                    example_idx = j["example_idx"]
+                        split = j["split"]
+                        setup_id = j["setup_id"]
+                        example_idx = j["example_idx"]
 
-                    if split not in outputs:
-                        outputs[split] = {}
+                        if split not in outputs:
+                            outputs[split] = {}
 
-                    if setup_id not in outputs[split]:
-                        outputs[split][setup_id] = {}
+                        if setup_id not in outputs[split]:
+                            outputs[split][setup_id] = {}
 
-                    outputs[split][setup_id][example_idx] = j
-
+                        outputs[split][setup_id][example_idx] = j
+                    except Exception as e:
+                        logger.error(f"Error parsing output file {out} at line {line_num + 1}:\n\t{e}")
+                        raise e
                 logger.info(f"Loaded output file: {out}")
 
         return outputs

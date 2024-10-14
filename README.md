@@ -18,12 +18,12 @@ Annotate LLM outputs with a lightweight, self-hosted web application 🌈
 </div>
 
 ## 📢  News
-- **08/10/2024** - We added  [step-by-step walkthrougs](../../wiki/00-Tutorials) on using factgenie for generating and annotating outputs for a dataset of basketball reports 🏀
-- **07/10/2024** - Example datasets have been removed from the repository. Instead, you can find them in the "external resources" section on the data management page.
-- **24/09/2024** - We introduced a brand new factgenie logo!
-- **19/09/2024** - On the Analytics page, you can now see detailed statistics about annotations and compute inter-annotator agreement 📈
-- **16/09/2024** - You can now collect extra inputs from the annotators for each example using sliders and selectboxes. 
-- **16/09/2024** - We added an option to generate outputs for the inputs with LLMs directly within factgenie! 🦾
+- **08/10/2024** — We added  [step-by-step walkthrougs](../../wiki/00-Tutorials) on using factgenie for generating and annotating outputs for a dataset of basketball reports 🏀
+- **07/10/2024** — We removed the example datasets from the repository. Instead, you can find them in the _External Resources_ section in the _Manage data_ interface.
+- **24/09/2024** — We introduced a brand new factgenie logo!
+- **19/09/2024** — On the Analytics page, you can now see detailed statistics about annotations and compute inter-annotator agreement 📈
+- **16/09/2024** — You can now collect extra inputs from the annotators for each example using sliders and select boxes. 
+- **16/09/2024** — We added an option to generate outputs for the inputs with LLMs directly within factgenie! 🦾
 
 ## 👉️ How can factgenie help you?
 Outputs from large language models (LLMs) may contain errors: semantic, factual, and lexical. 
@@ -45,7 +45,7 @@ Make sure you have Python 3 installed (the project is tested with Python 3.10).
 
 After cloning the repository, the following commands install the package and start the web server:
 ```
-pip install -e .
+pip install -e .[dev,deploy]
 factgenie run --host=127.0.0.1 --port 5000
 ```
 
