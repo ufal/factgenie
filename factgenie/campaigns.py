@@ -110,11 +110,9 @@ class Campaign:
 
         self.update_db(self.db)
 
-        if self.metadata["status"] == CampaignStatus.FINISHED:
+        if self.metadata.get("status") == CampaignStatus.FINISHED:
             self.metadata["status"] = CampaignStatus.IDLE
             self.update_metadata()
-
-        # TODO should we remove the output file as well?
 
 
 class ExternalCampaign(Campaign):
