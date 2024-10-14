@@ -30,7 +30,7 @@ setup(
     author_email="kasner@ufal.mff.cuni.cz",
     long_description=(project_root / "README.md").read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",
-    url="https://github.com/kasnerz/factgenie",
+    url="https://github.com/ufal/factgenie",
     license="Apache-2.0 License",
     packages=find_packages(exclude=["test", "test.*"]),
     # package_dir={"": "src"},
