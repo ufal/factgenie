@@ -116,8 +116,8 @@
               <td>
                 <a class="btn btn-sm btn-outline-secondary"
                   onclick="clearOutput('{{ metadata.id }}', '{{ mode }}', '{{ batch.batch_idx }}')"
-                  data-bs-toggle="tooltip" title="Clear outputs" id="clearOutput{{ rowId }}"
-                  aria-controls="collapseExample" {% if batch.status !='finished' %} style="display: none;" {% endif %}>
+                  data-bs-toggle="tooltip" title="Clear outputs and set free" id="clearOutput{{ rowId }}"
+                  aria-controls="collapseExample" {% if batch.status=='free' %} style="display: none;" {% endif %}>
                   <i class="fa fa-recycle"></i>
                 </a>
               </td>

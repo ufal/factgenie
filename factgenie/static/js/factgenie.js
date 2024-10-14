@@ -797,7 +797,7 @@ function deleteCampaign(campaignId, mode) {
 
 function clearOutput(campaignId, mode, idx) {
     // ask for confirmation
-    if (!confirm(`Are you sure you want to clear the collected outputs (id: ${idx})?`)) {
+    if (!confirm(`Are you sure you want to free the row id ${idx}? Any collected outputs will be deleted.`)) {
         return;
     }
     $.post({
