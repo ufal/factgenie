@@ -114,6 +114,27 @@ class Campaign:
             self.metadata["status"] = CampaignStatus.IDLE
             self.update_metadata()
 
+        # remove any outputs from JSONL files
+        dataset = self.db.loc[mask, "dataset"].values[0]
+        split = self.db.loc[mask, "split"].values[0]
+        setup_id = self.db.loc[mask, "setup_id"].values[0]
+        example_idx = self.db.loc[mask, idx_type].values[0]
+
+        for jsonl_file in glob.glob(os.path.join(self.dir, "files/*.jsonl")):
+            with open(jsonl_file, "r") as f:
+                lines = f.readlines()
+
+            with open(jsonl_file, "w") as f:
+                for line in lines:
+                    data = json.loads(line)
+                    if not (
+                        data["dataset"] == dataset
+                        and data["split"] == split
+                        and data["setup_id"] == setup_id
+                        and data[idx_type] == example_idx
+                    ):
+                        f.write(line)
+
 
 class ExternalCampaign(Campaign):
     def get_stats(self):
