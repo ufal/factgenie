@@ -519,7 +519,7 @@ function createOutputBoxes(generated_outputs) {
 
     // add an option for each campaign id
     for (const campaign_id of campaign_ids) {
-        const button = $(`<button type="button" class="btn btn-sm btn-light btn-ann-select" data-ann="${campaign_id}">${campaign_id}</button>`);
+        const button = $(`<button type="button" class="btn btn-sm btn-primary btn-ann-select" data-ann="${campaign_id}">${campaign_id}</button>`);
         button.on('click', function () {
             $(this).toggleClass('active');
             updateDisplayedAnnotations();
