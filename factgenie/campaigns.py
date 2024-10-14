@@ -7,6 +7,8 @@ import pandas as pd
 import ast
 import coloredlogs
 
+from datetime import datetime
+from apscheduler.schedulers.background import BackgroundScheduler
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -114,6 +116,8 @@ class Campaign:
             self.metadata["status"] = CampaignStatus.IDLE
             self.update_metadata()
 
+        logger.info(f"Cleared outputs and assignments for {idx}")
+
 
 class ExternalCampaign(Campaign):
     def get_stats(self):
@@ -121,6 +125,25 @@ class ExternalCampaign(Campaign):
 
 
 class HumanCampaign(Campaign):
+    def __init__(self, campaign_id):
+        super().__init__(campaign_id)
+
+        self.scheduler = BackgroundScheduler()
+        self.scheduler.add_job(self.check_idle_time, "interval", minutes=1)
+        self.scheduler.start()
+
+    def __del__(self):
+        self.scheduler.shutdown()
+
+    def check_idle_time(self):
+        current_time = datetime.now()
+        for _, example in self.db.iterrows():
+            if (
+                example.status == ExampleStatus.ASSIGNED
+                and (current_time - example.start_time).total_seconds() > self.metadata.idle_time * 60
+            ):
+                self.clear_single_output(example.example_idx)
+
     def get_examples_for_batch(self, batch_idx):
         annotator_batch = []
 
