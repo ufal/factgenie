@@ -183,7 +183,6 @@ class Dataset(ABC):
                     except Exception as e:
                         logger.error(f"Error parsing output file {out} at line {line_num + 1}:\n\t{e}")
                         raise e
-                logger.info(f"Loaded output file: {out}")
 
         return outputs
 

@@ -873,6 +873,13 @@ def submit_annotations():
         db = campaign.db
         batch_idx = annotation_set[0]["batch_idx"]
 
+        # if the batch is not assigned to this annotator, return an error
+        if db.loc[db["batch_idx"] == batch_idx, "annotator_id"].iloc[0] != annotator_id:
+            logger.info(
+                f"Annotations rejected: batch {batch_idx} in {campaign_id} not assigned to annotator {annotator_id}"
+            )
+            return utils.error(f"Batch not assigned to annotator {annotator_id}")
+
         with open(os.path.join(save_dir, f"{batch_idx}-{annotator_id}-{now}.jsonl"), "w") as f:
             for row in annotation_set:
                 f.write(json.dumps(row) + "\n")
@@ -883,7 +890,7 @@ def submit_annotations():
         campaign.update_db(db)
         logger.info(f"Annotations for {campaign_id} (batch {batch_idx}) saved")
 
-    return jsonify({"status": "success"})
+    return utils.success()
 
 
 @app.route("/set_dataset_enabled", methods=["POST"])
