@@ -1105,7 +1105,7 @@ def generate_options(options):
             # option["values"] are textual values to be displayed below the slider
             options_segment += f"""
                 <div class="form-group crowdsourcing-option option-slider mb-4">
-                    <div><label for="slider-{i}">{option["label"]}</label></div>
+                    <div><label for="slider-{i}"><b>{option["label"]}</b></label></div>
                     <div class="slider-container">
                     <input type="range" class="form-range slider-crowdsourcing" id="slider-crowdsourcing-{i}" min="0" max="{len(option["values"])-1}" list="slider-crowdsourcing-{i}-values">
                     </div>
