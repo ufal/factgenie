@@ -252,13 +252,6 @@ function setDatasetEnabled(name, enabled) {
     });
 }
 
-function detailFormatter(index, row) {
-    const keys = Object.keys(row).filter(key => key.match(/^\d+$/));
-    const key = keys[keys.length - 1];
-
-    return row[key];
-}
-
 
 function enableTooltips() {
     // enable tooltips

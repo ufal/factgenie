@@ -1,16 +1,21 @@
-<div class="modal fade" id="config-modal" tabindex="-1">
+{% set campaign_id = metadata.id %}
+
+<div class="modal fade" id="config-modal-{{
+    campaign_id }}" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="config-modal-label">Config</h5>
+                <h5 class="modal-title" id="about-modal-label">{{
+                    campaign_id }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+
             <div class="modal-body">
-                <div id='configarea' class="tab-pane sidepanel-panel" role="tabpanel" tabindex="0">
-                    <!-- indent nicely -->
-                    <pre>{{ metadata.config | prettify_json }}</pre>
-                </div>
+                {% include 'forms/config_form.html' %}
+
             </div>
         </div>
+
     </div>
+
 </div>

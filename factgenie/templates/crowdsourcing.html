@@ -12,6 +12,10 @@
   <script src="{{ host_prefix }}/static/js/popper.min.js"></script>
   <script src="{{ host_prefix }}/static/js/bootstrap.min.js"></script>
 
+  <link rel="stylesheet" href="{{ host_prefix }}/static/css/bootstrap-table.min.css">
+  <link rel="stylesheet" href="{{ host_prefix }}/static/css/bootstrap-icons.css">
+  <script src="{{ host_prefix }}/static/js/bootstrap-table.min.js"></script>
+
 </head>
 
 <body>
@@ -39,47 +43,48 @@
         <b>List of crowdsourcing campaigns</b>
       </h3>
       <div id="campaigns">
-        <table class="table table-hover">
+        <table data-toggle="table" data-pagination="true" data-page-size="10" data-pagination-parts="['pageList']"
+          data-searchable="false" data-classes="table table-hover table-crowdsourcing-campaigns">
           <thead>
             <tr>
-              <th scope="col">Id</th>
-              <th scope="col">Created</th>
-              <th scope="col">Status</th>
-              <th scope="col">Actions</th>
+              <th scope="col" data-sortable="true">Id</th>
+              <th scope="col" data-sortable="true">Service</th>
+              <th scope="col" data-sortable="true">Created</th>
+              <th scope="col" data-width="200">Progress</th>
+              <th scope="col" data-align="right" data-width="200">Actions</th>
             </tr>
           </thead>
           <tbody>
             {% for name, campaign in campaigns.items() %}
             <tr>
+              {% set metadata = campaign.metadata %}
+              {% set campaign_id = metadata.id %}
               <td><a href="{{ host_prefix }}/crowdsourcing/detail?campaign={{ campaign.metadata.id }}"
                   class="blue-link">{{
                   campaign.metadata.id }}</a></td>
+              <td class="small font-monospace">{{ campaign.metadata.config.service }}</td>
               <td>{{ campaign.metadata.created }}</td>
               <!-- <td>{{ campaign.stats }}</td> -->
-              <td> {% for status, count in campaign.stats.items() %}
-                <span class="badge bg-secondary">{{ status }}: {{ count }}</span>
-                {% endfor %}
+              <td>
+                {% include 'forms/progress_bar_crowdsourcing.html' %}
               </td>
               <td>
                 <a href="{{ host_prefix }}/annotate?campaign={{ campaign.metadata.id }}"
                   class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Preview the crowdsourcing page">
                   <i class="fa fa-eye"></i>
                 </a>
-                <a href="{{ host_prefix }}/export_campaign_outputs?mode=crowdsourcing&campaign={{ campaign.metadata.id }}"
-                  class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Export annotations">
-                  <i class="fa fa-download"></i>
-                </a>
                 <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
-                  data-bs-target="#duplicate-eval-modal-{{ campaign.metadata.id }}">
-                  <i class="fa fa-clone"></i>
+                  data-bs-target="#actions-modal-{{ campaign.metadata.id }}">
+                  <i class="fa fa-tasks"></i>
                 </a>
-                <a onclick="deleteCampaign('{{ campaign.metadata.id }}', 'crowdsourcing')"
-                  class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Delete the campaign">
+                <a onclick="deleteCampaign('{{ campaign.metadata.id }}', '{{ mode }}')" class="btn btn-outline-danger"
+                  data-bs-toggle="tooltip" title="Delete the campaign">
                   <i class="fa fa-trash"></i>
                 </a>
               </td>
             </tr>
-            {% include 'forms/duplicate_modal.html' %}
+            {% set metadata = campaign.metadata %}
+            {% include 'forms/actions_modal.html' %}
             {% endfor %}
           </tbody>
 

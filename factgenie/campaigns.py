@@ -71,6 +71,7 @@ class Campaign:
         return examples_finished
 
     def update_db(self, db):
+        self.db = db
         db.to_csv(self.db_path, index=False)
 
     def load_db(self):
@@ -84,6 +85,55 @@ class Campaign:
     def load_metadata(self):
         with open(self.metadata_path) as f:
             self.metadata = json.load(f)
+
+    def clear_all_outputs(self):
+        # remove files
+        for jsonl_file in glob.glob(os.path.join(self.dir, "files/*.jsonl")):
+            os.remove(jsonl_file)
+
+        self.db["status"] = ExampleStatus.FREE
+        self.db["annotator_id"] = ""
+        self.db["start"] = ""
+        self.update_db(self.db)
+
+        self.metadata["status"] = CampaignStatus.IDLE
+        self.update_metadata()
+
+    def clear_single_output(self, idx, idx_type="example_idx"):
+        # Identify the rows where idx_type matches idx
+        mask = self.db[idx_type] == idx
+
+        # Update the DataFrame using .loc
+        self.db.loc[mask, "status"] = ExampleStatus.FREE
+        self.db.loc[mask, "annotator_id"] = ""
+        self.db.loc[mask, "start"] = ""
+
+        self.update_db(self.db)
+
+        if self.metadata.get("status") == CampaignStatus.FINISHED:
+            self.metadata["status"] = CampaignStatus.IDLE
+            self.update_metadata()
+
+        # remove any outputs from JSONL files
+        dataset = self.db.loc[mask, "dataset"].values[0]
+        split = self.db.loc[mask, "split"].values[0]
+        setup_id = self.db.loc[mask, "setup_id"].values[0]
+        example_idx = self.db.loc[mask, idx_type].values[0]
+
+        for jsonl_file in glob.glob(os.path.join(self.dir, "files/*.jsonl")):
+            with open(jsonl_file, "r") as f:
+                lines = f.readlines()
+
+            with open(jsonl_file, "w") as f:
+                for line in lines:
+                    data = json.loads(line)
+                    if not (
+                        data["dataset"] == dataset
+                        and data["split"] == split
+                        and data["setup_id"] == setup_id
+                        and data[idx_type] == example_idx
+                    ):
+                        f.write(line)
 
 
 class ExternalCampaign(Campaign):
@@ -144,12 +194,27 @@ class HumanCampaign(Campaign):
         # group by batch_idx, keep the first row of each group
         batch_stats = self.db.groupby("batch_idx").first()
 
-        return batch_stats["status"].value_counts().to_dict()
+        return {
+            "total": len(batch_stats),
+            "assigned": len(batch_stats[batch_stats["status"] == ExampleStatus.ASSIGNED]),
+            "finished": len(batch_stats[batch_stats["status"] == ExampleStatus.FINISHED]),
+            "free": len(batch_stats[batch_stats["status"] == ExampleStatus.FREE]),
+        }
+
+    def clear_output(self, idx):
+        self.clear_single_output(idx, idx_type="batch_idx")
 
 
 class LLMCampaign(Campaign):
     def get_stats(self):
-        return self.db["status"].value_counts().to_dict()
+        return {
+            "total": len(self.db),
+            "finished": len(self.db[self.db["status"] == ExampleStatus.FINISHED]),
+            "free": len(self.db[self.db["status"] == ExampleStatus.FREE]),
+        }
+
+    def clear_output(self, idx):
+        self.clear_single_output(idx, idx_type="example_idx")
 
 
 class LLMCampaignEval(LLMCampaign):

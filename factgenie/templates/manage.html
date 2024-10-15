@@ -47,7 +47,7 @@
       <li class="nav-item" role="presentation">
         <a class="nav-link" id="pills-annotations-tab" data-bs-toggle="pill" href="#pills-annotations" role="tab"
           aria-controls="pills-annotations" data-anchor="annotations"><img
-            src="{{ host_prefix }}/static/img/checkmark.png" height="30px" class="heading-img-inline">Annotations</a>
+            src="{{ host_prefix }}/static/img/checkmark.png" height="30px" class="heading-img-inline">Campaigns</a>
       </li>
     </ul>
     <div class="tab-content" id="pills-tabContent">
@@ -96,7 +96,7 @@
                   -
                   {% endif %}
                   {% for ann in dataset.annotations %}
-                  <a class="badge bg-warning text-dark">{{ ann }}</a>
+                  <a class="badge bg-light text-dark">{{ ann }}</a>
                   {% endfor %}
                 </td>
                 <td>
@@ -261,10 +261,10 @@
             <thead>
               <tr>
                 <th scope="col" data-sortable="true">Campaign</th>
-                <th scope="col" data-sortable="true">Source</th>
+                <!-- <th scope="col" data-sortable="true">Source</th> -->
                 <th scope="col" data-sortable="true">Created</th>
-                <th scope="col">Labels</th>
-                <th scope="col">Status</th>
+                <th scope="col" data-width="400">Labels</th>
+                <th scope="col" data-width="200">Status</th>
                 <th scope="col">Actions</th>
               </tr>
             </thead>
@@ -277,18 +277,23 @@
                     href="{{ host_prefix }}/{{ campaign.metadata.source }}/detail?campaign={{ campaign.metadata.id }}"
                     class="blue-link">{{
                     campaign.metadata.id }}</a>{% endif %}</td>
-                <td>{{ campaign.metadata.source }}</td>
+                <!-- <td>{{ campaign.metadata.source }}</td> -->
                 <td>{{ campaign.metadata.created }}</td>
-                <td>{% for category in campaign.metadata.config.annotation_span_categories %}
+                <td style="padding-right:30px;">{% for category in campaign.metadata.config.annotation_span_categories
+                  %}
                   <span class="badge" style="background-color: {{ category.color }}; color: rgb(60, 65, 73); ">{{
                     category.name
                     }}</span>
                   {% endfor %}
                 </td>
-                <td>
-                  {% for status, count in campaign.stats.items() %}
-                  <span class="badge bg-secondary">{{ status }}: {{ count }}</span>
-                  {% endfor %}
+                <td style="padding-right:30px;">
+                  {% if campaign.metadata.source == 'llm_eval' or campaign.metadata.source == 'llm_gen' %}
+                  {% include 'forms/progress_bar_llm.html' %}
+                  {% elif campaign.metadata.source == 'crowdsourcing' %}
+                  {% include 'forms/progress_bar_crowdsourcing.html' %}
+                  {% else %}
+                  external
+                  {% endif %}
                 </td>
                 <td>
                   <a onclick="deleteCampaign('{{ campaign.metadata.id }}', '{{ campaign.metadata.source }}')"

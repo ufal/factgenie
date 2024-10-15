@@ -19,6 +19,7 @@ import importlib
 import zipfile
 import markdown
 import traceback
+import ast
 
 import urllib
 from tqdm import tqdm
@@ -529,6 +530,20 @@ def save_dataset_config(config):
         yaml.dump(config, f, indent=2, allow_unicode=True)
 
 
+def parse_campaign_config(config):
+    def parse_value(value):
+        try:
+            # Try to parse the value as a literal (int, list, dict, etc.)
+            parsed_value = ast.literal_eval(value)
+            return parsed_value
+        except (ValueError, SyntaxError):
+            # If parsing fails, return the value as a string
+            return value
+
+    parsed_config = {key: parse_value(value) for key, value in config.items()}
+    return parsed_config
+
+
 def set_dataset_enabled(app, dataset_id, enabled):
     config = load_dataset_config()
     config[dataset_id]["enabled"] = enabled
@@ -558,8 +573,14 @@ def get_local_dataset_overview(app):
             dataset = app.db["datasets_obj"].get(dataset_id)
 
             if dataset is None:
-                logger.warning(f"Dataset {dataset_id} is enabled but not loaded")
-                continue
+                logger.warning(f"Dataset {dataset_id} is enabled but not loaded, loading...")
+                try:
+                    dataset = instantiate_dataset(dataset_id, dataset_config)
+                    app.db["datasets_obj"][dataset_id] = dataset
+                except Exception as e:
+                    logger.error(f"Error while loading dataset {dataset_id}")
+                    traceback.print_exc()
+                    continue
 
             dataset.outputs = dataset.load_generated_outputs(dataset.output_path)
 
@@ -709,7 +730,11 @@ def instantiate_datasets():
         if not is_enabled:
             continue
 
-        datasets[dataset_id] = instantiate_dataset(dataset_id, dataset_config)
+        try:
+            datasets[dataset_id] = instantiate_dataset(dataset_id, dataset_config)
+        except Exception as e:
+            logger.error(f"Error while loading dataset {dataset_id}")
+            traceback.print_exc()
 
     return datasets
 
@@ -1207,8 +1232,9 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, th
         db.loc[i, "end"] = int(time.time())
         campaign.update_db(db)
 
-        finished_examples_cnt = len(campaign.get_finished_examples())
-        payload = {"finished_examples_cnt": finished_examples_cnt, "annotation": record}
+        stats = campaign.get_stats()
+        finished_examples_cnt = stats["finished"]
+        payload = {"campaign_id": campaign_id, "stats": stats, "annotation": record}
 
         msg = format_sse(data=json.dumps(payload))
         if announcer is not None:

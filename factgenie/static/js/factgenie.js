@@ -519,7 +519,7 @@ function createOutputBoxes(generated_outputs) {
 
     // add an option for each campaign id
     for (const campaign_id of campaign_ids) {
-        const button = $(`<button type="button" class="btn btn-sm btn-light btn-ann-select" data-ann="${campaign_id}">${campaign_id}</button>`);
+        const button = $(`<button type="button" class="btn btn-sm btn-primary btn-ann-select" data-ann="${campaign_id}">${campaign_id}</button>`);
         button.on('click', function () {
             $(this).toggleClass('active');
             updateDisplayedAnnotations();
@@ -766,6 +766,60 @@ function gatherConfig() {
     return config;
 }
 
+function deleteCampaign(campaignId, mode) {
+    // ask for confirmation
+    if (!confirm(`Are you sure you want to delete the campaign ${campaignId}? All the data will be lost!`)) {
+        return;
+    }
+
+    $.post({
+        url: `${url_prefix}/delete_campaign`,
+        contentType: 'application/json', // Specify JSON content type
+        data: JSON.stringify({
+            campaignId: campaignId,
+            mode: mode,
+        }),
+        success: function (response) {
+            console.log(response);
+
+            if (response.success !== true) {
+                alert(response.error);
+            } else {
+                // remove the campaign from the list
+                $(`#campaign-${campaignId}`).remove();
+
+                // reload the page
+                location.reload();
+            }
+        }
+    });
+}
+
+function clearOutput(campaignId, mode, idx) {
+    // ask for confirmation
+    if (!confirm(`Are you sure you want to free the row id ${idx}? Any collected outputs will be deleted.`)) {
+        return;
+    }
+    $.post({
+        url: `${url_prefix}/clear_output`,
+        contentType: 'application/json', // Specify JSON content type
+        data: JSON.stringify({
+            campaignId: campaignId,
+            mode: mode,
+            idx: idx,
+        }),
+        success: function (response) {
+            console.log(response);
+
+            if (response.success !== true) {
+                alert(response.error);
+            } else {
+                // reload the page
+                location.reload();
+            }
+        }
+    });
+}
 
 function createLLMCampaign() {
     const campaignId = $('#campaignId').val();
@@ -878,16 +932,17 @@ function createHumanCampaign() {
 
 function startLLMCampaignListener(campaignId) {
     var source = new EventSource(`${url_prefix}/llm_campaign/progress/${campaignId}`);
-    console.log("Listening for progress events");
+    console.log(`Listening for progress events for campaign ${campaignId}`);
 
     source.onmessage = function (event) {
         // update the progress bar
         var payload = JSON.parse(event.data);
-        var finished_examples = payload.finished_examples_cnt;
-        var progress = Math.round((finished_examples / window.llm_examples) * 100);
-        $("#llm-progress-bar").css("width", `${progress}%`);
-        $("#llm-progress-bar").attr("aria-valuenow", progress);
-        $("#metadata-example-cnt").html(`${finished_examples} / ${window.llm_examples}`);
+        var finished_examples = payload.stats.finished;
+        var total_examples = payload.stats.total;
+        var progress = Math.round((finished_examples / total_examples) * 100);
+        $(`#llm-progress-bar-${campaignId}`).css("width", `${progress}%`);
+        $(`#llm-progress-bar-${campaignId}`).attr("aria-valuenow", progress);
+        $(`#metadata-example-cnt-${campaignId}`).html(`${finished_examples} / ${total_examples}`);
         console.log(`Received progress: ${progress}%`);
 
         // update the annotation button
@@ -913,19 +968,19 @@ function startLLMCampaignListener(campaignId) {
 
         // update the status
         const status_button = $(`#statusBtn${rowId}`);
-        status_button.text("finished");
+        setExampleStatus("finished", status_button);
 
         if (progress == 100) {
             source.close();
             console.log("Closing the connection");
 
-            $("#metadata-status").html("finished");
-            $("#run-button").hide();
-            $("#download-button").show();
-            $("#stop-button").hide();
-            $("#llm-progress").hide();
 
-            $("#log-area").text(response.final_message);
+            setCampaignStatus(campaignId, "finished");
+            $(`#run-button-${campaignId}`).hide();
+            $(`#stop-button-${campaignId}`).hide();
+            $(`#download-button-${campaignId}`).show();
+
+            $("#log-area").text(payload.final_message);
 
             if (window.mode == "llm_gen") {
                 $("#save-generations-button").show();
@@ -935,11 +990,21 @@ function startLLMCampaignListener(campaignId) {
     };
 }
 
+function setCampaignStatus(campaignId, status) {
+    $(`#metadata-status-${campaignId}`).html(status);
+    $(`#metadata-status-${campaignId}`).removeClass("bg-idle bg-running bg-finished bg-error");
+    $(`#metadata-status-${campaignId}`).addClass(`bg-${status}`);
+}
+
+function setExampleStatus(status, button) {
+    button.removeClass("btn-free btn-finished");
+    button.addClass(`btn-${status}`);
+}
+
 function runLLMCampaign(campaignId) {
-    $("#run-button").hide();
-    $("#stop-button").show();
-    $("#llm-progress").show();
-    $("#metadata-status").html("running");
+    $(`#run-button-${campaignId}`).hide();
+    $(`#stop-button-${campaignId}`).show();
+    setCampaignStatus(campaignId, "running");
 
     startLLMCampaignListener(campaignId);
 
@@ -951,13 +1016,13 @@ function runLLMCampaign(campaignId) {
         }),
         success: function (response) {
             if (response.success !== true) {
+                alert(response.error);
                 $("#log-area").text(JSON.stringify(response.error));
                 console.log(JSON.stringify(response));
 
-                $("#metadata-status").html("error");
-                $("#run-button").show();
-                $("#stop-button").hide();
-                $("#llm-progress").hide();
+                setCampaignStatus(campaignId, "idle");
+                $(`#run-button-${campaignId}`).show();
+                $(`#stop-button-${campaignId}`).hide();
             } else {
                 console.log(response);
             }
@@ -966,11 +1031,9 @@ function runLLMCampaign(campaignId) {
 }
 
 function pauseLLMCampaign(campaignId) {
-    $("#run-button").show();
-    $("#stop-button").hide();
-    $("#download-button").show();
-    $("#llm-progress").hide();
-    $("#metadata-status").html("idle");
+    $(`#run-button-${campaignId}`).show();
+    $(`#stop-button-${campaignId}`).hide();
+    setCampaignStatus(campaignId, "idle");
 
     $.post({
         url: `${url_prefix}/llm_campaign/pause?mode=${mode}`,
@@ -980,6 +1043,53 @@ function pauseLLMCampaign(campaignId) {
         }),
         success: function (response) {
             console.log(response);
+        }
+    });
+}
+function updateCampaignConfig(campaignId) {
+    // collect values of all .campaign-metadata textareas, for each input also extract the key in `data-key`
+    var config = {};
+    $(`.campaign-metadata-${campaignId}`).each(function () {
+        const key = $(this).data("key");
+        const value = $(this).val();
+        config[key] = value;
+    });
+
+    $.post({
+        url: `${url_prefix}/llm_campaign/update_metadata?mode=${mode}`,
+        contentType: 'application/json',
+        data: JSON.stringify({
+            campaignId: campaignId,
+            config: config
+        }),
+        success: function (response) {
+            console.log(response);
+            $(".update-config-btn").removeClass("btn-danger").addClass("btn-success").text("Saved!");
+
+            setTimeout(function () {
+                $(`#config-modal-${campaignId}`).modal('hide');
+                $(".update-config-btn").removeClass("btn-success").addClass("btn-danger").text("Update configuration");
+            }, 1500);
+
+        }
+    });
+}
+
+function clearCampaign(campaignId) {
+    // ask for confirmation
+    if (!confirm("Are you sure you want to clear all campaign outputs?")) {
+        return;
+    }
+    $.post({
+        url: `${url_prefix}/clear_campaign`,
+        contentType: 'application/json',
+        data: JSON.stringify({
+            campaignId: campaignId,
+            mode: mode
+        }),
+        success: function (response) {
+            console.log(response);
+            window.location.reload();
         }
     });
 }

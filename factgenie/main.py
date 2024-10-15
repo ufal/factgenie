@@ -241,6 +241,33 @@ def browse():
     )
 
 
+@app.route("/clear_campaign", methods=["GET", "POST"])
+@login_required
+def clear_campaign():
+    data = request.get_json()
+    campaign_id = data.get("campaignId")
+    mode = data.get("mode")
+
+    campaign = utils.load_campaign(app, campaign_id=campaign_id, mode=mode)
+    campaign.clear_all_outputs()
+
+    return utils.success()
+
+
+@app.route("/clear_output", methods=["GET", "POST"])
+@login_required
+def clear_output():
+    data = request.get_json()
+    campaign_id = data.get("campaignId")
+    mode = data.get("mode")
+    idx = int(data.get("idx"))
+
+    campaign = utils.load_campaign(app, campaign_id=campaign_id, mode=mode)
+    campaign.clear_output(idx)
+
+    return utils.success()
+
+
 @app.route("/crowdsourcing", methods=["GET", "POST"])
 @login_required
 def crowdsourcing():
@@ -277,13 +304,14 @@ def crowdsourcing_detail():
     campaign = utils.load_campaign(app, campaign_id=campaign_id, mode="crowdsourcing")
 
     overview = campaign.get_overview()
-    finished_examples = [x for x in overview if x["status"] == ExampleStatus.FINISHED]
+    stats = campaign.get_stats()
 
     return render_template(
         "crowdsourcing_detail.html",
+        mode="crowdsourcing",
         campaign_id=campaign_id,
         overview=overview,
-        finished_examples=finished_examples,
+        stats=stats,
         metadata=campaign.metadata,
         host_prefix=app.config["host_prefix"],
     )
@@ -385,9 +413,9 @@ def compute_agreement():
 def delete_campaign():
     data = request.get_json()
     campaign_name = data.get("campaignId")
-    source = data.get("source")
+    mode = data.get("mode")
 
-    if source == "llm_gen":
+    if mode == "llm_gen":
         target_dir = GENERATIONS_DIR
     else:
         target_dir = ANNOTATIONS_DIR
@@ -695,6 +723,23 @@ def llm_campaign_run():
     except Exception as e:
         traceback.print_exc()
         return utils.error(f"Error while running campaign: {e}")
+
+
+@app.route("/llm_campaign/update_metadata", methods=["POST"])
+@login_required
+def llm_campaign_update_config():
+    data = request.get_json()
+    mode = request.args.get("mode")
+
+    campaign_id = data.get("campaignId")
+    config = data.get("config")
+
+    config = utils.parse_campaign_config(config)
+    campaign = utils.load_campaign(app, campaign_id=campaign_id, mode=mode)
+    campaign.metadata["config"] = config
+    campaign.update_metadata()
+
+    return utils.success()
 
 
 @app.route("/llm_campaign/progress/<campaign_id>", methods=["GET"])
