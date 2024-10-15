@@ -245,7 +245,16 @@ function collectOptions() {
     return options;
 }
 
+function collectTextFields() {
+    const textFields = [];
 
+    $(".crowdsourcing-text").each(function (x) {
+        const label = $(this).find("label").text();
+        const value = $(this).find("input[type='text']").val();
+        textFields.push({ label: label, value: value });
+    });
+    return textFields;
+}
 
 
 function saveCurrentAnnotations() {
@@ -258,6 +267,7 @@ function markAnnotationAsComplete() {
     saveCurrentAnnotations();
     annotation_set[example_idx]["flags"] = collectFlags();
     annotation_set[example_idx]["options"] = collectOptions();
+    annotation_set[example_idx]["textFields"] = collectTextFields();
 
     $('#page-link-' + example_idx).removeClass("bg-incomplete");
     $('#page-link-' + example_idx).addClass("bg-complete");
@@ -276,6 +286,12 @@ function markAnnotationAsComplete() {
     } else if (example_idx < total_examples - 1) {
         // uncheck all checkboxes
         $(".flag-checkbox input[type='checkbox']").prop("checked", false);
+
+        // reset all options to the first value
+        $(".crowdsourcing-option select").val(0);
+
+        // clear the values in text inputs
+        $(".crowdsourcing-text input[type='text']").val("");
 
         nextBtn();
     }
@@ -299,6 +315,7 @@ function showAnnotation() {
     const data = examples_cached[example_idx];
     const flags = annotation_set[example_idx].flags;
     const options = annotation_set[example_idx].options;
+    const textFields = annotation_set[example_idx].textFields;
 
     if (flags !== undefined) {
         // flags are an array
@@ -322,6 +339,18 @@ function showAnnotation() {
         // clear all options
         $("#options").empty();
     }
+
+    if (textFields !== undefined) {
+        // textFields is an array of objects
+        for (const [i, textField] of Object.entries(textFields)) {
+            const div = $(`#textFields div:eq(${i})`);
+            div.find("input[type='text']").val(textField.value);
+        }
+    } else {
+        // clear all textFields
+        $("#textFields").empty();
+    }
+
 
     $("#examplearea").html(data.html);
     // $(".text-type").html(`${type}`);
@@ -759,6 +788,7 @@ function gatherConfig() {
         config.annotationSpanCategories = getAnnotationSpanCategories();
         config.flags = getKeys($("#flags"));
         config.options = getOptions();
+        config.textFields = getKeys($("#textFields"));
     } else if (window.mode == "llm_eval" || window.mode == "llm_gen") {
         config.metricType = $("#metric-type").val();
         config.modelName = $("#model-name").val();
@@ -1137,6 +1167,12 @@ function addOption() {
     options.append(newOption);
 }
 
+function addTextField() {
+    const textFields = $("#textFields");
+    const newTextField = createTextFieldElem("");
+    textFields.append(newTextField);
+}
+
 
 function deleteRow(button) {
     $(button).parent().parent().remove();
@@ -1178,6 +1214,21 @@ function createOptionElem(type, label, values) {
         </div>
         `);
     return newOption;
+}
+
+function createTextFieldElem(key) {
+    // text area and selectbox for the flag ("checked" or "unchecked" based on the value)
+    const newFlag = $(`
+        <div class="row mt-1">
+        <div class="col-11">
+        <input type="text" class="form-control" name="argName" value="${key}" placeholder="Text field label">
+        </div>
+        <div class="col-1">
+        <button type="button" class="btn btn-danger" onclick="deleteRow(this);">x</button>
+        </div>
+        </div>
+    `);
+    return newFlag;
 }
 
 function createArgElem(key, value) {
@@ -1350,6 +1401,7 @@ function updateCrowdsourcingConfig() {
         $("#annotation-span-categories").empty();
         $("#flags").empty();
         $("#options").empty();
+        $("#textFields").empty();
         return;
     }
     const cfg = window.configs[crowdsourcingConfig];
@@ -1364,6 +1416,7 @@ function updateCrowdsourcingConfig() {
     const annotationSpanCategories = cfg.annotation_span_categories;
     const flags = cfg.flags;
     const options = cfg.options;
+    const textFields = cfg.text_fields;
 
     annotatorInstructionsMDE.value(annotatorInstructions);
     // $("#annotatorPrompt").val(annotatorPrompt);
@@ -1394,6 +1447,15 @@ function updateCrowdsourcingConfig() {
         options.forEach((option) => {
             const newOption = createOptionElem(option.type, option.label, option.values.join(", "));
             $("#options").append(newOption);
+        });
+    }
+
+    $("#textFields").empty();
+
+    if (textFields !== undefined) {
+        textFields.forEach((textField) => {
+            const newTextField = createTextFieldElem(textField);
+            $("#textFields").append(newTextField);
         });
     }
 }

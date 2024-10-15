@@ -1057,6 +1057,7 @@ def parse_crowdsourcing_config(config):
         "annotation_span_categories": config.get("annotationSpanCategories"),
         "flags": config.get("flags"),
         "options": config.get("options"),
+        "textFields": config.get("textFields"),
     }
 
     return config
@@ -1124,6 +1125,22 @@ def generate_options(options):
     return options_segment
 
 
+def generate_text_fields(text_fields):
+    if not text_fields:
+        return ""
+
+    text_fields_segment = "<div class='mt-2 mb-3'>"
+    for i, text_field in enumerate(text_fields):
+        text_fields_segment += f"""
+            <div class="form-group crowdsourcing-text mb-4">
+                <label for="textbox-{i}"><b>{text_field}</b></label>
+                <input type="text" class="form-control textbox-crowdsourcing" id="textbox-crowdsourcing-{i}">
+            </div>
+        """
+    text_fields_segment += "</div>"
+    return text_fields_segment
+
+
 def create_crowdsourcing_page(campaign_id, config):
     html_path = os.path.join(TEMPLATES_DIR, "campaigns", campaign_id, "annotate.html")
 
@@ -1148,6 +1165,7 @@ def create_crowdsourcing_page(campaign_id, config):
         has_display_overlay='style="display: none"' if not has_display_overlay else "",
         flags=generate_checkboxes(config.get("flags", [])),
         options=generate_options(config.get("options", [])),
+        text_fields=generate_text_fields(config.get("textFields", [])),
     )
 
     # concatenate with header and footer
