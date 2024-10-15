@@ -228,7 +228,7 @@
                 <td>{{ dataset }}</td>
                 <td>{{ split }}</td>
                 <td>{{ setup_id }}</td>
-                <td>{{ datasets[dataset].example_count[split] }}</td>
+                <td>{{ datasets[dataset].output_ids[split][setup_id] | length }}</td>
                 <td>
                   <a href="{{ host_prefix }}/browse?dataset={{ dataset }}&split={{ split }}&example_idx=0"
                     class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Show the outputs">

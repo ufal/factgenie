@@ -22,7 +22,7 @@
     <div class="mt-1">
 
       <form id="annotation-campaign-form">
-        <h3>New LLM campaign</h3>
+        <h3>New LLM {% if mode == 'llm_gen' %}generation{% else %}evaluation{% endif %} campaign</h3>
 
         <ul class="nav nav-tabs nav-justified mt-5">
           <li class="nav-item">
