@@ -9,7 +9,7 @@ import threading
 import traceback
 import shutil
 import datetime
-import zipfile
+import markdown
 from flask import (
     Flask,
     render_template,
@@ -25,6 +25,7 @@ from collections import defaultdict
 import urllib.parse
 from slugify import slugify
 
+from factgenie import PREVIEW_STUDY_ID
 from factgenie.campaigns import HumanCampaign, CampaignStatus, ExampleStatus, ANNOTATIONS_DIR, GENERATIONS_DIR
 from factgenie.models import ModelFactory
 from factgenie.loaders.dataset import get_dataset_classes
@@ -874,7 +875,9 @@ def submit_annotations():
         batch_idx = annotation_set[0]["batch_idx"]
 
         # if the batch is not assigned to this annotator, return an error
-        if db.loc[db["batch_idx"] == batch_idx, "annotator_id"].iloc[0] != annotator_id:
+        batch_annotator_id = db.loc[db["batch_idx"] == batch_idx, "annotator_id"].iloc[0]
+
+        if batch_annotator_id != annotator_id and annotator_id != PREVIEW_STUDY_ID:
             logger.info(
                 f"Annotations rejected: batch {batch_idx} in {campaign_id} not assigned to annotator {annotator_id}"
             )
@@ -890,7 +893,16 @@ def submit_annotations():
         campaign.update_db(db)
         logger.info(f"Annotations for {campaign_id} (batch {batch_idx}) saved")
 
-    return utils.success()
+    final_message_html = markdown.markdown(campaign.metadata["config"]["final_message"])
+
+    if annotator_id == PREVIEW_STUDY_ID:
+        preview_message = f'<div class="alert alert-info" role="alert"><p>You are in a preview mode. Click <a href="{app.config["host_prefix"]}/crowdsourcing"><b>here</b></a> to go back to the campaign view.</p><p><i>This message will not be displayed to the annotators.</i></p></div>'
+
+        return utils.success(
+            message=final_message_html + preview_message
+        )
+
+    return utils.success(message=final_message_html)
 
 
 @app.route("/set_dataset_enabled", methods=["POST"])
