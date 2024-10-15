@@ -214,8 +214,12 @@ function collectFlags() {
     // collect values of all checkboxes within divs of class `flag-checkbox`, save values sequentially (for each id)
     const flags = [];
     $(".flag-checkbox").each(function () {
+        const label = $(this).find("label").text();
         const value = $(this).find("input[type='checkbox']").prop("checked");
-        flags.push(value);
+        flags.push({
+            label: label,
+            value: value
+        });
     });
     return flags;
 }
@@ -245,7 +249,16 @@ function collectOptions() {
     return options;
 }
 
+function collectTextFields() {
+    const textFields = [];
 
+    $(".crowdsourcing-text").each(function (x) {
+        const label = $(this).find("label").text();
+        const value = $(this).find("input[type='text']").val();
+        textFields.push({ label: label, value: value });
+    });
+    return textFields;
+}
 
 
 function saveCurrentAnnotations() {
@@ -258,6 +271,7 @@ function markAnnotationAsComplete() {
     saveCurrentAnnotations();
     annotation_set[example_idx]["flags"] = collectFlags();
     annotation_set[example_idx]["options"] = collectOptions();
+    annotation_set[example_idx]["textFields"] = collectTextFields();
 
     $('#page-link-' + example_idx).removeClass("bg-incomplete");
     $('#page-link-' + example_idx).addClass("bg-complete");
@@ -276,6 +290,12 @@ function markAnnotationAsComplete() {
     } else if (example_idx < total_examples - 1) {
         // uncheck all checkboxes
         $(".flag-checkbox input[type='checkbox']").prop("checked", false);
+
+        // reset all options to the first value
+        $(".crowdsourcing-option select").val(0);
+
+        // clear the values in text inputs
+        $(".crowdsourcing-text input[type='text']").val("");
 
         nextBtn();
     }
@@ -299,6 +319,7 @@ function showAnnotation() {
     const data = examples_cached[example_idx];
     const flags = annotation_set[example_idx].flags;
     const options = annotation_set[example_idx].options;
+    const textFields = annotation_set[example_idx].textFields;
 
     if (flags !== undefined) {
         // flags are an array
@@ -322,6 +343,18 @@ function showAnnotation() {
         // clear all options
         $("#options").empty();
     }
+
+    if (textFields !== undefined) {
+        // textFields is an array of objects
+        for (const [i, textField] of Object.entries(textFields)) {
+            const div = $(`#textFields div:eq(${i})`);
+            div.find("input[type='text']").val(textField.value);
+        }
+    } else {
+        // clear all textFields
+        $("#textFields").empty();
+    }
+
 
     $("#examplearea").html(data.html);
     // $(".text-type").html(`${type}`);
@@ -486,7 +519,62 @@ function updateDisplayedAnnotations() {
 }
 
 
-function createOutputBox(content, campaign_id, setup_id) {
+function getExampleLevelFields(output, campaign_id) {
+    const fieldsCampaign = output.annotations.filter(a => a.metadata.id == campaign_id)[0];
+
+    if (fieldsCampaign === undefined) {
+        return null;
+    }
+    // show `outputs.flags`, `outputs.options`, and `outputs.textFields`
+    var flags = fieldsCampaign.flags;
+    var options = fieldsCampaign.options;
+    var textFields = fieldsCampaign.textFields;
+
+    var html = $('<div>', { class: "p-2 extra-fields" });
+
+    if (flags !== undefined) {
+        var flagsDiv = $('<div>', { class: "small" });
+        // flagsDiv.append($('<span class="badge bg-secondary">').html("Flags"));
+        for (const flag of flags) {
+            var labelDiv = $('<div>', { class: "small text-muted " }).text(`${flag.label}`);
+            var valueDiv = $('<div>', { class: "small mb-1 fw-bold" }).text(`${flag.value}`);
+
+            flagsDiv.append(labelDiv);
+            flagsDiv.append(valueDiv);
+        }
+        html.append(flagsDiv);
+    }
+
+    if (options !== undefined) {
+        var optionsDiv = $('<div>', { class: "small" });
+
+        for (const option of options) {
+            var labelDiv = $('<div>', { class: "small text-muted" }).text(`${option.label}`);
+            var valueDiv = $('<div>', { class: "small mb-1 fw-bold" }).text(`${option.value}`);
+
+            optionsDiv.append(labelDiv);
+            optionsDiv.append(valueDiv);
+        }
+        html.append(optionsDiv);
+    }
+
+    if (textFields !== undefined) {
+        var textFieldsDiv = $('<div>', { class: "small" });
+
+        for (const textField of textFields) {
+            var labelDiv = $('<div>', { class: "small text-muted" }).text(`${textField.label}`);
+            var valueDiv = $('<div>', { class: "small mb-1 fw-bold" }).text(`${textField.value}`);
+
+            textFieldsDiv.append(labelDiv);
+            textFieldsDiv.append(valueDiv);
+        }
+        html.append(textFieldsDiv);
+    }
+    return html;
+}
+
+
+function createOutputBox(content, exampleLevelFields, campaign_id, setup_id) {
     var card = $('<div>', { class: `card output-box generated-output-box box-${setup_id} box-${campaign_id} box-${setup_id}-${campaign_id}` });
 
     var annotationBadge = (campaign_id !== "original") ? `<span class="small"><i class="fa fa-pencil"></i> ${campaign_id}</span>` : ""
@@ -505,6 +593,11 @@ function createOutputBox(content, campaign_id, setup_id) {
     cardBody.append(cardText);
     card.append(cardHeader);
     card.append(cardBody);
+
+    if (exampleLevelFields !== null) {
+        cardBody.append(exampleLevelFields);
+    }
+
     return card;
 }
 
@@ -551,12 +644,13 @@ function createOutputBoxes(generated_outputs) {
         groupDiv.appendTo("#outputarea");
 
         const plain_output = getAnnotatedOutput(output, "original");
-        card = createOutputBox(plain_output, "original", output.setup_id);
+        card = createOutputBox(plain_output, null, "original", output.setup_id);
         card.appendTo(groupDiv);
 
         for (const campaign_id of campaign_ids) {
             const annotated_output = getAnnotatedOutput(output, campaign_id);
-            card = createOutputBox(annotated_output, campaign_id, output.setup_id);
+            const exampleLevelFields = getExampleLevelFields(output, campaign_id);
+            card = createOutputBox(annotated_output, exampleLevelFields, campaign_id, output.setup_id);
             card.appendTo(groupDiv);
             card.hide();
         }
@@ -759,6 +853,7 @@ function gatherConfig() {
         config.annotationSpanCategories = getAnnotationSpanCategories();
         config.flags = getKeys($("#flags"));
         config.options = getOptions();
+        config.textFields = getKeys($("#textFields"));
     } else if (window.mode == "llm_eval" || window.mode == "llm_gen") {
         config.metricType = $("#metric-type").val();
         config.modelName = $("#model-name").val();
@@ -1137,6 +1232,12 @@ function addOption() {
     options.append(newOption);
 }
 
+function addTextField() {
+    const textFields = $("#textFields");
+    const newTextField = createTextFieldElem("");
+    textFields.append(newTextField);
+}
+
 
 function deleteRow(button) {
     $(button).parent().parent().remove();
@@ -1178,6 +1279,21 @@ function createOptionElem(type, label, values) {
         </div>
         `);
     return newOption;
+}
+
+function createTextFieldElem(key) {
+    // text area and selectbox for the flag ("checked" or "unchecked" based on the value)
+    const newFlag = $(`
+        <div class="row mt-1">
+        <div class="col-11">
+        <input type="text" class="form-control" name="argName" value="${key}" placeholder="Text field label">
+        </div>
+        <div class="col-1">
+        <button type="button" class="btn btn-danger" onclick="deleteRow(this);">x</button>
+        </div>
+        </div>
+    `);
+    return newFlag;
 }
 
 function createArgElem(key, value) {
@@ -1350,6 +1466,7 @@ function updateCrowdsourcingConfig() {
         $("#annotation-span-categories").empty();
         $("#flags").empty();
         $("#options").empty();
+        $("#textFields").empty();
         return;
     }
     const cfg = window.configs[crowdsourcingConfig];
@@ -1364,6 +1481,7 @@ function updateCrowdsourcingConfig() {
     const annotationSpanCategories = cfg.annotation_span_categories;
     const flags = cfg.flags;
     const options = cfg.options;
+    const textFields = cfg.text_fields;
 
     annotatorInstructionsMDE.value(annotatorInstructions);
     // $("#annotatorPrompt").val(annotatorPrompt);
@@ -1394,6 +1512,15 @@ function updateCrowdsourcingConfig() {
         options.forEach((option) => {
             const newOption = createOptionElem(option.type, option.label, option.values.join(", "));
             $("#options").append(newOption);
+        });
+    }
+
+    $("#textFields").empty();
+
+    if (textFields !== undefined) {
+        textFields.forEach((textField) => {
+            const newTextField = createTextFieldElem(textField);
+            $("#textFields").append(newTextField);
         });
     }
 }

@@ -356,12 +356,12 @@ def select_batch_idx(db, seed):
         raise ValueError("No examples available")
 
     # if no free examples but still assigned examples, take the oldest assigned example
-    if len(free_examples) == 0 and len(assigned_examples) > 0:
-        free_examples = assigned_examples
-        free_examples = free_examples.sort_values(by=["start"])
-        free_examples = free_examples.head(1)
+    # if len(free_examples) == 0 and len(assigned_examples) > 0:
+    #     free_examples = assigned_examples
+    #     free_examples = free_examples.sort_values(by=["start"])
+    #     free_examples = free_examples.head(1)
 
-        logger.info(f"Annotating extra example {free_examples.index[0]}")
+    #     logger.info(f"Annotating extra example {free_examples.index[0]}")
 
     example = free_examples.sample(random_state=seed)
     batch_idx = int(example.batch_idx.values[0])
@@ -1057,6 +1057,7 @@ def parse_crowdsourcing_config(config):
         "annotation_span_categories": config.get("annotationSpanCategories"),
         "flags": config.get("flags"),
         "options": config.get("options"),
+        "textFields": config.get("textFields"),
     }
 
     return config
@@ -1090,7 +1091,7 @@ def generate_options(options):
         if option["type"] == "select":
             options_segment += f"""
                 <div class="form-group crowdsourcing-option option-select mb-4">
-                    <div><label for="select-{i}">{option["label"]}</label></div>
+                    <div><label for="select-{i}"><b>{option["label"]}</b></label></div>
                     <select class="form-select select-crowdsourcing mb-1" id="select-crowdsourcing-{i}">
             """
             for j, value in enumerate(option["values"]):
@@ -1104,7 +1105,7 @@ def generate_options(options):
             # option["values"] are textual values to be displayed below the slider
             options_segment += f"""
                 <div class="form-group crowdsourcing-option option-slider mb-4">
-                    <div><label for="slider-{i}">{option["label"]}</label></div>
+                    <div><label for="slider-{i}"><b>{option["label"]}</b></label></div>
                     <div class="slider-container">
                     <input type="range" class="form-range slider-crowdsourcing" id="slider-crowdsourcing-{i}" min="0" max="{len(option["values"])-1}" list="slider-crowdsourcing-{i}-values">
                     </div>
@@ -1122,6 +1123,22 @@ def generate_options(options):
 
     options_segment += """<script src="{{ host_prefix }}/static/js/render-sliders.js"></script>"""
     return options_segment
+
+
+def generate_text_fields(text_fields):
+    if not text_fields:
+        return ""
+
+    text_fields_segment = "<div class='mt-2 mb-3'>"
+    for i, text_field in enumerate(text_fields):
+        text_fields_segment += f"""
+            <div class="form-group crowdsourcing-text mb-4">
+                <label for="textbox-{i}"><b>{text_field}</b></label>
+                <input type="text" class="form-control textbox-crowdsourcing" id="textbox-crowdsourcing-{i}">
+            </div>
+        """
+    text_fields_segment += "</div>"
+    return text_fields_segment
 
 
 def create_crowdsourcing_page(campaign_id, config):
@@ -1148,6 +1165,7 @@ def create_crowdsourcing_page(campaign_id, config):
         has_display_overlay='style="display: none"' if not has_display_overlay else "",
         flags=generate_checkboxes(config.get("flags", [])),
         options=generate_options(config.get("options", [])),
+        text_fields=generate_text_fields(config.get("textFields", [])),
     )
 
     # concatenate with header and footer
