@@ -68,6 +68,7 @@ def create_app(**kwargs):
     import coloredlogs
     import os
     from factgenie.main import app
+    from apscheduler.schedulers.background import BackgroundScheduler
 
     logger = logging.getLogger(__name__)
 
@@ -111,6 +112,13 @@ def create_app(**kwargs):
     assert not check_login(app, "dummy_non_user_name", "dummy_bad_password"), "Login should fail for dummy user"
 
     app.db["datasets_obj"] = utils.instantiate_datasets()
+    app.db["scheduler"] = BackgroundScheduler()
+
+    logging.getLogger("apscheduler.scheduler").setLevel(logging.WARNING)
+    logging.getLogger("apscheduler.executors.default").setLevel(logging.WARNING)
+    app.db["scheduler"].start()
+
+    utils.generate_campaign_index(app)
 
     if config["debug"] is False:
         logging.getLogger("werkzeug").disabled = True

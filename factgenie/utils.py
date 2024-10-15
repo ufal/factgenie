@@ -138,19 +138,33 @@ def load_configs(mode):
     return configs
 
 
+def instantiate_campaign(app, campaign_id, campaign_source):
+    campaign = None
+
+    if campaign_source == "crowdsourcing":
+        scheduler = app.db["scheduler"]
+        campaign = HumanCampaign(campaign_id=campaign_id, scheduler=scheduler)
+    elif campaign_source == "llm_eval":
+        campaign = LLMCampaignEval(campaign_id=campaign_id)
+    elif campaign_source == "llm_gen":
+        campaign = LLMCampaignGen(campaign_id=campaign_id)
+    elif campaign_source == "external":
+        campaign = ExternalCampaign(campaign_id=campaign_id)
+    elif campaign_source == "hidden":
+        pass
+    else:
+        logger.warning(f"Unknown campaign source: {campaign_source}")
+
+    return campaign
+
+
 def load_campaign(app, campaign_id, mode):
     campaign_index = generate_campaign_index(app, force_reload=False)
 
     if campaign_id in campaign_index[mode]:
         return campaign_index[mode][campaign_id]
 
-    if mode == "llm_eval":
-        campaign = LLMCampaignEval(campaign_id=campaign_id)
-    elif mode == "llm_gen":
-        campaign = LLMCampaignGen(campaign_id=campaign_id)
-    elif mode == "crowdsourcing":
-        campaign = HumanCampaign(campaign_id=campaign_id)
-
+    campaign = instantiate_campaign(app=app, campaign_id=campaign_id, campaign_source=mode)
     campaign_index[mode][campaign_id] = campaign
 
     return campaign
@@ -173,19 +187,7 @@ def generate_campaign_index(app, force_reload=True):
                 campaign_source = metadata.get("source")
                 campaign_id = metadata["id"]
 
-                if campaign_source == "crowdsourcing":
-                    campaign = HumanCampaign(campaign_id=campaign_id)
-                elif campaign_source == "llm_eval":
-                    campaign = LLMCampaignEval(campaign_id=campaign_id)
-                elif campaign_source == "llm_gen":
-                    campaign = LLMCampaignGen(campaign_id=campaign_id)
-                elif campaign_source == "external":
-                    campaign = ExternalCampaign(campaign_id=campaign_id)
-                elif campaign_source == "hidden":
-                    continue
-                else:
-                    logger.warning(f"Unknown campaign source: {campaign_source}")
-                    continue
+                campaign = instantiate_campaign(app=app, campaign_id=campaign_id, campaign_source=campaign_source)
 
                 campaigns[campaign_source][campaign_id] = campaign
             except:
@@ -346,20 +348,6 @@ def get_model_outputs_overview(app, datasets, non_empty=False):
     return model_outputs
 
 
-def free_idle_examples(db):
-    start = int(time.time())
-
-    # check if there are annotations which are idle for more than 2 hours: set them to free
-    idle_examples = db[(db["status"] == ExampleStatus.ASSIGNED) & (db["start"] < start - 2 * 60 * 60)]
-    for i in idle_examples.index:
-        db.loc[i, "status"] = ExampleStatus.FREE
-        db.loc[i, "start"] = ""
-        db.loc[i, "end"] = ""
-        db.loc[i, "annotator_id"] = ""
-
-    return db
-
-
 def select_batch_idx(db, seed):
     free_examples = db[db["status"] == ExampleStatus.FREE]
     assigned_examples = db[db["status"] == ExampleStatus.ASSIGNED]
@@ -399,8 +387,6 @@ def get_annotator_batch(app, campaign, db, service_ids):
             return []
 
         if annotator_id != PREVIEW_STUDY_ID:
-            db = free_idle_examples(db)
-
             # update the CSV
             db.loc[db["batch_idx"] == batch_idx, "status"] = ExampleStatus.ASSIGNED
             db.loc[db["batch_idx"] == batch_idx, "start"] = start
@@ -446,7 +432,7 @@ def generate_llm_campaign_db(mode, datasets, campaign_id, campaign_data):
     df["annotator_group"] = 0
     df["annotator_id"] = ""
     df["status"] = ExampleStatus.FREE
-    df["start"] = ""
+    df["start"] = None
 
     return df
 
@@ -498,8 +484,8 @@ def generate_campaign_db(app, campaign_data, config):
     df["annotator_group"] = 0
     df["annotator_id"] = ""
     df["status"] = ExampleStatus.FREE
-    df["start"] = ""
-    df["end"] = ""
+    df["start"] = None
+    df["end"] = None
 
     return df
 
@@ -980,8 +966,8 @@ def duplicate_eval(app, mode, campaign_id, new_campaign_id):
 
     # clean the columns
     new_db["annotator_id"] = ""
-    new_db["start"] = ""
-    new_db["end"] = ""
+    new_db["start"] = None
+    new_db["end"] = None
 
     new_db.to_csv(os.path.join(new_campaign_dir, "db.csv"), index=False)
 
@@ -1229,7 +1215,7 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, th
             record["output"] = record.pop("out")
 
         db.loc[i, "status"] = ExampleStatus.FINISHED
-        db.loc[i, "end"] = int(time.time())
+        db.loc[i, "end"] = float(time.time())
         campaign.update_db(db)
 
         stats = campaign.get_stats()

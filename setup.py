@@ -8,6 +8,7 @@ install_requires = [
     "datasets>=2.9.0",
     "Flask-SSE>=1.0.0",
     "Flask>=2.2.2",
+    "flask_apscheduler>=1.12.4",
     "json2table>=1.1.5",
     "lxml>=5.3.0",
     "Markdown>=3.7.0",

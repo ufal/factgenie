@@ -191,9 +191,19 @@ function submitAnnotations(campaign_id) {
             annotation_set: annotation_set
         }
         ),
-        success: function (data) {
+        success: function (response) {
+            console.log(response);
             window.onbeforeunload = null;
-            $("#overlay-end").show();
+
+            if (response.success !== true) {
+                $("#overlay-fail").show();
+            } else {
+                $("#overlay-end").show();
+            }
+        },
+        error: function (response) {
+            console.log(response);
+            $("#overlay-fail").show();
         }
     });
 }

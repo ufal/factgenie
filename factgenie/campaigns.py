@@ -7,6 +7,7 @@ import pandas as pd
 import ast
 import coloredlogs
 
+from datetime import datetime
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -75,8 +76,10 @@ class Campaign:
         db.to_csv(self.db_path, index=False)
 
     def load_db(self):
+        dtype_dict = {"annotator_id": str, "start": float, "end": float}
+
         with open(self.db_path) as f:
-            self.db = pd.read_csv(f)
+            self.db = pd.read_csv(f, dtype=dtype_dict)
 
     def update_metadata(self):
         with open(self.metadata_path, "w") as f:
@@ -93,7 +96,7 @@ class Campaign:
 
         self.db["status"] = ExampleStatus.FREE
         self.db["annotator_id"] = ""
-        self.db["start"] = ""
+        self.db["start"] = None
         self.update_db(self.db)
 
         self.metadata["status"] = CampaignStatus.IDLE
@@ -106,7 +109,7 @@ class Campaign:
         # Update the DataFrame using .loc
         self.db.loc[mask, "status"] = ExampleStatus.FREE
         self.db.loc[mask, "annotator_id"] = ""
-        self.db.loc[mask, "start"] = ""
+        self.db.loc[mask, "start"] = None
 
         self.update_db(self.db)
 
@@ -114,6 +117,8 @@ class Campaign:
             self.metadata["status"] = CampaignStatus.IDLE
             self.update_metadata()
 
+        logger.info(f"Cleared outputs and assignments for {idx}")
+       
         # remove any outputs from JSONL files
         dataset = self.db.loc[mask, "dataset"].values[0]
         split = self.db.loc[mask, "split"].values[0]
@@ -142,6 +147,24 @@ class ExternalCampaign(Campaign):
 
 
 class HumanCampaign(Campaign):
+    def __init__(self, campaign_id, scheduler):
+        super().__init__(campaign_id)
+
+        scheduler.add_job(
+            self.check_idle_time, "interval", minutes=1, id=f"idle_time_{self.campaign_id}", replace_existing=True
+        )
+
+    def check_idle_time(self):
+        current_time = datetime.now()
+        for _, example in self.db.iterrows():
+            if (
+                example.status == ExampleStatus.ASSIGNED
+                and (current_time - datetime.fromtimestamp(example.start)).total_seconds()
+                > self.metadata["config"]["idle_time"] * 60
+            ):
+                logger.info(f"Freeing example {example.example_idx} for {self.campaign_id} due to idle time")
+                self.clear_single_output(example.example_idx)
+
     def get_examples_for_batch(self, batch_idx):
         annotator_batch = []
 

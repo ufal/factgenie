@@ -3,6 +3,7 @@
     <div class="container navbar-left">
       <a class="navbar-brand" href="#">
       </a>
+
       <div class="navblock" id="actions-area">
         <ul class="pagination" id="nav-example-cnt">
         </ul>
@@ -105,6 +106,24 @@
       <h1>Thank you!</h1>
 
       {{ final_message | safe }}
+    </div>
+  </div>
+
+  <div id="overlay-fail" class="overlay" style="display: none">
+    <div id="overlay-fail-content" class="overlay-content blue-link">
+      <h1>Error</h1>
+
+      <p>Sorry, your annotations could not be saved.</p>
+
+      <p>Possible reasons:
+      <ul>
+        <li>Your session has expired.</li>
+        <li>There was a problem on the server side.</li>
+      </ul>
+      </p>
+      <p>
+        For more information, please contact the administrators of this project.
+      </p>
     </div>
   </div>
 

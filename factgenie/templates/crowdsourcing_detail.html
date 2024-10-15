@@ -42,9 +42,13 @@
           <dt class="col-sm-3"> Status </dt>
           <dd class="col-sm-9" id="metadata-example-cnt-{{ campaign_id }}">
             <div id="metadata-example-cnt-{{ campaign_id }}">
-              {{ stats.finished }} <i class="fa fa-check"></i>
-              {{ stats.assigned }} <i class="fa fa-edit"></i>
-              {{ stats.free }} <i class="fa fa-clock-o"></i></div>
+              <span id="statusBtn{{ rowId }}" class="badge bg-finished"><i class="fa fa-check"></i> {{ stats.finished
+                }}</span>
+              <span id="statusBtn{{ rowId }}" class="badge bg-assigned"><i class="fa fa-edit"></i> {{ stats.assigned
+                }}</span>
+              <span id="statusBtn{{ rowId }}" class="badge bg-free"><i class="fa fa-clock-o"></i> {{ stats.free
+                }}</span>
+            </div>
           </dd>
         </dl>
         <div>
@@ -83,7 +87,7 @@
         <hr>
       </div>
 
-      <div id="campaign-status">
+      <div id="campaign-status" class="mb-5">
         <h4>Batches</h4>
         <table data-toggle="table" data-pagination="true" data-page-size="100" data-pagination-parts="['pageList']"
           data-detail-view-icon="true" data-search-align="left" data-detail-view="true"
