@@ -356,12 +356,12 @@ def select_batch_idx(db, seed):
         raise ValueError("No examples available")
 
     # if no free examples but still assigned examples, take the oldest assigned example
-    if len(free_examples) == 0 and len(assigned_examples) > 0:
-        free_examples = assigned_examples
-        free_examples = free_examples.sort_values(by=["start"])
-        free_examples = free_examples.head(1)
+    # if len(free_examples) == 0 and len(assigned_examples) > 0:
+    #     free_examples = assigned_examples
+    #     free_examples = free_examples.sort_values(by=["start"])
+    #     free_examples = free_examples.head(1)
 
-        logger.info(f"Annotating extra example {free_examples.index[0]}")
+    #     logger.info(f"Annotating extra example {free_examples.index[0]}")
 
     example = free_examples.sample(random_state=seed)
     batch_idx = int(example.batch_idx.values[0])
@@ -1091,7 +1091,7 @@ def generate_options(options):
         if option["type"] == "select":
             options_segment += f"""
                 <div class="form-group crowdsourcing-option option-select mb-4">
-                    <div><label for="select-{i}">{option["label"]}</label></div>
+                    <div><label for="select-{i}"><b>{option["label"]}</b></label></div>
                     <select class="form-select select-crowdsourcing mb-1" id="select-crowdsourcing-{i}">
             """
             for j, value in enumerate(option["values"]):

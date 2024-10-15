@@ -214,8 +214,12 @@ function collectFlags() {
     // collect values of all checkboxes within divs of class `flag-checkbox`, save values sequentially (for each id)
     const flags = [];
     $(".flag-checkbox").each(function () {
+        const label = $(this).find("label").text();
         const value = $(this).find("input[type='checkbox']").prop("checked");
-        flags.push(value);
+        flags.push({
+            label: label,
+            value: value
+        });
     });
     return flags;
 }
@@ -515,7 +519,62 @@ function updateDisplayedAnnotations() {
 }
 
 
-function createOutputBox(content, campaign_id, setup_id) {
+function getExampleLevelFields(output, campaign_id) {
+    const fieldsCampaign = output.annotations.filter(a => a.metadata.id == campaign_id)[0];
+
+    if (fieldsCampaign === undefined) {
+        return null;
+    }
+    // show `outputs.flags`, `outputs.options`, and `outputs.textFields`
+    var flags = fieldsCampaign.flags;
+    var options = fieldsCampaign.options;
+    var textFields = fieldsCampaign.textFields;
+
+    var html = $('<div>', { class: "p-2 extra-fields" });
+
+    if (flags !== undefined) {
+        var flagsDiv = $('<div>', { class: "small" });
+        // flagsDiv.append($('<span class="badge bg-secondary">').html("Flags"));
+        for (const flag of flags) {
+            var labelDiv = $('<div>', { class: "small text-muted " }).text(`${flag.label}`);
+            var valueDiv = $('<div>', { class: "small mb-1 fw-bold" }).text(`${flag.value}`);
+
+            flagsDiv.append(labelDiv);
+            flagsDiv.append(valueDiv);
+        }
+        html.append(flagsDiv);
+    }
+
+    if (options !== undefined) {
+        var optionsDiv = $('<div>', { class: "small" });
+
+        for (const option of options) {
+            var labelDiv = $('<div>', { class: "small text-muted" }).text(`${option.label}`);
+            var valueDiv = $('<div>', { class: "small mb-1 fw-bold" }).text(`${option.value}`);
+
+            optionsDiv.append(labelDiv);
+            optionsDiv.append(valueDiv);
+        }
+        html.append(optionsDiv);
+    }
+
+    if (textFields !== undefined) {
+        var textFieldsDiv = $('<div>', { class: "small" });
+
+        for (const textField of textFields) {
+            var labelDiv = $('<div>', { class: "small text-muted" }).text(`${textField.label}`);
+            var valueDiv = $('<div>', { class: "small mb-1 fw-bold" }).text(`${textField.value}`);
+
+            textFieldsDiv.append(labelDiv);
+            textFieldsDiv.append(valueDiv);
+        }
+        html.append(textFieldsDiv);
+    }
+    return html;
+}
+
+
+function createOutputBox(content, exampleLevelFields, campaign_id, setup_id) {
     var card = $('<div>', { class: `card output-box generated-output-box box-${setup_id} box-${campaign_id} box-${setup_id}-${campaign_id}` });
 
     var annotationBadge = (campaign_id !== "original") ? `<span class="small"><i class="fa fa-pencil"></i> ${campaign_id}</span>` : ""
@@ -534,6 +593,11 @@ function createOutputBox(content, campaign_id, setup_id) {
     cardBody.append(cardText);
     card.append(cardHeader);
     card.append(cardBody);
+
+    if (exampleLevelFields !== null) {
+        cardBody.append(exampleLevelFields);
+    }
+
     return card;
 }
 
@@ -580,12 +644,13 @@ function createOutputBoxes(generated_outputs) {
         groupDiv.appendTo("#outputarea");
 
         const plain_output = getAnnotatedOutput(output, "original");
-        card = createOutputBox(plain_output, "original", output.setup_id);
+        card = createOutputBox(plain_output, null, "original", output.setup_id);
         card.appendTo(groupDiv);
 
         for (const campaign_id of campaign_ids) {
             const annotated_output = getAnnotatedOutput(output, campaign_id);
-            card = createOutputBox(annotated_output, campaign_id, output.setup_id);
+            const exampleLevelFields = getExampleLevelFields(output, campaign_id);
+            card = createOutputBox(annotated_output, exampleLevelFields, campaign_id, output.setup_id);
             card.appendTo(groupDiv);
             card.hide();
         }
