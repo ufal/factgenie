@@ -196,8 +196,10 @@ function submitAnnotations(campaign_id) {
             window.onbeforeunload = null;
 
             if (response.success !== true) {
+                $("#error-message").html(response.error);
                 $("#overlay-fail").show();
             } else {
+                $("#final-message").html(response.message);
                 $("#overlay-end").show();
             }
         },

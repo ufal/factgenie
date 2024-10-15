@@ -92,8 +92,8 @@ def format_sse(data: str, event=None) -> str:
     return msg
 
 
-def success():
-    resp = jsonify(success=True)
+def success(message=None):
+    resp = jsonify(success=True, message=message)
     return resp
 
 
@@ -500,6 +500,7 @@ def load_resources_config():
 def load_dataset_config():
     if not DATASET_CONFIG_PATH.exists():
         with open(DATASET_CONFIG_PATH, "w") as f:
+            logger.info("Creating an empty dataset config file")
             f.write("---\n")
 
     with open(DATASET_CONFIG_PATH) as f:
@@ -1136,7 +1137,6 @@ def create_crowdsourcing_page(campaign_id, config):
             parts.append(f.read())
 
     instructions_html = markdown.markdown(config["annotator_instructions"])
-    final_message_html = markdown.markdown(config["final_message"])
     has_display_overlay = config.get("has_display_overlay", True)
 
     # format only the body, keeping the unfilled templates in header and footer
@@ -1144,7 +1144,6 @@ def create_crowdsourcing_page(campaign_id, config):
 
     rendered_content = template.render(
         instructions=instructions_html,
-        final_message=final_message_html,
         annotation_span_categories=config.get("annotation_span_categories", []),
         has_display_overlay='style="display: none"' if not has_display_overlay else "",
         flags=generate_checkboxes(config.get("flags", [])),

@@ -105,7 +105,8 @@
     <div id="overlay-end-content" class="overlay-content blue-link">
       <h1>Thank you!</h1>
 
-      {{ final_message | safe }}
+      <div id="final-message">
+      </div>
     </div>
   </div>
 
@@ -113,7 +114,8 @@
     <div id="overlay-fail-content" class="overlay-content blue-link">
       <h1>Error</h1>
 
-      <p>Sorry, your annotations could not be saved.</p>
+      <p>Sorry, your annotations could not be saved. Error: <span id="error-message" class="font-monospace"></span>.
+      </p>
 
       <p>Possible reasons:
       <ul>
