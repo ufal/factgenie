@@ -817,7 +817,7 @@ function gatherComparisonData() {
             for (const split of campaign_splits) {
                 for (const output of campaign_outputs) {
                     if (model_outs[dataset][split] !== undefined && output in model_outs[dataset][split]) {
-                        combinations.push({ dataset: dataset, split: split, setup_id: output, example_cnt: datasets[dataset].example_count[split] });
+                        combinations.push({ dataset: dataset, split: split, setup_id: output, example_cnt: datasets[dataset].output_ids[split][output].length });
                     }
                 }
             }

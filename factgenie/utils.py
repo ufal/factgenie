@@ -412,17 +412,15 @@ def generate_llm_campaign_db(mode, datasets, campaign_id, campaign_data):
 
     for c in campaign_data:
         dataset = datasets[c["dataset"]]
-        for i in range(dataset.get_example_count(c["split"])):
+        # for llm_gen, setup_id based on the generation model
+        setup_id = c["setup_id"] if mode == "llm_eval" else campaign_id
+        for i in dataset.get_output_ids(c["split"], setup_id):
             record = {
                 "dataset": c["dataset"],
                 "split": c["split"],
                 "example_idx": i,
             }
-            if mode == "llm_eval":
-                record["setup_id"] = c["setup_id"]
-            else:
-                # setup_id based on the generation model
-                record["setup_id"] = campaign_id
+            record["setup_id"] = setup_id
 
             all_examples.append(record)
 
@@ -572,6 +570,12 @@ def get_local_dataset_overview(app):
             dataset.outputs = dataset.load_generated_outputs(dataset.output_path)
 
             example_count = {split: dataset.get_example_count(split) for split in dataset.get_splits()}
+
+            output_ids = {}
+            for split in dataset.get_splits():
+                output_ids[split] = {}
+                for setup_id in dataset.outputs[split]:
+                    output_ids[split][setup_id] = dataset.get_output_ids(split, setup_id)
         else:
             example_count = {}
 
@@ -582,6 +586,7 @@ def get_local_dataset_overview(app):
             "splits": splits,
             "description": description,
             "example_count": example_count,
+            "output_ids": output_ids,
             "type": dataset_type,
         }
 

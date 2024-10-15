@@ -216,6 +216,12 @@ class Dataset(ABC):
         logger.warning(f"No output found for {setup_id=}, {output_idx=}, {split=}")
         return None
 
+    def get_output_ids(self, split, setup_id):
+        """
+        Get the list of IDs of existing outputs for the given split.
+        """
+        return list(self.outputs[split][setup_id].keys())
+
     def get_outputs_for_idx(self, split, output_idx):
         """
         Get the generated outputs for the given split and output index.
