@@ -294,7 +294,6 @@ $(document).ready(function () {
     });
 
 
-    // $("#page-input").val(example_idx);
     enableTooltips();
 });
 
