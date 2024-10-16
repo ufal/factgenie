@@ -1068,14 +1068,14 @@ def parse_crowdsourcing_config(config):
     return config
 
 
-def generate_checkboxes(flags):
+def generate_flags(flags):
     if not flags:
         return ""
 
     flags_segment = "<div class='mb-4'><p><b>Please check if you agree with any of the following statements:</b></p>"
     for i, flag in enumerate(flags):
         flags_segment += f"""
-            <div class="form-check flag-checkbox">
+            <div class="form-check crowdsourcing-flag">
                 <input class="form-check-input" type="checkbox" value="{i}" id="checkbox-{i}">
                 <label class="form-check-label" for="checkbox-{i}">
                     {flag}
@@ -1168,7 +1168,7 @@ def create_crowdsourcing_page(campaign_id, config):
         instructions=instructions_html,
         annotation_span_categories=config.get("annotation_span_categories", []),
         has_display_overlay='style="display: none"' if not has_display_overlay else "",
-        flags=generate_checkboxes(config.get("flags", [])),
+        flags=generate_flags(config.get("flags", [])),
         options=generate_options(config.get("options", [])),
         text_fields=generate_text_fields(config.get("text_fields", [])),
     )

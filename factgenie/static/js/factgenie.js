@@ -1,6 +1,6 @@
 // var url_prefix = window.location.href.split(/[?#]/)[0];
 var url_prefix = window.url_prefix;
-var example_idx = 0;
+var current_example_idx = 0;
 var total_examples = 1;
 var datasets = window.datasets;
 var metadata = window.metadata;
@@ -34,11 +34,11 @@ function mod(n, m) {
 }
 
 function nextBtn() {
-    goToPage(example_idx + 1);
+    goToPage(current_example_idx + 1);
 }
 
 function prevBtn() {
-    goToPage(example_idx - 1);
+    goToPage(current_example_idx - 1);
 }
 
 function startBtn() {
@@ -53,30 +53,26 @@ function randomBtn() {
     goToPage(randInt(total_examples - 1));
 }
 
-function goToAnnotation(page) {
-    $(".page-link").removeClass("bg-active");
-    $(`#page-link-${page}`).addClass("bg-active");
-    saveCurrentAnnotations();
-    showAnnotation();
-}
-
 function goToView(page) {
     const dataset = $('#dataset-select').val();
     const split = $('#split-select').val();
 
-    fetchExample(dataset, split, example_idx);
+    fetchExample(dataset, split, page);
 
-    $("#page-input").val(example_idx);
+    $("#page-input").val(page);
 }
 
 function goToPage(page) {
-    example_idx = page;
-    example_idx = mod(example_idx, total_examples);
+    const example_idx = current_example_idx;
+
+    current_example_idx = page;
+    current_example_idx = mod(current_example_idx, total_examples);
 
     if (mode == "annotate") {
-        goToAnnotation(example_idx);
+        saveCurrentAnnotations(example_idx);
+        goToAnnotation(current_example_idx);
     } else {
-        goToView(example_idx);
+        goToView(current_example_idx);
     }
 }
 
@@ -125,6 +121,7 @@ function loadAnnotations() {
     }
     Promise.all(promises)
         .then(() => {
+
             YPet.addInitializer(function (options) {
                 /* Configure the # and colors of Annotation types (minimum 1 required) */
                 YPet.AnnotationTypes = new AnnotationTypeList(annotation_span_categories);
@@ -158,15 +155,17 @@ function loadAnnotations() {
                             collection = [];
                         }
                     });
-                    goToAnnotation(example_idx);
                 }
+                goToAnnotation(0);
             });
             YPet.start();
-
         })
-        .catch(() => {
+        .catch((e) => {
             // Handle errors if any request fails
             console.error("One or more requests failed.");
+            // Log the error
+            console.error(e);
+
         })
         .finally(() => {
             // This block will be executed regardless of success or failure
@@ -211,9 +210,8 @@ function submitAnnotations(campaign_id) {
 }
 
 function collectFlags() {
-    // collect values of all checkboxes within divs of class `flag-checkbox`, save values sequentially (for each id)
     const flags = [];
-    $(".flag-checkbox").each(function () {
+    $(".crowdsourcing-flag").each(function () {
         const label = $(this).find("label").text().trim();
         const value = $(this).find("input[type='checkbox']").prop("checked");
         flags.push({
@@ -226,10 +224,6 @@ function collectFlags() {
 
 function collectOptions() {
     const options = [];
-
-    // for all ".crowdsourcing-option" div's, see whether is has the "option-select" or "option-slider" class
-    // and collect the value of the select or the slider, respectively
-    // save it along with the value of the label
 
     $(".crowdsourcing-option").each(function (x) {
         if ($(this).hasClass("option-select")) {
@@ -261,27 +255,37 @@ function collectTextFields() {
 }
 
 
-function saveCurrentAnnotations() {
+function saveCurrentAnnotations(example_idx) {
     var collection = YPet[`p${example_idx}`].currentView.collection.parentDocument.get('annotations').toJSON();
     annotation_set[example_idx]["annotations"] = collection;
     annotation_set[example_idx]["flags"] = collectFlags();
     annotation_set[example_idx]["options"] = collectOptions();
     annotation_set[example_idx]["textFields"] = collectTextFields();
 
-    console.log(example_idx);
     console.log(annotation_set[example_idx]);
+}
+
+function clearExampleLevelFields() {
+    // uncheck all checkboxes
+    $(".crowdsourcing-flag input[type='checkbox']").prop("checked", false);
+
+    // reset all options to the first value
+    $(".crowdsourcing-option select").val(0);
+    $(".crowdsourcing-option input[type='range']").val(0);
+
+    // clear the values in text inputs
+    $(".crowdsourcing-text input[type='text']").val("");
 }
 
 
 function markAnnotationAsComplete() {
-    saveCurrentAnnotations();
-
-    $('#page-link-' + example_idx).removeClass("bg-incomplete");
-    $('#page-link-' + example_idx).addClass("bg-complete");
-
+    $('#page-link-' + current_example_idx).removeClass("bg-incomplete");
+    $('#page-link-' + current_example_idx).addClass("bg-complete");
 
     // if all the examples are annotated, post the annotations
     if ($(".bg-incomplete").length == 0) {
+        saveCurrentAnnotations(current_example_idx);
+
         // show the `submit` button
         $("#submit-annotations-btn").show();
 
@@ -290,16 +294,8 @@ function markAnnotationAsComplete() {
             scrollTop: $("#submit-annotations-btn").offset().top
         }, 500);
 
-    } else if (example_idx < total_examples - 1) {
-        // uncheck all checkboxes
-        $(".flag-checkbox input[type='checkbox']").prop("checked", false);
-
-        // reset all options to the first value
-        $(".crowdsourcing-option select").val(0);
-
-        // clear the values in text inputs
-        $(".crowdsourcing-text input[type='text']").val("");
-
+    } else if (current_example_idx < total_examples - 1) {
+        // annotations will be saved automatically
         nextBtn();
     }
 }
@@ -315,30 +311,31 @@ function showRawData(data) {
     $("#rawarea").html(`<pre>${rawDataStr}</pre>`);
 }
 
-function showAnnotation() {
+function goToAnnotation(example_idx) {
+    $(".page-link").removeClass("bg-active");
+    $(`#page-link-${example_idx}`).addClass("bg-active");
+
     $(".annotate-box").hide();
     $(`#out-text-${example_idx}`).show();
 
     const data = examples_cached[example_idx];
+    $("#examplearea").html(data.html);
 
     const flags = annotation_set[example_idx].flags;
     const options = annotation_set[example_idx].options;
     const textFields = annotation_set[example_idx].textFields;
 
+    clearExampleLevelFields();
+
     if (flags !== undefined) {
-        // flags are an array
-        $(".flag-checkbox").each(function (i) {
+        $(".crowdsourcing-flag").each(function (i) {
             $(this).find("input[type='checkbox']").prop("checked", flags[i]["value"]);
         });
-    } else {
-        // uncheck all checkboxes
-        $(".flag-checkbox input[type='checkbox']").prop("checked", false);
     }
 
     if (options !== undefined) {
-        // options is an array of objects
         for (const [i, option] of Object.entries(options)) {
-            const div = $(`#options div:eq(${i})`);
+            const div = $(`.crowdsourcing-option:eq(${i})`);
             // we can have either a select or a slider (we can tell by `type`)
             // we need to set the option defined by `index`
             if (option.type == "select") {
@@ -346,28 +343,16 @@ function showAnnotation() {
             }
             if (option.type == "slider") {
                 div.find("input[type='range']").val(option.index);
-                div.find("output").val(option.value);
             }
         }
-    } else {
-        // clear all options
-        $("#options").empty();
     }
 
     if (textFields !== undefined) {
-        // textFields is an array of objects
         for (const [i, textField] of Object.entries(textFields)) {
-            const div = $(`#textFields div:eq(${i})`);
-            div.find("input[type='text']").val(textField.value);
+            $(`.crowdsourcing-text input:eq(${i})`).val(textField.value);
         }
-    } else {
-        // clear all textFields
-        $("#textFields").empty();
     }
 
-
-    $("#examplearea").html(data.html);
-    // $(".text-type").html(`${type}`);
 }
 
 function permalinkBtn() {
@@ -376,7 +361,7 @@ function permalinkBtn() {
 
     const url_prefix = window.location.href.split(/[?#]/)[0];
 
-    let permalink = `${url_prefix}?dataset=${dataset}&split=${split}&example_idx=${example_idx}`;
+    let permalink = `${url_prefix}?dataset=${dataset}&split=${split}&example_idx=${current_example_idx}`;
 
     popover = bootstrap.Popover.getOrCreateInstance("#permalink-btn", options = { html: true });
     popover.setContent({
@@ -408,18 +393,18 @@ function changeDataset() {
     }
     const split = $('#split-select').val();
 
-    example_idx = 0;
-    fetchExample(dataset, split, example_idx);
-    $("#page-input").val(example_idx);
+    current_example_idx = 0;
+    fetchExample(dataset, split, current_example_idx);
+    $("#page-input").val(current_example_idx);
 }
 
 function changeSplit() {
     $("#dataset-spinner").show();
     const dataset = $('#dataset-select').val();
     const split = $('#split-select').val();
-    example_idx = 0;
-    fetchExample(dataset, split, example_idx);
-    $("#page-input").val(example_idx);
+    current_example_idx = 0;
+    fetchExample(dataset, split, current_example_idx);
+    $("#page-input").val(current_example_idx);
 }
 
 function changeExample(dataset, split, example_idx) {
@@ -431,7 +416,7 @@ function changeExample(dataset, split, example_idx) {
         $('#split-select').append(`<option value="${split}">${split}</option>`);
     }
     $('#split-select').val(split);
-    example_idx = example_idx;
+    current_example_idx = example_idx;
     fetchExample(dataset, split, example_idx);
     $("#page-input").val(example_idx);
 }
@@ -1618,7 +1603,7 @@ $(document).ready(function () {
             $("#dataset-select").val(
                 $("#dataset-select option:first").val()
             ).trigger("change");
-            $("#page-input").val(example_idx);
+            $("#page-input").val(current_example_idx);
         }
     }
 
