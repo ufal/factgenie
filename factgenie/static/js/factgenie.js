@@ -214,7 +214,7 @@ function collectFlags() {
     // collect values of all checkboxes within divs of class `flag-checkbox`, save values sequentially (for each id)
     const flags = [];
     $(".flag-checkbox").each(function () {
-        const label = $(this).find("label").text();
+        const label = $(this).find("label").text().trim();
         const value = $(this).find("input[type='checkbox']").prop("checked");
         flags.push({
             label: label,
@@ -234,7 +234,7 @@ function collectOptions() {
     $(".crowdsourcing-option").each(function (x) {
         if ($(this).hasClass("option-select")) {
             const type = "select";
-            const label = $(this).find("label").text();
+            const label = $(this).find("label").text().trim();
             const index = $(this).find("select").val();
             const value = $(this).find("select option:selected").text();
             options.push({ type: type, label: label, index: index, value: value });
@@ -253,7 +253,7 @@ function collectTextFields() {
     const textFields = [];
 
     $(".crowdsourcing-text").each(function (x) {
-        const label = $(this).find("label").text();
+        const label = $(this).find("label").text().trim();
         const value = $(this).find("input[type='text']").val();
         textFields.push({ label: label, value: value });
     });
@@ -264,14 +264,17 @@ function collectTextFields() {
 function saveCurrentAnnotations() {
     var collection = YPet[`p${example_idx}`].currentView.collection.parentDocument.get('annotations').toJSON();
     annotation_set[example_idx]["annotations"] = collection;
+    annotation_set[example_idx]["flags"] = collectFlags();
+    annotation_set[example_idx]["options"] = collectOptions();
+    annotation_set[example_idx]["textFields"] = collectTextFields();
+
+    console.log(example_idx);
+    console.log(annotation_set[example_idx]);
 }
 
 
 function markAnnotationAsComplete() {
     saveCurrentAnnotations();
-    annotation_set[example_idx]["flags"] = collectFlags();
-    annotation_set[example_idx]["options"] = collectOptions();
-    annotation_set[example_idx]["textFields"] = collectTextFields();
 
     $('#page-link-' + example_idx).removeClass("bg-incomplete");
     $('#page-link-' + example_idx).addClass("bg-complete");
@@ -317,6 +320,7 @@ function showAnnotation() {
     $(`#out-text-${example_idx}`).show();
 
     const data = examples_cached[example_idx];
+
     const flags = annotation_set[example_idx].flags;
     const options = annotation_set[example_idx].options;
     const textFields = annotation_set[example_idx].textFields;
@@ -324,7 +328,7 @@ function showAnnotation() {
     if (flags !== undefined) {
         // flags are an array
         $(".flag-checkbox").each(function (i) {
-            $(this).find("input[type='checkbox']").prop("checked", flags[i]);
+            $(this).find("input[type='checkbox']").prop("checked", flags[i]["value"]);
         });
     } else {
         // uncheck all checkboxes
@@ -335,9 +339,15 @@ function showAnnotation() {
         // options is an array of objects
         for (const [i, option] of Object.entries(options)) {
             const div = $(`#options div:eq(${i})`);
-            div.find("select[name='optionType']").val(option.type);
-            div.find("input[name='optionLabel']").val(option.label);
-            div.find("input[name='optionValues']").val(option.values.join(", "));
+            // we can have either a select or a slider (we can tell by `type`)
+            // we need to set the option defined by `index`
+            if (option.type == "select") {
+                div.find("select").val(option.index);
+            }
+            if (option.type == "slider") {
+                div.find("input[type='range']").val(option.index);
+                div.find("output").val(option.value);
+            }
         }
     } else {
         // clear all options

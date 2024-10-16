@@ -32,6 +32,9 @@ def get_example_info(j, campaign_id):
         "example_idx": j["example_idx"],
         "setup_id": j["setup_id"],
         "split": j["split"],
+        "flags": j.get("flags", []),
+        "options": j.get("options", []),
+        "text_fields": j.get("text_fields", []),
     }
 
 
@@ -245,26 +248,56 @@ def aggregate_ann_counts(ann_counts, groupby):
     return aggregated
 
 
+def compute_extra_fields_stats(example_index):
+    # compute aggregate statistics for flags, options and text_fields (aggregates of value counts for each label)
+    extra_fields_stats = {}
+
+    for field in ["flags", "options", "text_fields"]:
+        # each of `example_index[field]` is a list of dicts
+        # each dict contains `label` and `value` keys
+        # we want to count the number of occurrences of each `value` for each unique `label`
+        # and then assign the dictionary with these counts to extra_fields_stats[label]
+
+        # find unique labels
+        labels = set()
+        for example in example_index[field]:
+            for d in example:
+                labels.add(d["label"])
+
+        # create a dictionary for each label
+        for label in labels:
+            extra_fields_stats[label] = defaultdict(int)
+
+        # count the occurrences of each value for each label
+        for example in example_index[field]:
+            for d in example:
+                extra_fields_stats[d["label"]][d["value"]] += 1
+
+    return extra_fields_stats
+
+
 def compute_statistics(app, campaign, datasets):
     statistics = {}
 
     annotation_index, example_index = load_annotations_for_campaign(campaign)
 
-    if annotation_index.empty:
-        return None
+    if not annotation_index.empty:
+        annotation_index = preprocess_annotations(annotation_index, campaign)
 
-    annotation_index = preprocess_annotations(annotation_index, campaign)
+        annotation_counts = compute_ann_counts(annotation_index)
+        annotation_counts = compute_avg_ann_counts(annotation_counts, example_index)
+        annotation_counts = compute_prevalence(annotation_counts, example_index)
 
-    annotation_counts = compute_ann_counts(annotation_index)
-    annotation_counts = compute_avg_ann_counts(annotation_counts, example_index)
-    annotation_counts = compute_prevalence(annotation_counts, example_index)
+        statistics["ann_counts"] = {
+            "full": annotation_counts.to_dict(orient="records"),
+            "span": aggregate_ann_counts(annotation_counts, "span"),
+            "setup": aggregate_ann_counts(annotation_counts, "setup"),
+            "dataset": aggregate_ann_counts(annotation_counts, "dataset"),
+        }
 
-    statistics["ann_counts"] = {
-        "full": annotation_counts.to_dict(orient="records"),
-        "span": aggregate_ann_counts(annotation_counts, "span"),
-        "setup": aggregate_ann_counts(annotation_counts, "setup"),
-        "dataset": aggregate_ann_counts(annotation_counts, "dataset"),
-    }
+    if not example_index.empty:
+        extra_fields_stats = compute_extra_fields_stats(example_index)
+        statistics["extra_fields"] = extra_fields_stats
 
     return statistics
 

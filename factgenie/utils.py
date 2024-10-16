@@ -1062,7 +1062,7 @@ def parse_crowdsourcing_config(config):
         "annotation_span_categories": config.get("annotationSpanCategories"),
         "flags": config.get("flags"),
         "options": config.get("options"),
-        "textFields": config.get("textFields"),
+        "text_fields": config.get("textFields"),
     }
 
     return config
@@ -1170,7 +1170,7 @@ def create_crowdsourcing_page(campaign_id, config):
         has_display_overlay='style="display: none"' if not has_display_overlay else "",
         flags=generate_checkboxes(config.get("flags", [])),
         options=generate_options(config.get("options", [])),
-        text_fields=generate_text_fields(config.get("textFields", [])),
+        text_fields=generate_text_fields(config.get("text_fields", [])),
     )
 
     # concatenate with header and footer

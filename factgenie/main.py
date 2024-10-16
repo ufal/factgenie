@@ -163,8 +163,8 @@ def analyze_detail():
     source = request.args.get("source")
 
     campaign = utils.load_campaign(app, campaign_id=campaign_id, mode=source)
-
     datasets = utils.get_local_dataset_overview(app)
+
     statistics = analysis.compute_statistics(app, campaign, datasets)
 
     return render_template(
@@ -898,9 +898,7 @@ def submit_annotations():
     if annotator_id == PREVIEW_STUDY_ID:
         preview_message = f'<div class="alert alert-info" role="alert"><p>You are in a preview mode. Click <a href="{app.config["host_prefix"]}/crowdsourcing"><b>here</b></a> to go back to the campaign view.</p><p><i>This message will not be displayed to the annotators.</i></p></div>'
 
-        return utils.success(
-            message=final_message_html + preview_message
-        )
+        return utils.success(message=final_message_html + preview_message)
 
     return utils.success(message=final_message_html)
 

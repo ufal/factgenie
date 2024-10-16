@@ -55,8 +55,7 @@
       </div>
 
 
-      <!-- if we do not have statistics (None), just display an infobox -->
-      {% if not statistics %}
+      {% if not statistics.ann_counts %}
       <div class="alert alert-info mt-3" role="alert">
         <i class="fa fa-info"></i>
         <span>No annotations were yet collected in this campaign.</span>
@@ -86,11 +85,11 @@
           aria-controls="pills-stats-dataset"><img src="{{ host_prefix }}/static/img/stats/stats-dataset.png"
             height="30px" class="heading-img-inline">By datasets</a>
       </li>
-      <!-- <li class="nav-item" role="presentation">
+      <li class="nav-item" role="presentation">
         <a class="nav-link" id="pills-charts-tab" data-bs-toggle="pill" href="#pills-charts" role="tab"
           aria-controls="pills-charts"><img src="{{ host_prefix }}/static/img/stats/stats-charts.png" height="30px"
-            class="heading-img-inline">Charts</a>
-      </li> -->
+            class="heading-img-inline">Extra fields</a>
+      </li>
     </ul>
     <div class="tab-content" id="pills-tabContent">
       <div class="tab-pane mb-5 fade show active" id="pills-stats-full" role="tabpanel"
@@ -173,11 +172,31 @@
         </table>
       </div>
     </div>
-    <!-- <div class="tab-content" id="pills-tabContent">
-      <div class="tab-pane mb-5 fade show active" id="pills-charts" role="tabpanel" aria-labelledby="pills-charts-tab">
-
+    <div class="tab-content" id="pills-tabContent">
+      <div class="tab-pane mb-5 fade" id="pills-charts" role="tabpanel" aria-labelledby="pills-charts-tab">
+        <table id="extra-fields-table" class="table table-bordered table-hover" data-show-export="true"
+          data-toggle="table" data-sortable="true" data-toolbar="#toolbar">
+          <thead>
+            <tr>
+              <th data-sortable="true" data-field="label">Label</th>
+              <th data-sortable="true" data-field="value">Value</th>
+              <th data-sortable="true" data-field="count">Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for label, value_counts in statistics.extra_fields.items() %}
+            {% for value, count in value_counts.items() %}
+            <tr>
+              <td>{{ label }}</td>
+              <td>{{ value }}</td>
+              <td>{{ count }}</td>
+            </tr>
+            {% endfor %}
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-    </div> -->
+    </div>
   </div>
 
 </body>
