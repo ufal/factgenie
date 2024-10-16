@@ -21,7 +21,14 @@ if (mode == "annotate") {
 if (mode == "annotate" || mode == "browse") {
     // the draggable divider between the main area and the right panel
     var splitInstance = Split(['#centerpanel', '#rightpanel'], {
-        sizes: sizes, gutterSize: 1
+        sizes: sizes, gutterSize: 1,
+        onDrag: function () {
+            // trigger a resize update on slider inputs when the handle is dragged
+            // not a perfect solution, but it works
+            $('.slider-crowdsourcing').each(function () {
+                $(this).css('width', "80%");
+            });
+        }
     });
 }
 
@@ -261,8 +268,6 @@ function saveCurrentAnnotations(example_idx) {
     annotation_set[example_idx]["flags"] = collectFlags();
     annotation_set[example_idx]["options"] = collectOptions();
     annotation_set[example_idx]["textFields"] = collectTextFields();
-
-    console.log(annotation_set[example_idx]);
 }
 
 function clearExampleLevelFields() {
