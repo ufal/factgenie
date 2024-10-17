@@ -360,21 +360,6 @@ function goToAnnotation(example_idx) {
 
 }
 
-function permalinkBtn() {
-    const dataset = $('#dataset-select').val();
-    const split = $('#split-select').val();
-
-    const url_prefix = window.location.href.split(/[?#]/)[0];
-
-    let permalink = `${url_prefix}?dataset=${dataset}&split=${split}&example_idx=${current_example_idx}`;
-
-    popover = bootstrap.Popover.getOrCreateInstance("#permalink-btn", options = { html: true });
-    popover.setContent({
-        '.popover-body': permalink
-    });
-    $('#permalink-btn').popover('show');
-}
-
 function goToBtn() {
     var n = $("#page-input").val();
     goToPage(n);
@@ -671,6 +656,14 @@ function showSelectedCampaigns() {
 }
 
 function fetchExample(dataset, split, example_idx) {
+    // change the URL so that it shows the permalink
+    const newUrl = `${url_prefix}/browse?dataset=${dataset}&split=${split}&example_idx=${example_idx}`;
+
+    // the check prevents being stuck at the same URL
+    if (!window.location.href.includes(newUrl)) {
+        history.pushState(null, '', newUrl);
+    }
+
     $.get(`${url_prefix}/example`, {
         "dataset": dataset,
         "example_idx": example_idx,
@@ -1591,6 +1584,19 @@ function enableTooltips() {
         return new bootstrap.Tooltip(tooltipTriggerEl)
     })
 }
+
+// checking whether the user is navigating to an example using history: if so, we need to load the particular example
+window.addEventListener('popstate', function (event) {
+    if (window.location.pathname === `/browse`) {
+        const params = new URLSearchParams(window.location.search);
+        const dataset = params.get('dataset');
+        const split = params.get('split');
+        const example_idx = params.get('example_idx');
+        if (dataset && split && example_idx) {
+            changeExample(dataset, split, example_idx);
+        }
+    }
+});
 
 
 $(document).ready(function () {

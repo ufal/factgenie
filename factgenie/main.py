@@ -210,8 +210,6 @@ def annotate():
 @app.route("/browse", methods=["GET", "POST"])
 @login_required
 def browse():
-    logger.info(f"Browse page loaded")
-
     utils.generate_annotation_index(app)
 
     dataset_id = request.args.get("dataset")
@@ -220,7 +218,7 @@ def browse():
 
     if dataset_id and split and example_idx:
         display_example = {"dataset": dataset_id, "split": split, "example_idx": int(example_idx)}
-        logger.info(f"Serving permalink for {display_example}")
+        logger.info(f"Browsing {display_example}")
     else:
         display_example = None
 
