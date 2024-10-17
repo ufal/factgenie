@@ -946,3 +946,13 @@ a:hover {
 .bg-free {
     background-color: rgb(108, 117, 125);
 }
+
+#centerpanel {
+    max-height: 100vh;
+    overflow-y: auto;
+}
+
+#outputarea {
+    max-height: 90vh;
+    overflow-y: auto;
+}
