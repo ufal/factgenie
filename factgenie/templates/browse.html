@@ -66,25 +66,30 @@
         </ul>
       </div>
       <div class="navblock">
-        <ul class="pagination" style="margin-left: 200px;">
+        <ul class="pagination" id="nav-btns">
           <li class="page-item">
-            <a class="page-link" id="raw-btn" onclick="toggleRaw();" autocomplete="off">
-              <div class="d-flex align-items-center nav-btn-elem">
-                <img src="{{ host_prefix }}/static/img/code.png" width="15px" class="button-bw-icon" />
-                <span style="vertical-align: middle;">Raw data</span>
-              </div>
+            <a class="page-link" id="random-btn" onclick="randomBtn();" title="Random example">
+              <img src="{{ host_prefix }}/static/img/dice.png" style="max-width: 20px;">
+              <small style="padding-left: 5px">Go to random</small>
             </a>
           </li>
+          <li class="page-item">
+            <a class="page-link" id="toggle-raw-btn" onclick="toggleRaw();" title="Show raw data">
+              <img src="{{ host_prefix }}/static/img/code.png" style="max-width: 20px; padding: 2px;"> <small
+                style="padding-left: 5px">Show raw data</small>
+            </a>
           </li>
           <li class="page-item">
-            <a class="page-link" id="random-btn" onclick="randomBtn();">
-              <div class="d-flex align-items-center nav-btn-elem">
-                <img src="{{ host_prefix }}/static/img/dice.png" width="17px">
-                <span style="vertical-align: middle; margin-left: 4px;">Random example</span>
-              </div>
+            <a class="page-link" id="about-btn" title="About" data-bs-toggle="modal" data-bs-target="#aboutModal">
+              <img src="{{ host_prefix }}/static/img/info.png"
+                style="cursor: pointer; max-width: 20px;  margin: 4px; padding: 1px;"> <small>About</small>
             </a>
           </li>
         </ul>
+
+
+
+        {% include 'forms/about_modal.html' %}
       </div>
     </div>
   </nav>
@@ -95,6 +100,10 @@
 
       <div class="split col-12">
         <div id="centerpanel" class="collapse show">
+
+          <!-- <img src="{{ host_prefix }}/static/img/code.png" width="15px" class="button-bw-icon" />
+          <span style="vertical-align: middle;">Raw data</span> -->
+
           <div class="tab-content">
             <div id='tabulararea' class="tab-pane sidepanel-panel active" role="tabpanel">
               <div class="d-flex align-items-center justify-content-center">

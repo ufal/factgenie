@@ -517,7 +517,7 @@ function getExampleLevelFields(output, campaign_id) {
 
     var html = $('<div>', { class: "p-2 extra-fields" });
 
-    if (flags !== undefined) {
+    if (flags !== undefined && flags.length > 0) {
         var flagsDiv = $('<div>', { class: "small" });
         // flagsDiv.append($('<span class="badge bg-secondary">').html("Flags"));
         for (const flag of flags) {
@@ -530,7 +530,7 @@ function getExampleLevelFields(output, campaign_id) {
         html.append(flagsDiv);
     }
 
-    if (options !== undefined) {
+    if (options !== undefined && options.length > 0) {
         var optionsDiv = $('<div>', { class: "small" });
 
         for (const option of options) {
@@ -543,7 +543,7 @@ function getExampleLevelFields(output, campaign_id) {
         html.append(optionsDiv);
     }
 
-    if (textFields !== undefined) {
+    if (textFields !== undefined && textFields.length > 0) {
         var textFieldsDiv = $('<div>', { class: "small" });
 
         for (const textField of textFields) {

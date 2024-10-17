@@ -593,10 +593,16 @@ a:hover {
 }
 
 .page-link {
+    height: 28px;
+    /* Set a fixed height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
 }
 
 .nav-btn-elem {
+    height: 28px;
     font-size: 12px;
 }
 
