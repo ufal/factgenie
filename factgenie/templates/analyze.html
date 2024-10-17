@@ -56,7 +56,7 @@
               <tr>
                 <td><img src="{{ host_prefix }}/static/img/{{ campaign.metadata.source }}.png" style="max-width: 18px;"
                     class="heading-img-inline"> <a
-                    href="{{ host_prefix }}/analyze/detail?campaign={{ campaign.metadata.id }}&source={{ campaign.metadata.source }}"
+                    href="{{ host_prefix }}/analyze/detail/{{ campaign.metadata.id }}?source={{ campaign.metadata.source }}"
                     class="blue-link">{{
                     campaign.metadata.id }}</a></td>
                 <td>{{ campaign.metadata.created }}</td>
@@ -75,10 +75,6 @@
                   external
                   {% endif %}
                 </td>
-                <!-- <td>
-                    <a href="{{ host_prefix }}/analyze/detail?campaign={{ campaign.metadata.id }}&source={{ campaign.metadata.source }}"
-                      type="button" class="btn btn-outline-secondary"><i class="fa fa-area-chart">
-                  </td> -->
               </tr>
               {% endfor %}
             </tbody>

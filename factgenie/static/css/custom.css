@@ -593,10 +593,16 @@ a:hover {
 }
 
 .page-link {
+    height: 28px;
+    /* Set a fixed height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
 }
 
 .nav-btn-elem {
+    height: 28px;
     font-size: 12px;
 }
 
@@ -945,4 +951,14 @@ a:hover {
 
 .bg-free {
     background-color: rgb(108, 117, 125);
+}
+
+#centerpanel {
+    max-height: 100vh;
+    overflow-y: auto;
+}
+
+#outputarea {
+    max-height: 90vh;
+    overflow-y: auto;
 }

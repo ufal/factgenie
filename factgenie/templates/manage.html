@@ -274,7 +274,7 @@
                 <td><img src="{{ host_prefix }}/static/img/{{ campaign.metadata.source }}.png" style="max-width: 18px;"
                     class="heading-img-inline"> {% if campaign.metadata.source == 'external' %}{{
                   campaign.metadata.id }}{% else %}<a
-                    href="{{ host_prefix }}/{{ campaign.metadata.source }}/detail?campaign={{ campaign.metadata.id }}"
+                    href="{{ host_prefix }}/{{ campaign.metadata.source }}/detail/{{ campaign.metadata.id }}"
                     class="blue-link">{{
                     campaign.metadata.id }}</a>{% endif %}</td>
                 <!-- <td>{{ campaign.metadata.source }}</td> -->

@@ -54,7 +54,7 @@
             <tr>
               {% set metadata = campaign.metadata %}
               {% set campaign_id = metadata.id %}
-              <td><a href="{{ host_prefix }}/llm_campaign/detail?mode={{ mode }}&campaign={{ campaign.metadata.id }}"
+              <td><a href="{{ host_prefix }}/llm_campaign/detail/{{ campaign.metadata.id }}?mode={{ mode }}"
                   class="blue-link">{{
                   metadata.id }}</a></td>
               <td>{{ metadata.created }}</td>
@@ -86,7 +86,7 @@
                   metadata.status!='running' %} style="display: none;" {% endif %}>
                   <i class="fa fa-pause"></i>
                 </a>
-                <a href="{{ host_prefix }}/export_campaign_outputs?mode={{ mode }}&campaign={{ campaign_id }}"
+                <a href="{{ host_prefix }}/export_campaign_outputs/{{ campaign_id }}?mode={{ mode }}"
                   class="btn btn-outline-secondary" data-bs-toggle="tooltip" id="download-button-{{ metadata.id }}"
                   title="Export annotations" {% if metadata.status!='finished' %} style="display: none;" {% endif %}>
                   <i class="fa fa-download"></i>

@@ -32,9 +32,9 @@
           <dt class="col-sm-3"> Page link </dt>
           <dd class="col-sm-9" id="metadata-status-{{ campaign_id }}"> <span class="font-mono">{{ request.url |
               annotate_url
-              }}?campaign={{
+              }}/{{
               campaign_id }}<span {% if metadata.config.service !='local'
-                %}style="display: none;{% endif %}">&annotatorId=FILL_YOUR_NAME_HERE</span></span> </dd>
+                %}style="display: none;{% endif %}">?annotatorId=FILL_YOUR_NAME_HERE</span></span> </dd>
           <dt class="col-sm-3"> Service </dt>
           <dd class="col-sm-9" id="metadata-service"> {{ metadata.config.service }} </dd>
           <dt class="col-sm-3"> Created </dt>
@@ -52,11 +52,11 @@
           </dd>
         </dl>
         <div>
-          <a href="{{ host_prefix }}/annotate?campaign={{ metadata.id }}" class="btn btn-outline-secondary"
+          <a href="{{ host_prefix }}/annotate/{{ metadata.id }}" class="btn btn-outline-secondary"
             data-bs-toggle="tooltip" title="Preview the crowdsourcing page">
             <i class="fa fa-eye"></i> Preview annotation page
           </a>
-          <a href="{{ host_prefix }}/export_campaign_outputs?mode=crowdsourcing&campaign={{ campaign_id }}"
+          <a href="{{ host_prefix }}/export_campaign_outputs/{{ campaign_id }}?mode=crowdsourcing"
             class="btn btn-outline-secondary" data-bs-toggle="tooltip" id="download-button-{{ metadata.id }}"
             title="Export annotations" {% if metadata.status=='idle' %} style="display: none;" {% endif %}>
             <i class="fa fa-download"></i> Download annotations
@@ -67,7 +67,7 @@
           </a>
           <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
             data-bs-target="#config-modal-{{ campaign_id }}"><i class="fa fa-cog"></i> Show configuration</a>
-          <a href="{{ host_prefix }}/analyze/detail?campaign={{ campaign_id }}&source=crowdsourcing" type="button"
+          <a href="{{ host_prefix }}/analyze/detail/{{ campaign_id }}?source=crowdsourcing" type="button"
             class="btn btn-outline-secondary"><i class="fa fa-area-chart"></i> View statistics</a>
           <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
             data-bs-target="#campaign-help-modal"><i class="fa fa-question-circle">
