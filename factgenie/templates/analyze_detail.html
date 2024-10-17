@@ -32,7 +32,7 @@
       <!-- <a href="{{ host_prefix }}/analyze" class="btn btn-outline-secondary mb-5">← List of
         campaigns</a> -->
       <h3><img src="{{ host_prefix }}/static/img/analysis.png" class="inline-icon"> <a
-          href="{{ host_prefix }}/{% if source == 'llm_eval' %}llm_campaign{% else %}crowdsourcing{% endif %}/detail?mode={{ source }}&campaign={{ campaign.metadata.id }}"><b>Statistics:
+          href="{{ host_prefix }}/{% if source == 'llm_eval' %}llm_campaign{% else %}crowdsourcing{% endif %}/detail/{{ campaign.metadata.id }}?mode={{ source }}"><b>Statistics:
             {{
             campaign.metadata.id }}</b></a></h3>
 

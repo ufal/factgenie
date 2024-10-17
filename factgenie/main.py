@@ -156,10 +156,9 @@ def analyze():
     )
 
 
-@app.route("/analyze/detail", methods=["GET", "POST"])
+@app.route("/analyze/detail/<campaign_id>", methods=["GET", "POST"])
 @login_required
-def analyze_detail():
-    campaign_id = request.args.get("campaign")
+def analyze_detail(campaign_id):
     source = request.args.get("source")
 
     campaign = utils.load_campaign(app, campaign_id=campaign_id, mode=source)
@@ -176,11 +175,10 @@ def analyze_detail():
     )
 
 
-@app.route("/annotate", methods=["GET", "POST"])
-def annotate():
+@app.route("/annotate/<campaign_id>", methods=["GET", "POST"])
+def annotate(campaign_id):
     logger.info(f"Annotate page loaded")
 
-    campaign_id = request.args.get("campaign")
     campaign = utils.load_campaign(app, campaign_id=campaign_id, mode="crowdsourcing")
 
     service = campaign.metadata["config"]["service"]
@@ -295,11 +293,9 @@ def crowdsourcing():
     )
 
 
-@app.route("/crowdsourcing/detail", methods=["GET", "POST"])
+@app.route("/crowdsourcing/detail/<campaign_id>", methods=["GET", "POST"])
 @login_required
-def crowdsourcing_detail():
-
-    campaign_id = request.args.get("campaign")
+def crowdsourcing_detail(campaign_id):
     campaign = utils.load_campaign(app, campaign_id=campaign_id, mode="crowdsourcing")
 
     overview = campaign.get_overview()
@@ -521,10 +517,9 @@ def render_example():
         return jsonify({"error": f"Error\n\t{e}\nwhile getting example data: {dataset_id=}, {split=}, {example_idx=}"})
 
 
-@app.route("/export_campaign_outputs", methods=["GET", "POST"])
+@app.route("/export_campaign_outputs/<campaign_id>", methods=["GET", "POST"])
 @login_required
-def export_campaign_outputs():
-    campaign_id = request.args.get("campaign")
+def export_campaign_outputs(campaign_id):
     mode = request.args.get("mode")
 
     return utils.export_campaign_outputs(app, mode, campaign_id)
@@ -631,15 +626,14 @@ def llm_campaign_create():
     return utils.success()
 
 
-@app.route("/llm_campaign/detail", methods=["GET", "POST"])
+@app.route("/llm_campaign/detail/<campaign_id>", methods=["GET", "POST"])
 @login_required
-def llm_campaign_detail():
+def llm_campaign_detail(campaign_id):
     mode = request.args.get("mode")
 
     if not mode:
         return "The `mode` argument was not specified", 404
 
-    campaign_id = request.args.get("campaign")
     campaign = utils.load_campaign(app, campaign_id=campaign_id, mode=mode)
 
     if campaign.metadata["status"] == CampaignStatus.RUNNING and not app.db["announcers"].get(campaign_id):
@@ -776,22 +770,19 @@ def llm_campaign_pause():
     return resp
 
 
-@app.route("/llm_eval/detail", methods=["GET", "POST"])
+@app.route("/llm_eval/detail/<campaign_id>", methods=["GET", "POST"])
 @login_required
-def llm_eval():
-    campaign_id = request.args.get("campaign")
+def llm_eval(campaign_id):
 
     # redirect to /llm_campaign with the mode set to llm_eval, keeping the campaign_id
-    return redirect(f"{app.config['host_prefix']}/llm_campaign/detail?mode=llm_eval&campaign={campaign_id}")
+    return redirect(f"{app.config['host_prefix']}/llm_campaign/detail/{campaign_id}?mode=llm_eval")
 
 
-@app.route("/llm_gen/detail", methods=["GET", "POST"])
+@app.route("/llm_gen/detail/<campaign_id>", methods=["GET", "POST"])
 @login_required
-def llm_gen():
-    campaign_id = request.args.get("campaign")
-
+def llm_gen(campaign_id):
     # redirect to /llm_campaign with the mode set to llm_gen, keeping the campaign_id
-    return redirect(f"{app.config['host_prefix']}/llm_campaign/detail?mode=llm_gen&campaign={campaign_id}")
+    return redirect(f"{app.config['host_prefix']}/llm_campaign/detail/{campaign_id}?mode=llm_gen")
 
 
 @app.route("/manage", methods=["GET", "POST"])

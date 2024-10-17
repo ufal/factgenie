@@ -59,8 +59,7 @@
             <tr>
               {% set metadata = campaign.metadata %}
               {% set campaign_id = metadata.id %}
-              <td><a href="{{ host_prefix }}/crowdsourcing/detail?campaign={{ campaign.metadata.id }}"
-                  class="blue-link">{{
+              <td><a href="{{ host_prefix }}/crowdsourcing/detail/{{ campaign.metadata.id }}" class="blue-link">{{
                   campaign.metadata.id }}</a></td>
               <td class="small font-monospace">{{ campaign.metadata.config.service }}</td>
               <td>{{ campaign.metadata.created }}</td>
@@ -69,8 +68,8 @@
                 {% include 'forms/progress_bar_crowdsourcing.html' %}
               </td>
               <td>
-                <a href="{{ host_prefix }}/annotate?campaign={{ campaign.metadata.id }}"
-                  class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Preview the crowdsourcing page">
+                <a href="{{ host_prefix }}/annotate/{{ campaign.metadata.id }}" class="btn btn-outline-secondary"
+                  data-bs-toggle="tooltip" title="Preview the crowdsourcing page">
                   <i class="fa fa-eye"></i>
                 </a>
                 <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
