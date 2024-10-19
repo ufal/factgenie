@@ -17,6 +17,7 @@ import requests
 import copy
 
 from ast import literal_eval
+from factgenie.campaigns import CampaignMode
 
 # logging.basicConfig(format="%(message)s", level=logging.INFO, datefmt="%H:%M:%S")
 # coloredlogs.install(level="INFO", fmt="%(asctime)s %(levelname)s %(message)s")
@@ -33,11 +34,11 @@ class ModelFactory:
     @staticmethod
     def model_classes():
         return {
-            "llm_eval": {
+            CampaignMode.LLM_EVAL: {
                 "openai_metric": OpenAIMetric,
                 "ollama_metric": OllamaMetric,
             },
-            "llm_gen": {
+            CampaignMode.LLM_GEN: {
                 "openai_gen": OpenAIGen,
                 "ollama_gen": OllamaGen,
                 "tgwebui_gen": TextGenerationWebuiGen,

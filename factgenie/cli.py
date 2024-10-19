@@ -6,6 +6,7 @@
 import click
 
 from flask.cli import FlaskGroup
+from factgenie.campaigns import CampaignMode
 
 
 @click.command()
@@ -26,7 +27,7 @@ def list_datasets():
 @click.option("--dataset_id", required=True, type=str)
 @click.option("--split", required=True, type=str)
 @click.option("--setup_id", type=str)
-@click.option("--mode", required=True, type=click.Choice(["llm_eval", "llm_gen"]))
+@click.option("--mode", required=True, type=click.Choice([CampaignMode.LLM_EVAL, CampaignMode.LLM_GEN]))
 @click.option(
     "--llm_metric_config", required=True, type=str, help="Path to the metric config file or just the metric name."
 )
@@ -36,22 +37,24 @@ def run_llm_campaign(
 ):
     """Runs the LLM campaign from CLI with no web server."""
     from slugify import slugify
-    from factgenie import utils
+    from factgenie import workflows
     from factgenie.models import ModelFactory
 
     campaign_id = slugify(campaign_id)
     campaign_data = [{"dataset": dataset_id, "split": split, "setup_id": setup_id}]
 
-    config = utils.load_dataset_config()
+    config = workflows.load_dataset_config()
     dataset_config = config[dataset_id]
-    datasets = {dataset_id: utils.instantiate_dataset(dataset_id, dataset_config)}
+    datasets = {dataset_id: workflows.instantiate_dataset(dataset_id, dataset_config)}
 
-    if mode == "llm_eval" and not setup_id:
+    if mode == CampaignMode.LLM_EVAL and not setup_id:
         raise ValueError("The `setup_id` argument is required for llm_eval mode.")
 
-    configs = utils.load_configs(mode)
+    configs = workflows.load_configs(mode)
     metric_config = configs[llm_metric_config]
-    campaign = utils.llm_campaign_new(mode, campaign_id, metric_config, campaign_data, datasets, overwrite=overwrite)
+    campaign = workflows.llm_campaign_new(
+        mode, campaign_id, metric_config, campaign_data, datasets, overwrite=overwrite
+    )
 
     # mockup objects useful for interactivity
     threads = {campaign_id: {"running": True}}
@@ -59,7 +62,7 @@ def run_llm_campaign(
 
     model = ModelFactory.from_config(metric_config, mode=mode)
 
-    return utils.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, threads)
+    return workflows.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, threads)
 
 
 def create_app(**kwargs):
@@ -87,20 +90,22 @@ def create_app(**kwargs):
         fmt="%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s",
     )
 
-    from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, GENERATIONS_DIR, ANNOTATIONS_DIR, DATA_DIR, OUTPUT_DIR
-    from factgenie import utils
-    from factgenie.utils import check_login, migrate
+    from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, CAMPAIGN_DIR, INPUT_DIR, OUTPUT_DIR
+    from factgenie import workflows
+    from factgenie.workflows import check_login
 
-    # --- compatibility with older versions ---
-    migrate()
-    # --- end of compatibility with older versions ---
+    if not MAIN_CONFIG_PATH.exists():
+        raise ValueError(
+            f"Invalid path to config.yml {MAIN_CONFIG_PATH=}. "
+            "Please copy config_TEMPLATE.yml to config.yml "
+            "and change the password, update the host prefix, etc."
+        )
 
     with open(MAIN_CONFIG_PATH) as f:
         config = yaml.safe_load(f)
 
-    os.makedirs(ANNOTATIONS_DIR, exist_ok=True)
-    os.makedirs(GENERATIONS_DIR, exist_ok=True)
-    os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(CAMPAIGN_DIR, exist_ok=True)
+    os.makedirs(INPUT_DIR, exist_ok=True)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     app.config.update(config)
@@ -111,14 +116,14 @@ def create_app(**kwargs):
     ), "Login should pass for valid user"
     assert not check_login(app, "dummy_non_user_name", "dummy_bad_password"), "Login should fail for dummy user"
 
-    app.db["datasets_obj"] = utils.instantiate_datasets()
+    app.db["datasets_obj"] = workflows.instantiate_datasets()
     app.db["scheduler"] = BackgroundScheduler()
 
     logging.getLogger("apscheduler.scheduler").setLevel(logging.WARNING)
     logging.getLogger("apscheduler.executors.default").setLevel(logging.WARNING)
     app.db["scheduler"].start()
 
-    utils.generate_campaign_index(app)
+    workflows.generate_campaign_index(app)
 
     if config["debug"] is False:
         logging.getLogger("werkzeug").disabled = True

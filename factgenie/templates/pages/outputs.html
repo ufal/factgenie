@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>factgenie</title>
+  <link rel="stylesheet" media="screen" href="{{ host_prefix }}/static/css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="{{ host_prefix }}/static/css/custom.css">
+  <link rel="shortcut icon" href="{{ host_prefix }}/static/img/favicon.ico">
+  <meta name="viewport" content="width=1024">
+  <script src="{{ host_prefix }}/static/js/lib/jquery.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/popper.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/bootstrap.min.js"></script>
+</head>
+
+<body>
+  {% include 'pages/navbar.html' %}
+
+  <div class="container">
+    <!-- <div class="text-center mt-5" style="font-size: 20px; font-weight: bold;">
+    Visualize data-to-text generation datasets + annotate LLM outputs.
+  </div> -->
+    <a href="{{ host_prefix }}/" class="btn btn-outline-secondary mt-5">← Main page</a>
+
+    <div class="row">
+      {% for name, dataset in datasets.items() %}
+      <div class="col-md-3">
+        <div class="card text-center mt-5">
+          <div class="card-body">
+            <img src="{{ host_prefix }}/static/img/datatypes/{{ dataset.type }}.png" class="intro-img">
+            <a href="{{ host_prefix }}/browse?dataset={{ name }}&split={{ dataset.splits[0] }}&example_idx=0">
+              <h5 class="card-title">{{ name }}</h5>
+            </a>
+            <p class="card-text">{{ dataset.description | safe }}</p>
+            <p class="card-text"><b>splits</b>: {% for split in dataset.splits %}{{ split }}{% if not loop.last %}, {%
+              endif %}{%
+              endfor %}<br>
+              <b>examples</b>: {{ dataset.example_count }}
+            </p>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+</body>
+
+<script>
+  window.url_prefix = "{{ host_prefix }}";
+</script>
+<script src="{{ host_prefix }}/static/js/utils.js"></script>

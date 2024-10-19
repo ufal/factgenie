@@ -5,18 +5,19 @@ import glob
 import logging
 import pandas as pd
 import ast
-import coloredlogs
 
 from datetime import datetime
-from pathlib import Path
+from factgenie import CAMPAIGN_DIR
 
 logger = logging.getLogger(__name__)
-# coloredlogs.install(level="INFO", logger=logger, fmt="%(asctime)s %(levelname)s %(message)s")
 
 
-DIR_PATH = os.path.dirname(__file__)
-ANNOTATIONS_DIR = os.path.join(DIR_PATH, "annotations")
-GENERATIONS_DIR = os.path.join(DIR_PATH, "generations")
+class CampaignMode:
+    CROWDSOURCING = "crowdsourcing"
+    LLM_EVAL = "llm_eval"
+    LLM_GEN = "llm_gen"
+    EXTERNAL = "external"
+    HIDDEN = "hidden"
 
 
 class CampaignStatus:
@@ -36,13 +37,9 @@ class Campaign:
     def get_name(cls):
         return cls.__name__
 
-    @classmethod
-    def get_main_dir(cls):
-        return ANNOTATIONS_DIR
-
     def __init__(self, campaign_id):
         self.campaign_id = campaign_id
-        self.dir = os.path.join(self.__class__.get_main_dir(), campaign_id)
+        self.dir = os.path.join(CAMPAIGN_DIR, campaign_id)
         self.db_path = os.path.join(self.dir, "db.csv")
         self.metadata_path = os.path.join(self.dir, "metadata.json")
 
@@ -118,7 +115,7 @@ class Campaign:
             self.update_metadata()
 
         logger.info(f"Cleared outputs and assignments for {idx}")
-       
+
         # remove any outputs from JSONL files
         dataset = self.db.loc[mask, "dataset"].values[0]
         split = self.db.loc[mask, "split"].values[0]
@@ -269,10 +266,6 @@ class LLMCampaignEval(LLMCampaign):
 
 
 class LLMCampaignGen(LLMCampaign):
-    @classmethod
-    def get_main_dir(cls):
-        return GENERATIONS_DIR
-
     def get_overview(self):
         finished_examples = self.get_finished_examples()
 

@@ -1,6 +1,4 @@
-const url_prefix = window.url_prefix;
 const modelOutputs = window.model_outputs;
-const datasets = window.datasets;
 
 function createUploadDatasetSplitElem() {
     const newSplit = $(`
@@ -27,16 +25,6 @@ function addDatasetSplit() {
     const datasetSplits = $("#dataset-files");
     const newSplit = createUploadDatasetSplitElem();
     datasetSplits.append(newSplit);
-}
-
-function updateSplits() {
-    const dataset = $('#dataset-select').val();
-
-    // set available splits in #split-select
-    $('#split-select').empty();
-    for (const split of datasets[dataset].splits) {
-        $('#split-select').append(`<option value="${split}">${split}</option>`);
-    }
 }
 
 function deleteOutput(dataset, split, setup_id) {
@@ -264,7 +252,6 @@ function enableTooltips() {
 
 $(document).ready(function () {
     $("#dataset-select-overview").val(Object.keys(datasets)[0]).trigger("change");
-    updateSplits();
 
     // Function to activate the tab based on the anchor
     function activateTabFromAnchor() {
@@ -278,7 +265,7 @@ $(document).ready(function () {
     }
 
     // Add click event listener to update the URL
-    $('a[data-bs-toggle="pill"]').on('click', function (e) {
+    $('a[data-toggle="pill"]').on('click', function (e) {
         var anchor = $(this).data('anchor');
         if (anchor) {
             window.location.hash = anchor;

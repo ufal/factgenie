@@ -50,6 +50,8 @@ function sortCheckboxes(container) {
     });
 }
 
+
+// TODO define model_outs
 function updateComparisonData() {
     const selectedDatasets = getSelectedDatasets();
     const selectedSplits = getSelectedSplits();
@@ -113,5 +115,39 @@ function updateComparisonData() {
 }
 
 
+function updateSelectedDatasets() {
+    var selectedData = gatherComparisonData();
+
+    if (mode == 'llm_eval' || mode == 'crowdsourcing') {
+        $("#selectedDatasetsContent").html(
+            selectedData.map(d =>
+                `<tr>
+                <td>${d.dataset}</td>
+                <td>${d.split}</td>
+                <td>${d.setup_id}</td>
+                <td>${d.example_cnt}</td>
+                <td><button type="button" class="btn btn-sm btn-secondary" onclick="deleteRow(this);">x</button></td>
+            </tr>`
+            ).join("\n")
+        );
+    } else if (mode == 'llm_gen') {
+        $("#selectedDatasetsContent").html(
+            selectedData.map(d =>
+                `<tr>
+                <td>${d.dataset}</td>
+                <td>${d.split}</td>
+                <td>${d.example_cnt}</td>
+                <td><button type="button" class="btn btn-sm btn-secondary" onclick="deleteRow(this);">x</button></td>
+            </tr>`
+            ).join("\n")
+        );
+    }
+}
+
+
 $(document).on('change', '.btn-check-dataset', updateComparisonData);
 $(document).on('change', '.btn-check-split', updateComparisonData);
+
+$(document).on('change', "#data-select-area input[type='checkbox']", function () {
+    updateSelectedDatasets();
+});

@@ -13,9 +13,9 @@ import sys
 from pathlib import Path
 import logging
 import coloredlogs
-import factgenie.utils as utils
+import factgenie.workflows as workflows
 
-from factgenie.campaigns import ANNOTATIONS_DIR
+from factgenie import CAMPAIGN_DIR
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -86,7 +86,7 @@ def load_annotations_for_campaign(campaign):
     campaign_id = campaign.metadata["id"]
     annotation_span_categories = campaign.metadata["config"]["annotation_span_categories"]
 
-    jsonl_files = glob.glob(os.path.join(ANNOTATIONS_DIR, campaign_id, "files", "*.jsonl"))
+    jsonl_files = glob.glob(os.path.join(CAMPAIGN_DIR, campaign_id, "files", "*.jsonl"))
 
     for jsonl_file in jsonl_files:
         with open(jsonl_file) as f:

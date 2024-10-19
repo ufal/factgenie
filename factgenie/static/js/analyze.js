@@ -1,3 +1,5 @@
+const metadata = window.metadata;
+
 function deleteRow(button) {
     $(button).parent().parent().remove();
 }
@@ -9,18 +11,6 @@ function getSelectedCampaigns() {
     return selectedCampaigns;
 }
 
-
-function gatherSelectedCombinations() {
-    // read all the rows the remained in #selectedDatasetsContent
-    var selectedData = [];
-    $("#selectedDatasetsContent tr").each(function () {
-        var dataset = $(this).find("td:eq(0)").text();
-        var split = $(this).find("td:eq(1)").text();
-        var setup_id = $(this).find("td:eq(2)").text();
-        selectedData.push({ dataset: dataset, split: split, setup_id: setup_id });
-    });
-    return selectedData;
-}
 
 function showAgreement(response) {
     // uncover `agreement-modal`, fill the `agreement-area` with the data
