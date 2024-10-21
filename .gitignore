@@ -1,6 +1,5 @@
 __pycache__/
 *.py[cod]
-data
 *.egg-info
 export/datasets
 tmp
@@ -16,7 +15,9 @@ venv/
 wiki
 factgenie/campaigns
 factgenie/templates/campaigns/*
-factgenie/data
+factgenie/data/datasets.yml
+factgenie/data/inputs
+factgenie/data/outputs
 factgenie/config/config.yml
 factgenie/config/llm-eval
 factgenie/config/llm-gen
