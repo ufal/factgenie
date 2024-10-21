@@ -9,31 +9,6 @@ var splitInstance = Split(['#centerpanel', '#rightpanel'], {
     gutterSize: 1,
 });
 
-function nextBtn() {
-    goToPage(current_example_idx + 1);
-}
-
-function prevBtn() {
-    goToPage(current_example_idx - 1);
-}
-
-function startBtn() {
-    goToPage(0);
-}
-
-function endBtn() {
-    goToPage(total_examples - 1);
-}
-
-function randomBtn() {
-    goToPage(randInt(total_examples - 1));
-}
-
-
-function goToBtn() {
-    var n = $("#page-input").val();
-    goToPage(n);
-}
 
 function changeDataset() {
     $("#dataset-spinner").show();

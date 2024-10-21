@@ -5,7 +5,6 @@ const metadata = window.metadata;
 var current_example_idx = 0;
 var annotation_set = window.annotation_set;
 
-const generated_outputs = window.generated_outputs;
 const total_examples = annotation_set.length;
 
 var examples_cached = {};

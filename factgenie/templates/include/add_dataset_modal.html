@@ -52,7 +52,7 @@
                             </div>
                             <div class="mb-3">
                                 <label for="dataset-id" class="form-label
-                                    ">Dataset ID</label>
+                                    ">Dataset name</label>
                                 <input class="form-control" type="text" id="dataset-id" name="dataset-id" required>
                             </div>
                             <!-- textarea for description -->
@@ -83,9 +83,10 @@
                     </div>
                     <div id="tab-download-dataset" role="tabpanel" class="tab-pane p-3" tabindex="1">
                         <div class="alert alert-info blue-link" role="alert">
-                            <p>You can download a dataset from the list on the data management page.</p>
+                            <p>You can download a dataset (optionally also along with model outputs and annotations)
+                                from the list below.</p>
 
-                            <p>After downloading the dataset, it will appear in the list.</p>
+                            <p>After downloading the dataset, it will appear in the list of local datasets.</p>
 
                             <p>You can also help other users by adding your (or public) dataset to the list! See the
                                 contribution guidelines on <a href="https://github.com/ufal/factgenie/wiki"><b>
@@ -93,11 +94,87 @@
                                         wiki
                                     </b></a>.</p>
                         </div>
+
+                        <table id="table-download" data-toggle="table" data-pagination="true" data-page-size="10"
+                            data-detail-view-icon="false" data-detail-view="true"
+                            data-detail-formatter="detailFormatter" data-detail-view-by-click="true"
+                            data-pagination-parts="['pageList']" data-classes="table table-hover table-datasets">
+                            <thead>
+                                <tr>
+                                    <th data-sortable="true" scope="col">Dataset</th>
+                                    <th scope="col">Splits</th>
+                                    <th scope="col">Outputs</th>
+                                    <th scope="col">Annotations</th>
+                                    <th scope="col">Source</th>
+                                    <th scope="col">Download</th>
+                                    <th scope="col" data-visible="false">Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for dataset_id, dataset in resources.items() %}
+                                <tr>
+                                    <!-- <td><img src="{{ host_prefix }}/static/img/datatypes/{{ dataset.type }}.png" class="intro-img"></td> -->
+                                    <td>
+                                        {{ dataset_id }}
+                                    </td>
+                                    <!-- <td class="underline-link">{{ dataset.description | safe }}</td> -->
+                                    <td>
+                                        {% for split in dataset.splits %}
+                                        <a class="badge bg-secondary">{{ split }}</a>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        {% if not dataset.outputs %}
+                                        -
+                                        {% endif %}
+                                        {% for output in dataset.outputs %}
+                                        <a class="badge bg-light text-dark">{{ output }}</a>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        {% if not dataset.annotations %}
+                                        -
+                                        {% endif %}
+                                        {% for ann in dataset.annotations %}
+                                        <a class="badge bg-light text-dark">{{ ann }}</a>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        {% if dataset.source %}
+                                        <a href="{{ dataset.source }}" class="blue-link" target="_blank">link</a>
+                                        {% else %}
+                                        <i>-</i>
+                                        {% endif %}
+                                    </td>
+                                    <td id="row-actions-{{ dataset_id }}">
+                                        <a onclick="downloadDataset('{{ dataset_id }}')"
+                                            class="btn btn-outline-secondary" id="btn-download-{{ dataset_id }}"
+                                            data-bs-toggle="tooltip" title="Download the dataset" {% if
+                                            dataset.downloaded %}style="display: none;" {% endif %}>
+                                            <i class="fa fa-cloud-download"></i>
+                                        </a>
+                                        <i class="fa fa-check"
+                                            style="margin: 10px 12px 10px 12px; {% if not dataset.downloaded %}display: none;{% endif %}"
+                                            id="check-downloaded-{{ dataset_id }}"></i>
+                                    </td>
+                                    <td class="dataset-description" style="display: none;">
+                                        <div class="blue-link">
+                                            {% if dataset.description %}
+                                            {{ dataset.description|safe }}
+                                            {% else %}
+                                            <i>No description</i>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                     <div id="tab-custom-dataset" role="tabpanel" class="tab-pane p-3" tabindex="2">
                         <div class="alert alert-info" role="alert">
                             <p>To add a custom dataset locally, register the dataset in
-                                <code>datasets/datasets.yaml</code>.
+                                <code>data/datasets.yaml</code>.
                             </p>
 
                             <p>You can either select from pre-existing classes (see <code>datasets/basic.py</code>) or
@@ -106,17 +183,8 @@
                                 (subclassing the <code>Dataset</code> class).
                             </p>
 
-                            <p>This an example <code>datasets.yaml</code> file:</p>
-                            <pre>
-datasets:
-  my-dataset:
-    class: my_dataset.MyDataset
-    description: Description of your dataset.
-    enabled: true
-    splits:
-    - dev
-    - test
-                            </pre>
+                            <p>See <code>data/datasets_TEMPLATE.yaml</code> for an example.</p>
+
                         </div>
 
                     </div>

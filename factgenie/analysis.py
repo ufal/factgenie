@@ -278,7 +278,7 @@ def compute_extra_fields_stats(example_index):
     return extra_fields_stats
 
 
-def compute_statistics(app, campaign, datasets):
+def compute_statistics(app, campaign):
     statistics = {}
 
     annotation_index, example_index = load_annotations_for_campaign(campaign)
@@ -434,7 +434,7 @@ def prepare_example_index(combinations, selected_campaigns, campaigns):
     return example_index, annotator_count, annotator_group_ids, cat_columns
 
 
-def compute_inter_annotator_agreement(app, selected_campaigns, combinations, campaigns, datasets):
+def compute_inter_annotator_agreement(app, selected_campaigns, combinations, campaigns):
     combinations = [(c["dataset"], c["split"], c["setup_id"]) for c in combinations]
 
     example_index, annotator_count, annotator_group_ids, cat_columns = prepare_example_index(

@@ -32,7 +32,7 @@
       <li class="nav-item" role="presentation">
         <a class="nav-link active" id="pills-datasets-tab" data-bs-toggle="pill" href="#pills-download" role="tab"
           aria-controls="pills-download" data-anchor="external"><img src="{{ host_prefix }}/static/img/download.png"
-            height="30px" class="heading-img-inline">External resources</a>
+            height="30px" class="heading-img-inline">Add resources</a>
       </li>
       <li class="nav-item" role="presentation">
         <a class="nav-link" id="pills-datasets-tab" data-bs-toggle="pill" href="#pills-datasets" role="tab"
@@ -52,83 +52,24 @@
     </ul>
     <div class="tab-content" id="pills-tabContent">
       <div class="tab-content" id="pills-tabContent">
-        <div class="tab-pane fade mt-3 mb-5 show active" id="pills-download" role="tabpanel"
+        <div class="tab-pane fade mt-3 mb-5 show active text-center" id="pills-download" role="tabpanel"
           aria-labelledby="pills-download-tab">
-          <table id="table-download" data-toggle="table" data-search="true" data-pagination="true" data-page-size="10"
-            data-detail-view-icon="false" data-search-align="left" data-detail-view="true"
-            data-detail-formatter="detailFormatter" data-detail-view-by-click="true" data-show-search-button="true"
-            data-search-time-out="500" data-search-on-enter-key="true" data-pagination-parts="['pageList']"
-            data-searchable="false" data-classes="table table-hover table-datasets">
-            <thead>
-              <tr>
-                <th data-searchable="true" data-sortable="true" scope="col">Dataset</th>
-                <th scope="col">Splits</th>
-                <th scope="col">Outputs</th>
-                <th scope="col">Annotations</th>
-                <th scope="col">Source</th>
-                <th scope="col">Download</th>
-                <th scope="col" data-visible="false">Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for dataset_id, dataset in resources.items() %}
-              <tr>
-                <!-- <td><img src="{{ host_prefix }}/static/img/datatypes/{{ dataset.type }}.png" class="intro-img"></td> -->
-                <td>
-                  {{ dataset_id }}
-                </td>
-                <!-- <td class="underline-link">{{ dataset.description | safe }}</td> -->
-                <td>
-                  {% for split in dataset.splits %}
-                  <a class="badge bg-secondary">{{ split }}</a>
-                  {% endfor %}
-                </td>
-                <td>
-                  {% if not dataset.outputs %}
-                  -
-                  {% endif %}
-                  {% for output in dataset.outputs %}
-                  <a class="badge bg-light text-dark">{{ output }}</a>
-                  {% endfor %}
-                </td>
-                <td>
-                  {% if not dataset.annotations %}
-                  -
-                  {% endif %}
-                  {% for ann in dataset.annotations %}
-                  <a class="badge bg-light text-dark">{{ ann }}</a>
-                  {% endfor %}
-                </td>
-                <td>
-                  {% if dataset.source %}
-                  <a href="{{ dataset.source }}" class="blue-link" target="_blank">link</a>
-                  {% else %}
-                  <i>-</i>
-                  {% endif %}
-                </td>
-                <td id="row-actions-{{ dataset_id }}">
-                  <a onclick="downloadDataset('{{ dataset_id }}')" class="btn btn-outline-secondary"
-                    id="btn-download-{{ dataset_id }}" data-bs-toggle="tooltip" title="Download the dataset" {% if
-                    dataset.downloaded %}style="display: none;" {% endif %}>
-                    <i class="fa fa-cloud-download"></i>
-                  </a>
-                  <i class="fa fa-check"
-                    style="margin: 10px 12px 10px 12px; {% if not dataset.downloaded %}display: none;{% endif %}"
-                    id="check-downloaded-{{ dataset_id }}"></i>
-                </td>
-                <td class="dataset-description" style="display: none;">
-                  <div class="blue-link">
-                    {% if dataset.description %}
-                    {{ dataset.description|safe }}
-                    {% else %}
-                    <i>No description</i>
-                    {% endif %}
-                  </div>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+
+          <h5 class="mt-5">Add dataset</h5>
+          <p>Here you can add a custom dataset to factgenie.</p>
+          <div class="mb-5">
+            <a type="button" class="btn btn-primary mt-2 mb-4" data-bs-toggle="modal"
+              data-bs-target="#add-dataset-modal">Add
+              dataset</a>
+          </div>
+          <h5 class="mt-5">Add model outputs</h5>
+          <p>Here you can upload model outputs to factgenie.</p>
+          <div class="mb-5">
+            <a type="button" class="btn btn-primary mb-5 mt-2" data-bs-toggle="modal" data-bs-target="#uploadModal">Add
+              model
+              outputs</a>
+          </div>
+
         </div>
         <div class="tab-pane fade mt-3" id="pills-datasets" role="tabpanel" aria-labelledby="pills-datasets-tab">
           <table id="table-local" data-toggle="table" data-search="false" data-pagination="true" data-page-size="10"
@@ -151,8 +92,8 @@
               <tr>
                 <td>
                   <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault" {% if dataset.enabled %}
-                      checked {% endif %} onclick="setDatasetEnabled('{{ dataset_id }}', this.checked)">
+                    <input class="form-check-input" type="checkbox" id="{{ dataset_id }}-switch" {% if dataset.enabled
+                      %} checked {% endif %} onclick="setDatasetEnabled('{{ dataset_id }}', this.checked)">
                   </div>
                 </td>
                 <td>
@@ -202,11 +143,6 @@
               {% endfor %}
             </tbody>
           </table>
-          <div class="text-center mb-5 mt-5">
-            <a type="button" class="btn btn-primary mt-2 mb-4" data-bs-toggle="modal"
-              data-bs-target="#add-dataset-modal">Add
-              dataset</a>
-          </div>
         </div>
         <div class="tab-pane fade mt-3" id="pills-outputs" role="tabpanel" aria-labelledby="pills-outputs-tab">
           <table id="model-out-table" data-toggle="table" data-search="false" data-pagination="true" data-page-size="10"
@@ -228,11 +164,11 @@
                 <td>{{ record.setup_id }}</td>
                 <td>{{ record.output_ids | length }}</td>
                 <td>
-                  <a href="{{ host_prefix }}/browse?dataset={{ dataset }}&split={{ split }}&example_idx=0"
+                  <a href="{{ host_prefix }}/browse?dataset={{ record.dataset }}&split={{ record.split }}&example_idx=0"
                     class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Show the outputs">
                     <i class="fa fa-eye"></i>
                   </a>
-                  <a href="{{ host_prefix }}/export_outputs?dataset={{ dataset }}&split={{ split }}&setup_id={{ setup_id }}"
+                  <a href="{{ host_prefix }}/export_outputs?dataset={{ record.dataset }}&split={{ record.split }}&setup_id={{ record.setup_id }}"
                     class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Export model outputs">
                     <i class="fa fa-download"></i>
                   </a>
@@ -245,11 +181,6 @@
               {% endfor %}
             </tbody>
           </table>
-          <div class="text-center mb-5">
-            <a type="button" class="btn btn-primary mb-5 mt-5" data-bs-toggle="modal" data-bs-target="#uploadModal">Add
-              model
-              outputs</a>
-          </div>
         </div>
         <div class="tab-pane fade mt-3" id="pills-annotations" role="tabpanel" aria-labelledby="pills-annotations-tab">
           <table id="table-ann" data-toggle="table" data-pagination="true" data-page-size="10" data-search-align="left"

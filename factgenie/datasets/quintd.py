@@ -69,7 +69,9 @@ class QuintdDataset(Dataset):
                     metadata["model_args"] = metadata.pop("params")
                     metadata["prompt_template"] = metadata.pop("prompt")
 
-                    with open(out_download_dir / f"{split}-{setup_id}.jsonl", "w") as f:
+                    os.makedirs(out_download_dir / setup_id, exist_ok=True)
+
+                    with open(out_download_dir / setup_id / f"{dataset_id}-{split}.jsonl", "w") as f:
                         for i, gen in enumerate(j["generated"]):
                             record = {
                                 "dataset": "quintd1-" + dataset_id,

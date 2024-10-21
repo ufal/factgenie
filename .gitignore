@@ -15,6 +15,7 @@ build
 venv/
 wiki
 factgenie/campaigns
+factgenie/templates/campaigns/*
 factgenie/data
 factgenie/config/config.yml
 factgenie/config/llm-eval

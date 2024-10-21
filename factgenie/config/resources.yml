@@ -19,7 +19,7 @@ logicnlg-100:
   splits:
   - test
 quintd1-gsmarena:
-  name: GSMArena
+  name: quintd1-gsmarena
   annotations:
   - quintd1-gpt-4
   - quintd1-human
@@ -36,8 +36,8 @@ quintd1-gsmarena:
   splits:
   - dev
   - test
-quintd1-ice_hockey:
-  name: Ice Hockey
+quintd1-ice-hockey:
+  name: quintd1-ice-hockey
   annotations:
   - quintd1-gpt-4
   - quintd1-human
@@ -55,7 +55,7 @@ quintd1-ice_hockey:
   - dev
   - test
 quintd1-openweather:
-  name: OpenWeather
+  name: quintd1-openweather
   annotations:
   - quintd1-gpt-4
   - quintd1-human
@@ -73,7 +73,7 @@ quintd1-openweather:
   - dev
   - test
 quintd1-owid:
-  name: Our World In Data
+  name: quintd1-owid
   annotations:
   - quintd1-gpt-4
   - quintd1-human
@@ -92,7 +92,7 @@ quintd1-owid:
   - dev
   - test
 quintd1-wikidata:
-  name: Wikidata
+  name: quintd1-wikidata
   annotations:
   - quintd1-gpt-4
   - quintd1-human

@@ -15,6 +15,7 @@ import zipfile
 import markdown
 import traceback
 import ast
+import tempfile
 
 import factgenie.utils as utils
 
@@ -137,7 +138,11 @@ def generate_campaign_index(app, force_reload=True):
 
             campaign = instantiate_campaign(app=app, campaign_id=campaign_id, mode=mode)
 
-            if campaign.metadata["status"] == CampaignStatus.RUNNING and campaign_id not in app.db["running_campaigns"]:
+            if (
+                (mode == CampaignMode.LLM_EVAL or mode == CampaignMode.LLM_GEN)
+                and campaign.metadata["status"] == CampaignStatus.RUNNING
+                and campaign_id not in app.db["running_campaigns"]
+            ):
                 campaign.metadata["status"] = CampaignStatus.IDLE
                 campaign.update_metadata()
 
@@ -231,7 +236,7 @@ def generate_output_index(app=None, force_reload=True):
     outputs = []
 
     # find recursively all JSONL files in the output directory
-    outs = list(Path(OUTPUT_DIR).glob("**/*.jsonl"))
+    outs = list(Path(OUTPUT_DIR).rglob("*.jsonl"))
 
     for out in outs:
         with open(out) as f:
@@ -477,7 +482,7 @@ def generate_llm_campaign_db(mode, datasets, campaign_id, campaign_data):
     return df
 
 
-def generate_campaign_db(app, campaign_data, config):
+def generate_crowdsourcing_campaign_db(app, campaign_data, config):
     # load all outputs
     all_examples = []
 
@@ -485,8 +490,7 @@ def generate_campaign_db(app, campaign_data, config):
     sort_order = config["sort_order"]
 
     for c in campaign_data:
-        dataset = app.db["datasets_obj"][c["dataset"]]
-        for i in range(dataset.get_example_count(c["split"])):
+        for i in get_output_ids(c["dataset"], c["split"], c["setup_id"]):
             all_examples.append(
                 {
                     "dataset": c["dataset"],
@@ -584,17 +588,6 @@ def get_local_dataset_overview(app):
                     continue
 
             example_count = {split: dataset.get_example_count(split) for split in dataset.get_splits()}
-
-            output_index = generate_output_index(app)
-            output_ids = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
-
-            for _, row in output_index.iterrows():
-                dataset = row["dataset"]
-                split = row["split"]
-                setup_id = row["setup_id"]
-                example_idx = row["example_idx"]
-                output_ids[dataset][split][setup_id].append(example_idx)
-
         else:
             example_count = {}
 
@@ -606,7 +599,6 @@ def get_local_dataset_overview(app):
             "name": name,
             "description": description,
             "example_count": example_count,
-            "output_ids": output_ids,
             "type": dataset_type,
         }
 
@@ -630,7 +622,7 @@ def download_dataset(app, dataset_id):
 
     dataset_cls = get_dataset_class(submodule, class_name)
     download_dir = INPUT_DIR / dataset_id
-    output_dir = OUTPUT_DIR / dataset_id
+    output_dir = OUTPUT_DIR
     campaign_dir = CAMPAIGN_DIR
 
     os.makedirs(download_dir, exist_ok=True)
@@ -701,29 +693,26 @@ def export_dataset(app, dataset_id):
 def export_outputs(app, dataset_id, split, setup_id):
     zip_buffer = BytesIO()
 
-    # output_path = OUTPUT_DIR / dataset_id / split / setup_id
-
-    # with zipfile.ZipFile(zip_buffer, "w") as zip_file:
-    #     for root, dirs, files in os.walk(output_path):
-    #         for file in files:
-    #             zip_file.write(
-    #                 os.path.join(root, file),
-    #                 os.path.relpath(os.path.join(root, file), output_path),
-    #             )
-
-    # TODO: collect instead outputs from all JSONL files
-
+    # assemble relevant outputs
     output_index = generate_output_index(app)
     outputs = output_index[
         (output_index["dataset"] == dataset_id)
         & (output_index["split"] == split)
         & (output_index["setup_id"] == setup_id)
     ]
-    # write the outputs to a JSONL file in the zip archive
+    # write the outputs to a temporary JSONL file
+    tmp_file_path = tempfile.mktemp()
+
+    with open(tmp_file_path, "w") as f:
+        for _, row in outputs.iterrows():
+            j = row.to_dict()
+            f.write(json.dumps(j) + "\n")
+
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
-        with zip_file.open(f"{dataset_id}_{split}_{setup_id}.jsonl", "w") as f:
-            for _, row in outputs.iterrows():
-                f.write(json.dumps(row.to_dict()) + "\n")
+        zip_file.write(
+            tmp_file_path,
+            f"{dataset_id}-{split}-{setup_id}.jsonl",
+        )
 
     # Set response headers for download
     response = make_response(zip_buffer.getvalue())
@@ -776,8 +765,11 @@ def upload_dataset(app, dataset_id, dataset_name, dataset_description, dataset_f
         "csv": {"suffix": "csv", "class": "basic.CSVDataset", "type": "table"},
         "html": {"suffix": "zip", "class": "basic.HTMLDataset", "type": "default"},
     }
-    data_dir = f"factgenie/data/{dataset_id}"
+    data_dir = INPUT_DIR / dataset_id
     os.makedirs(data_dir, exist_ok=True)
+
+    # slugify all split names
+    dataset_data = {slugify(k): v for k, v in dataset_data.items()}
 
     if dataset_format in ["text", "jsonl", "csv"]:
         # save each split in a separate file
@@ -1158,7 +1150,7 @@ def create_crowdsourcing_campaign(app, campaign_id, config, campaign_data):
         os.makedirs(os.path.join(CAMPAIGN_DIR, campaign_id, "files"), exist_ok=True)
 
         # create the annotation CSV
-        db = generate_campaign_db(app, campaign_data, config=config)
+        db = generate_crowdsourcing_campaign_db(app, campaign_data, config=config)
         db.to_csv(os.path.join(CAMPAIGN_DIR, campaign_id, "db.csv"), index=False)
 
         # save metadata
@@ -1265,6 +1257,9 @@ def generate_text_fields(text_fields):
 def create_crowdsourcing_page(campaign_id, config):
     final_page_path = os.path.join(CAMPAIGN_DIR, campaign_id, "pages", "annotate.html")
     symlink_path = os.path.join(TEMPLATES_DIR, "campaigns", campaign_id, "annotate.html")
+
+    os.makedirs(os.path.dirname(final_page_path), exist_ok=True)
+    os.makedirs(os.path.dirname(symlink_path), exist_ok=True)
 
     # assemble the crowdsourcing page
     parts = []
@@ -1427,7 +1422,7 @@ def save_generation_outputs(app, campaign_id, setup_id):
         metadata = json.load(f)
 
     # load the outputs
-    outputs = defaultdict(list)
+    outputs = []
 
     for file in os.listdir(CAMPAIGN_DIR / campaign_id / "files"):
         if file.endswith(".jsonl"):
@@ -1436,20 +1431,16 @@ def save_generation_outputs(app, campaign_id, setup_id):
                     record = json.loads(line)
                     # replace the campaign_id with the desired setup_id
                     record["setup_id"] = setup_id
-                    key = (record["dataset"], record["split"])
-                    outputs[key].append(record)
+                    record["metadata"] = metadata
+
+                    outputs.append(record)
 
     # save the outputs
-    for (dataset_id, split), examples in outputs.items():
-        path = OUTPUT_DIR / dataset_id / split / setup_id
-        os.makedirs(path / "files", exist_ok=True)
+    path = OUTPUT_DIR / setup_id
+    os.makedirs(path, exist_ok=True)
 
-        # save the metadata
-        with open(path / f"metadata.json", "w") as f:
-            json.dump(metadata, f, indent=4)
-
-        with open(path / "files" / f"{setup_id}.jsonl", "w") as f:
-            for example in examples:
-                f.write(json.dumps(example) + "\n")
+    with open(path / f"{setup_id}.jsonl", "w") as f:
+        for example in outputs:
+            f.write(json.dumps(example) + "\n")
 
     return utils.success()

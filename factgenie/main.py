@@ -38,7 +38,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 app = Flask("factgenie", template_folder=TEMPLATES_DIR, static_folder=STATIC_DIR)
 app.db = {}
 app.db["annotation_index"] = {}
-app.db["output_index"] = {}
+app.db["output_index"] = None
 app.db["lock"] = threading.Lock()
 app.db["running_campaigns"] = set()
 app.db["announcers"] = {}
@@ -142,9 +142,8 @@ def analyze():
 @login_required
 def analyze_detail(campaign_id):
     campaign = workflows.load_campaign(app, campaign_id=campaign_id)
-    datasets = workflows.get_local_dataset_overview(app)
 
-    statistics = analysis.compute_statistics(app, campaign, datasets)
+    statistics = analysis.compute_statistics(app, campaign)
 
     return render_template(
         "pages/analyze_detail.html",
@@ -167,7 +166,7 @@ def annotate(campaign_id):
     if not annotation_set:
         # no more available examples
         return render_template(
-            "campaigns/closed.html",
+            "crowdsourcing/closed.html",
             host_prefix=app.config["host_prefix"],
         )
 
@@ -202,8 +201,8 @@ def browse():
             host_prefix=app.config["host_prefix"],
         )
 
-    workflows.generate_output_index(app)
-    workflows.generate_annotation_index(app)
+    # workflows.generate_output_index(app)
+    # workflows.generate_annotation_index(app)
 
     return render_template(
         "pages/browse.html",
@@ -324,7 +323,6 @@ def compute_agreement():
     selected_campaigns = data.get("selectedCampaigns")
 
     campaign_index = workflows.generate_campaign_index(app, force_reload=True)
-    datasets = workflows.get_local_dataset_overview(app)
 
     try:
         results = analysis.compute_inter_annotator_agreement(
@@ -332,7 +330,6 @@ def compute_agreement():
             selected_campaigns=selected_campaigns,
             combinations=combinations,
             campaigns=campaign_index,
-            datasets=datasets,
         )
         return jsonify(results)
     except Exception as e:
@@ -347,10 +344,10 @@ def delete_campaign():
     campaign_id = data.get("campaignId")
 
     shutil.rmtree(os.path.join(CAMPAIGN_DIR, campaign_id))
-    symlink_path = os.path.join(TEMPLATES_DIR, "campaigns", campaign_id, "annotate.html")
+    symlink_dir = os.path.join(TEMPLATES_DIR, "campaigns", campaign_id)
 
-    if os.path.exists(symlink_path):
-        os.remove(symlink_path)
+    if os.path.exists(symlink_dir):
+        shutil.rmtree(symlink_dir)
 
     return utils.success()
 
@@ -440,13 +437,14 @@ def render_example():
 
     try:
         example_data = workflows.get_example_data(app, dataset_id, split, example_idx)
-        print("example_data", example_data)
         return jsonify(example_data)
     except Exception as e:
         traceback.print_exc()
         logger.error(f"Error while getting example data: {e}")
         logger.error(f"{dataset_id=}, {split=}, {example_idx=}")
-        return utils.error(f"Error\n\t{e}\nwhile getting example data: {dataset_id=}, {split=}, {example_idx=}")
+        return utils.error(
+            f"Error\n\t{e.__class__.__name__}: {e}\nwhile getting example data: {dataset_id=}, {split=}, {example_idx=}"
+        )
 
 
 @app.route("/export_campaign_outputs/<campaign_id>", methods=["GET", "POST"])
@@ -455,7 +453,7 @@ def export_campaign_outputs(campaign_id):
     return workflows.export_campaign_outputs(campaign_id)
 
 
-@app.route("/export_dataset", methods=["POST"])
+@app.route("/export_dataset", methods=["POST", "GET"])
 @login_required
 def export_dataset():
     dataset_id = request.args.get("dataset_id")
@@ -463,7 +461,7 @@ def export_dataset():
     return workflows.export_dataset(app, dataset_id)
 
 
-@app.route("/export_outputs", methods=["POST"])
+@app.route("/export_outputs", methods=["POST", "GET"])
 @login_required
 def export_outputs():
     dataset_id = request.args.get("dataset")
