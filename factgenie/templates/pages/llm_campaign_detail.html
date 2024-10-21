@@ -105,7 +105,7 @@
                   <th scope="col" data-sortable="true">Split</th>
                   <th scope="col" data-sortable="true">Example</th>
                   <th scope="col" data-sortable="true">Status</th>
-                  <th scope="col" data-width="700">Output</th>
+                  <th scope="col" data-width="600">Output</th>
                   <th scope="col">Actions</th>
                 </tr>
               </thead>
@@ -123,10 +123,16 @@
                   <td><span class="badge bg-{{ example.status }}" id="statusBtn{{ rowId }}">{{ example.status }}</span>
                   </td>
                   <td>
-                    <div class="card" style="max-height: 60px; margin: 5px 20px 5px 5px;">
-                      <pre id="annotPre{{ rowId }}"
-                        style="padding: 7px; overflow-y: auto; margin: 0px !important;">{{ example.output }}</pre>
+                    <div class="card detail-out-card" id="annotCard{{ rowId }}" {% if example.status !='finished' %}
+                      style=" display: none;" {% endif %}>
+                      <textarea id="annotPre{{ rowId }}" class="detail-out font-monospace small"
+                        disabled>{{ example.output }}</textarea>
                     </div>
+
+                    <!-- <div class="card detail-out-card" id="annotCard{{ rowId }}" {% if example.status !='finished' %}
+                      style=" display: none;" {% endif %}>
+                      <pre id="annotPre{{ rowId }}" class="detail-out">{{ example.output }}</pre>
+                    </div> -->
                   </td>
                   <td>
                     <a class="btn btn-sm btn-outline-secondary"

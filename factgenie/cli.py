@@ -51,13 +51,13 @@ def run_llm_campaign(
         mode, campaign_id, metric_config, campaign_data, datasets, overwrite=overwrite
     )
 
-    # mockup objects useful for interactivity
-    threads = {campaign_id: {"running": True}}
+    # mockup objects
     announcer = None
+    running_campaigns = {campaign_id}
 
     model = ModelFactory.from_config(metric_config, mode=mode)
 
-    return workflows.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, threads)
+    return workflows.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, running_campaigns)
 
 
 def create_app(**kwargs):

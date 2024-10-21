@@ -219,28 +219,16 @@ function gatherComparisonData() {
     var combinations = [];
 
     if (mode == "llm_eval" || mode == "crowdsourcing") {
-        // get all available combinations of datasets, splits, and outputs
-        for (const dataset of campaign_datasets) {
-            for (const split of campaign_splits) {
-                for (const output of campaign_outputs) {
+        combinations = model_outs.filter(function (model_out) {
+            return campaign_datasets.includes(model_out.dataset) && campaign_splits.includes(model_out.split) && campaign_outputs.includes(model_out.setup_id);
+        });
+        combinations = combinations.filter((v, i, a) => a.findIndex(t => (t.dataset === v.dataset && t.split === v.split && t.setup_id === v.setup_id)) === i);
 
-                    debugger;
-                    if (model_outs[dataset][split] !== undefined && output in model_outs[dataset][split]) {
-                        combinations.push({ dataset: dataset, split: split, setup_id: output, example_cnt: datasets[dataset].output_ids[split][output].length });
-                    }
-                }
-            }
-        }
     } else if (mode == "llm_gen") {
-        // get all available combinations of datasets and splits
-        for (const dataset of campaign_datasets) {
-            for (const split of campaign_splits) {
-                debugger;
-                if (split in model_outs[dataset]) {
-                    combinations.push({ dataset: dataset, split: split, example_cnt: datasets[dataset].example_count[split] });
-                }
-            }
-        }
+        combinations = model_outs.filter(function (model_out) {
+            return campaign_datasets.includes(model_out.dataset) && campaign_splits.includes(model_out.split);
+        });
+        combinations = combinations.filter((v, i, a) => a.findIndex(t => (t.dataset === v.dataset && t.split === v.split)) === i);
     }
 
     return combinations;
@@ -290,7 +278,7 @@ function pauseLLMCampaign(campaignId) {
     setCampaignStatus(campaignId, "idle");
 
     $.post({
-        url: `${url_prefix}/${mode}/pause`,
+        url: `${url_prefix}/llm_campaign/pause`,
         contentType: 'application/json',
         data: JSON.stringify({
             campaignId: campaignId
@@ -405,6 +393,60 @@ function setExampleStatus(status, button) {
 }
 
 
+function showResult(payload, campaignId) {
+    const finished_examples = payload.stats.finished;
+    const total_examples = payload.stats.total;
+    const progress = Math.round((finished_examples / total_examples) * 100);
+    $(`#llm-progress-bar-${campaignId}`).css("width", `${progress}%`);
+    $(`#llm-progress-bar-${campaignId}`).attr("aria-valuenow", progress);
+    $(`#metadata-example-cnt-${campaignId}`).html(`${finished_examples} / ${total_examples}`);
+    console.log(`Progress: ${progress}%`);
+
+    // update the annotation button
+    const example = payload.annotation;
+    const dataset = example.dataset;
+    const split = example.split;
+    const setup_id = example.setup_id;
+    const example_idx = example.example_idx;
+    const rowId = `${dataset}-${split}-${setup_id}-${example_idx}`;
+    const annotation_button = $(`#annotBtn${rowId}`);
+    annotation_button.show();
+
+    const clear_output_button = $(`#clearOutput${rowId}`);
+    clear_output_button.show();
+
+    // update the annotation content
+    const annotation_content = example.output;
+    const annotation_div = $(`#annotPre${rowId}`);
+
+    // if annotation_content is a dict, convert it to a string
+    if (typeof annotation_content === 'object') {
+        annotation_div.text(JSON.stringify(annotation_content));
+    } else {
+        annotation_div.text(annotation_content);
+    }
+    $(`#annotCard${rowId}`).show();
+    // update the status
+    const status_button = $(`#statusBtn${rowId}`);
+    setExampleStatus("finished", status_button);
+}
+
+function finalizeCampaign(campaignId, payload) {
+    console.log("Closing the connection");
+
+    setCampaignStatus(campaignId, "finished");
+    $(`#run-button-${campaignId}`).hide();
+    $(`#stop-button-${campaignId}`).hide();
+    $(`#download-button-${campaignId}`).show();
+
+    $("#log-area").text(payload.final_message);
+
+    if (window.mode == "llm_gen") {
+        $("#save-generations-button").show();
+    }
+
+}
+
 function startLLMCampaignListener(campaignId) {
     var source = new EventSource(`${url_prefix}/llm_campaign/progress/${campaignId}`);
     console.log(`Listening for progress events for campaign ${campaignId}`);
@@ -412,63 +454,18 @@ function startLLMCampaignListener(campaignId) {
     source.onmessage = function (event) {
         // update the progress bar
         var payload = JSON.parse(event.data);
-        var finished_examples = payload.stats.finished;
-        var total_examples = payload.stats.total;
-        var progress = Math.round((finished_examples / total_examples) * 100);
-        $(`#llm-progress-bar-${campaignId}`).css("width", `${progress}%`);
-        $(`#llm-progress-bar-${campaignId}`).attr("aria-valuenow", progress);
-        $(`#metadata-example-cnt-${campaignId}`).html(`${finished_examples} / ${total_examples}`);
-        console.log(`Received progress: ${progress}%`);
 
-        // update the annotation button
-        const example = payload.annotation;
-        const dataset = example.dataset;
-        const split = example.split;
-        const setup_id = example.setup_id;
-        const example_idx = example.example_idx;
-        const rowId = `${dataset}-${split}-${setup_id}-${example_idx}`;
-        const annotation_button = $(`#annotBtn${rowId}`);
-        annotation_button.show();
-
-        const clear_output_button = $(`#clearOutput${rowId}`);
-        clear_output_button.show();
-
-        // update the annotation content
-        const annotation_content = example.output;
-        const annotation_div = $(`#annotPre${rowId}`);
-
-        // if annotation_content is a dict, convert it to a string
-        if (typeof annotation_content === 'object') {
-            annotation_div.text(JSON.stringify(annotation_content));
-        } else {
-            annotation_div.text(annotation_content);
+        if (payload.type === "status") {
+            console.log(payload.message);
         }
+        else if (payload.type === "result") {
+            showResult(payload, campaignId);
 
-        console.log(annotation_content);
-
-        console.log(annotation_div);
-
-        // update the status
-        const status_button = $(`#statusBtn${rowId}`);
-        setExampleStatus("finished", status_button);
-
-        if (progress == 100) {
-            source.close();
-            console.log("Closing the connection");
-
-
-            setCampaignStatus(campaignId, "finished");
-            $(`#run-button-${campaignId}`).hide();
-            $(`#stop-button-${campaignId}`).hide();
-            $(`#download-button-${campaignId}`).show();
-
-            $("#log-area").text(payload.final_message);
-
-            if (window.mode == "llm_gen") {
-                $("#save-generations-button").show();
+            if (payload.stats.finished == payload.stats.total) {
+                source.close();
+                finalizeCampaign(campaignId, payload);
             }
         }
-
     };
 }
 

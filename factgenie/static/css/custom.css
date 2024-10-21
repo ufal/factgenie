@@ -962,3 +962,15 @@ a:hover {
     max-height: 90vh;
     overflow-y: auto;
 }
+
+
+.detail-out {
+    padding: 7px;
+    /* overflow-y: auto; */
+    margin: 0px !important;
+    height: 30px;
+}
+
+.detail-out-card {
+    margin: 5px 20px 5px 5px;
+}

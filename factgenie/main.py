@@ -40,7 +40,7 @@ app.db = {}
 app.db["annotation_index"] = {}
 app.db["output_index"] = {}
 app.db["lock"] = threading.Lock()
-app.db["threads"] = {}
+app.db["running_campaigns"] = set()
 app.db["announcers"] = {}
 app.wsgi_app = ProxyFix(app.wsgi_app, x_host=1)
 
@@ -427,7 +427,7 @@ def duplicate_eval():
     campaign_id = data.get("campaignId")
     new_campaign_id = slugify(data.get("newCampaignId"))
 
-    ret = workflows.duplicate_eval(app, mode, campaign_id, new_campaign_id)
+    ret = workflows.duplicate_llm_campaign(app, mode, campaign_id, new_campaign_id)
 
     return ret
 
@@ -440,6 +440,7 @@ def render_example():
 
     try:
         example_data = workflows.get_example_data(app, dataset_id, split, example_idx)
+        print("example_data", example_data)
         return jsonify(example_data)
     except Exception as e:
         traceback.print_exc()
@@ -606,19 +607,24 @@ def llm_campaign_run():
     campaign_id = data.get("campaignId")
 
     app.db["announcers"][campaign_id] = announcer = utils.MessageAnnouncer()
-    app.db["threads"][campaign_id] = {
-        "running": True,
-    }
+    app.db["running_campaigns"].add(campaign_id)
 
     try:
         campaign = workflows.load_campaign(app, campaign_id=campaign_id)
-        threads = app.db["threads"]
         datasets = app.db["datasets_obj"]
 
         config = campaign.metadata["config"]
         model = ModelFactory.from_config(config, mode=mode)
+        running_campaigns = app.db["running_campaigns"]
 
-        return workflows.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, threads)
+        ret = workflows.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, running_campaigns)
+
+        if hasattr(ret, "error"):
+            workflows.pause_llm_campaign(app, campaign_id)
+            return utils.error(f"Error while running campaign: {ret.error}")
+        else:
+            return ret
+
     except Exception as e:
         traceback.print_exc()
         return utils.error(f"Error while running campaign: {e}")
@@ -660,13 +666,10 @@ def listen(campaign_id):
 def llm_campaign_pause():
     data = request.get_json()
     campaign_id = data.get("campaignId")
-    app.db["threads"][campaign_id]["running"] = False
 
-    campaign = workflows.load_campaign(app, campaign_id=campaign_id)
-    campaign.metadata["status"] = CampaignStatus.IDLE
-    campaign.update_metadata()
+    workflows.pause_llm_campaign(app, campaign_id)
 
-    resp = jsonify(success=True, status=campaign.metadata["status"])
+    resp = jsonify(success=True, status=CampaignStatus.IDLE)
     return resp
 
 
@@ -676,7 +679,7 @@ def manage():
     datasets = workflows.get_local_dataset_overview(app)
 
     datasets_enabled = {k: v for k, v in datasets.items() if v["enabled"]}
-    model_outputs = workflows.get_model_outputs_overview(app, datasets_enabled, compact=True)
+    model_outputs = workflows.get_model_outputs_overview(app, datasets_enabled)
 
     resources = utils.load_resources_config()
 

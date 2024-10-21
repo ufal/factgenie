@@ -265,7 +265,7 @@ $(document).ready(function () {
     }
 
     // Add click event listener to update the URL
-    $('a[data-toggle="pill"]').on('click', function (e) {
+    $('a[data-bs-toggle="pill"]').on('click', function (e) {
         var anchor = $(this).data('anchor');
         if (anchor) {
             window.location.hash = anchor;

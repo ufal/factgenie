@@ -114,7 +114,8 @@ def load_campaign(app, campaign_id):
         logger.error(f"Unknown campaign {campaign_id}")
         return None
 
-    return campaign_index[campaign_id]
+    campaign = campaign_index[campaign_id]
+    return campaign
 
 
 def generate_campaign_index(app, force_reload=True):
@@ -134,7 +135,14 @@ def generate_campaign_index(app, force_reload=True):
             if campaign_id in campaign_index and not force_reload:
                 continue
 
-            campaign_index[campaign_id] = instantiate_campaign(app=app, campaign_id=campaign_id, mode=mode)
+            campaign = instantiate_campaign(app=app, campaign_id=campaign_id, mode=mode)
+
+            if campaign.metadata["status"] == CampaignStatus.RUNNING and campaign_id not in app.db["running_campaigns"]:
+                campaign.metadata["status"] = CampaignStatus.IDLE
+                campaign.update_metadata()
+
+            campaign_index[campaign_id] = campaign
+
         except:
             traceback.print_exc()
             logger.error(f"Error while loading campaign {campaign_dir}")
@@ -311,7 +319,7 @@ def get_example_data(app, dataset_id, split, example_idx):
     }
 
 
-def get_model_outputs_overview(app, datasets, non_empty=False, compact=False):
+def get_model_outputs_overview(app, datasets, non_empty=False):
     outputs = generate_output_index(app).copy()
 
     # filter the df by datasets
@@ -321,16 +329,14 @@ def get_model_outputs_overview(app, datasets, non_empty=False, compact=False):
     if non_empty:
         outputs = outputs[outputs["out"].notnull()]
 
-    if compact:
-        # aggregate `example_idx` to list, drop "in", "out", "metadata"
-        outputs = (
-            outputs.groupby(["dataset", "split", "setup_id"])
-            .agg(example_idx=pd.NamedAgg(column="example_idx", aggfunc=list))
-            .reset_index()
-        )
-        # rename "example_idx" to "output_ids"
-        outputs = outputs.rename(columns={"example_idx": "output_ids"})
-
+    # aggregate `example_idx` to list, drop "in", "out", "metadata"
+    outputs = (
+        outputs.groupby(["dataset", "split", "setup_id"])
+        .agg(example_idx=pd.NamedAgg(column="example_idx", aggfunc=list))
+        .reset_index()
+    )
+    # rename "example_idx" to "output_ids"
+    outputs = outputs.rename(columns={"example_idx": "output_ids"})
     outputs = outputs.to_dict(orient="records")
 
     return outputs
@@ -349,7 +355,7 @@ def get_output(dataset, split, setup_id, example_idx):
     if len(output) == 0:
         return None
 
-    return output.iloc[0]
+    return str(output.iloc[0].out)
 
 
 def get_outputs(app, dataset_id, split, example_idx):
@@ -466,6 +472,7 @@ def generate_llm_campaign_db(mode, datasets, campaign_id, campaign_data):
     df["annotator_id"] = ""
     df["status"] = ExampleStatus.FREE
     df["start"] = None
+    df["end"] = None
 
     return df
 
@@ -902,6 +909,7 @@ def create_llm_campaign(mode, campaign_id, config, campaign_data, datasets, over
     except Exception as e:
         # cleanup
         shutil.rmtree(os.path.join(CAMPAIGN_DIR, campaign_id))
+        os.remove(os.path.join(OUTPUT_DIR, campaign_id))
         raise e
 
 
@@ -988,7 +996,7 @@ def save_output(campaign_id, dataset_id, split, example_idx, output, start_time)
     return record
 
 
-def duplicate_eval(app, mode, campaign_id, new_campaign_id):
+def duplicate_llm_campaign(app, mode, campaign_id, new_campaign_id):
     # copy the directory except for the annotations
     old_campaign_dir = os.path.join(CAMPAIGN_DIR, campaign_id)
     new_campaign_dir = os.path.join(CAMPAIGN_DIR, new_campaign_id)
@@ -1289,7 +1297,22 @@ def create_crowdsourcing_page(campaign_id, config):
     os.symlink(final_page_path, symlink_path)
 
 
-def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, threads):
+def pause_llm_campaign(app, campaign_id):
+    if campaign_id in app.db["running_campaigns"]:
+        app.db["running_campaigns"].remove(campaign_id)
+
+    campaign = load_campaign(app, campaign_id=campaign_id)
+    campaign.metadata["status"] = CampaignStatus.IDLE
+    campaign.update_metadata()
+
+
+def announce(announcer, payload):
+    msg = utils.format_sse(data=json.dumps(payload))
+    if announcer is not None:
+        announcer.announce(msg=msg)
+
+
+def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, running_campaigns):
     start_time = int(time.time())
 
     # set metadata status
@@ -1300,7 +1323,8 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, th
     logger.info(f"Starting LLM campaign {campaign_id}")
 
     for i, row in db.iterrows():
-        if threads[campaign_id]["running"] == False:
+        # campaign was paused
+        if campaign_id not in running_campaigns:
             break
 
         if row["status"] == ExampleStatus.FINISHED:
@@ -1316,19 +1340,28 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, th
         dataset = datasets[dataset_id]
         example = dataset.get_example(split, example_idx)
 
+        announce(
+            announcer,
+            {
+                "campaign_id": campaign_id,
+                "type": "status",
+                "message": f"Example {example_idx}: Waiting for model response",
+            },
+        )
+
         if mode == CampaignMode.LLM_EVAL:
-            generated_output = get_output(dataset, split, setup_id, example_idx)
+            generated_output = get_output(dataset_id, split, setup_id, example_idx)
+
+            if not generated_output:
+                return utils.error(
+                    f"Model output not found for dataset {dataset_id}, split {split}, example {example_idx}, setup {setup_id}"
+                )
             output = model.annotate_example(example, generated_output)
 
         elif mode == CampaignMode.LLM_GEN:
             output = model.generate_output(example)
 
         if "error" in output:
-            # remove the `running` flag
-            threads[campaign_id]["running"] = False
-            campaign.metadata["status"] = CampaignStatus.IDLE
-            campaign.update_metadata()
-
             return utils.error(output["error"])
 
         if mode == CampaignMode.LLM_EVAL:
@@ -1337,11 +1370,12 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, th
             record = save_annotation(
                 annotator_id, campaign_id, dataset_id, split, setup_id, example_idx, output, start_time
             )
+            # frontend adjustments
             record["output"] = record.pop("annotations")
         elif mode == CampaignMode.LLM_GEN:
             record = save_output(campaign_id, dataset_id, split, example_idx, output, start_time)
 
-            # solely for the frontend
+            # frontend adjustments
             record["setup_id"] = setup_id
             record["output"] = record.pop("out")
 
@@ -1351,26 +1385,31 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, th
 
         stats = campaign.get_stats()
         finished_examples_cnt = stats["finished"]
-        payload = {"campaign_id": campaign_id, "stats": stats, "annotation": record}
+        payload = {"campaign_id": campaign_id, "stats": stats, "type": "result", "annotation": record}
 
-        msg = utils.format_sse(data=json.dumps(payload))
-        if announcer is not None:
-            announcer.announce(msg=msg)
+        announce(announcer, payload)
+
         logger.info(f"{campaign_id}: {finished_examples_cnt}/{len(db)} examples")
 
+    final_message = ""
     # if all fields are finished, set the metadata to finished
     if len(db.status.unique()) == 1 and db.status.unique()[0] == ExampleStatus.FINISHED:
         campaign.metadata["status"] = CampaignStatus.FINISHED
         campaign.update_metadata()
 
-    if mode == CampaignMode.LLM_EVAL:
-        final_message = (
-            f"All examples have been annotated. You can find the annotations in {CAMPAIGN_DIR}/{campaign_id}/files."
-        )
-    elif mode == CampaignMode.LLM_GEN:
-        final_message = (
-            f"All examples have been generated. You can find the outputs in {CAMPAIGN_DIR}/{campaign_id}/files."
-        )
+        if campaign_id in running_campaigns:
+            running_campaigns.remove(campaign_id)
+
+        if mode == CampaignMode.LLM_EVAL:
+            final_message = (
+                f"All examples have been annotated. You can find the annotations in {CAMPAIGN_DIR}/{campaign_id}/files."
+            )
+        elif mode == CampaignMode.LLM_GEN:
+            final_message = (
+                f"All examples have been generated. You can find the outputs in {CAMPAIGN_DIR}/{campaign_id}/files."
+            )
+    else:
+        logger.warning("Spurious exit from the loop")
 
     return jsonify(success=True, status=campaign.metadata["status"], final_message=final_message)
 

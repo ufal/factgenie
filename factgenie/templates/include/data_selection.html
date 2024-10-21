@@ -13,16 +13,8 @@
                 Datasets
             </div>
             <div class="card-body">
-                <div class="form-group mt-1">
-                    {% for dataset, splits in model_outs.items() %}
-                    <div class="form-check form-switch">
-                        <input class="form-check-input btn-check-dataset" type="checkbox" role="switch"
-                            id="btn-check-dataset-{{ dataset }}" data-content="{{ dataset }}">
-                        <label class="form-check-label btn-check-dataset-label" for="btn-check-dataset-{{ dataset }}">{{
-                            dataset
-                            }}</label>
-                    </div>
-                    {% endfor %}
+                <div class="form-group mt-1" id="datasets-container">
+                    <!-- Datasets will be dynamically inserted here -->
                 </div>
             </div>
         </div>

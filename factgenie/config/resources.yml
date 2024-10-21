@@ -1,6 +1,6 @@
 easy-vqa:
   class: basic.HTMLDataset
-  name: Easy VQA
+  name: easy-vqa
   data-link: https://owncloud.cesnet.cz/index.php/s/3JbbbAxSqX8PSNJ/download
   description: A toy visual question answering dataset. Provided as an example dataset
     loaded by the <code>basic.HTMLDataset</code> class.
@@ -9,7 +9,7 @@ easy-vqa:
   - test
 logicnlg-100:
   class: logicnlg.LogicNLG
-  name: LogicNLG-100
+  name: logicnlg-100
   description: Sample of 100 examples from the  <a href="https://github.com/wenhuchen/LogicNLG">LogicNLG</a>
     dataset. Provided as an example dataset loaded from Huggingface, including post-processing
     with custom outputs.
