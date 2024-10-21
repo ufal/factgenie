@@ -234,6 +234,7 @@ def generate_output_index(app=None, force_reload=True):
         return app.db["output_index"]
 
     outputs = []
+    keyset = ["dataset", "split", "setup_id", "example_idx", "out", "metadata"]
 
     # find recursively all JSONL files in the output directory
     outs = list(Path(OUTPUT_DIR).rglob("*.jsonl"))
@@ -247,6 +248,9 @@ def generate_output_index(app=None, force_reload=True):
                     for key in ["dataset", "split", "setup_id"]:
                         j[key] = slugify(j[key])
 
+                    # drop any keys that are not in the key set
+                    j = {k: v for k, v in j.items() if k in keyset}
+
                     outputs.append(j)
                 except Exception as e:
                     logger.error(
@@ -255,7 +259,7 @@ def generate_output_index(app=None, force_reload=True):
 
     # if no outputs, create an empty DataFrame with columns `dataset`, `split`, `setup_id`, `example_idx`, `in`, `out`, `metadata`
     if not outputs:
-        output_index = pd.DataFrame(columns=["dataset", "split", "setup_id", "example_idx", "in", "out", "metadata"])
+        output_index = pd.DataFrame(columns=keyset)
     else:
         output_index = pd.DataFrame.from_records(outputs)
 
@@ -844,7 +848,7 @@ def delete_model_outputs(dataset, split=None, setup_id=None):
     path = Path(OUTPUT_DIR)
 
     # look through all JSON files in the output directory
-    for file in path.glob("*.jsonl"):
+    for file in path.rglob("*.jsonl"):
         new_lines = []
 
         with open(file) as f:

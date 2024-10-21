@@ -29,23 +29,27 @@ class LogicNLG(HFDataset):
         output_url = "https://owncloud.cesnet.cz/index.php/s/8SFNAjr1g3AbUcm/download"
 
         setup_id = "gpt4-direct-2shotcot"
-        out_path = out_download_dir / split / setup_id
-        os.makedirs(out_path / "files", exist_ok=True)
+        out_path = out_download_dir / setup_id
+        os.makedirs(out_path / setup_id, exist_ok=True)
 
         logger.info(f"Downloading {output_url}")
         response = requests.get(output_url)
         out_content = json.loads(response.content)
 
-        with open(out_path / "files" / f"{setup_id}.jsonl", "w") as f:
+        with open(out_path / f"{setup_id}.jsonl", "w") as f:
             for i, out in enumerate(out_content["generated"]):
                 out["dataset"] = dataset_id
                 out["split"] = split
                 out["setup_id"] = setup_id
                 out["example_idx"] = i
-                f.write(json.dumps(out) + "\n")
 
-        with open(out_path / "metadata.json", "w") as f:
-            json.dump(out_content["setup"], f, indent=4)
+                out["metadata"] = {
+                    "table_id": out["table_id"],
+                    "claims": out["claims"],
+                    "claim_ids": out["claims_ids"],
+                }
+
+                f.write(json.dumps(out) + "\n")
 
         # filter the examples for our subset of tables
         table_ids = [out["table_id"] for out in out_content["generated"]]

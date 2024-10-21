@@ -149,6 +149,7 @@ function fetchExample(dataset, split, example_idx) {
         "split": split,
     }, function (data) {
         if (data.error !== undefined) {
+            console.log(data.error);
             alert(data.error);
             return;
         }

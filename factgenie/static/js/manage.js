@@ -153,7 +153,6 @@ function uploadModelOutputs() {
                 if (response.success !== true) {
                     alert(response.error);
                 } else {
-                    // reload
                     window.location.hash = "#outputs";
                     location.reload();
                 }
