@@ -71,7 +71,7 @@
               </tr>
             </thead>
             <tbody>
-              {% for dataset_id, dataset in datasets_for_download.items() %}
+              {% for dataset_id, dataset in resources.items() %}
               <tr>
                 <!-- <td><img src="{{ host_prefix }}/static/img/datatypes/{{ dataset.type }}.png" class="intro-img"></td> -->
                 <td>
@@ -221,14 +221,12 @@
               </tr>
             </thead>
             <tbody>
-              {% for dataset, splits in model_outputs.items() %}
-              {% for split, setups in splits.items() %}
-              {% for setup_id, outputs in setups.items() %}
+              {% for record in model_outputs %}
               <tr>
-                <td>{{ dataset }}</td>
-                <td>{{ split }}</td>
-                <td>{{ setup_id }}</td>
-                <td>{{ datasets[dataset].output_ids[split][setup_id] | length }}</td>
+                <td>{{ record.dataset }}</td>
+                <td>{{ record.split }}</td>
+                <td>{{ record.setup_id }}</td>
+                <td>{{ record.output_ids | length }}</td>
                 <td>
                   <a href="{{ host_prefix }}/browse?dataset={{ dataset }}&split={{ split }}&example_idx=0"
                     class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Show the outputs">
@@ -244,8 +242,6 @@
                   </a>
                 </td>
               </tr>
-              {% endfor %}
-              {% endfor %}
               {% endfor %}
             </tbody>
           </table>
@@ -271,13 +267,13 @@
             <tbody>
               {% for campaign_id, campaign in campaigns.items() %}
               <tr>
-                <td><img src="{{ host_prefix }}/static/img/{{ campaign.metadata.source }}.png" style="max-width: 18px;"
-                    class="heading-img-inline"> {% if campaign.metadata.source == 'external' %}{{
+                <td><img src="{{ host_prefix }}/static/img/{{ campaign.metadata.mode }}.png" style="max-width: 18px;"
+                    class="heading-img-inline"> {% if campaign.metadata.mode == 'external' %}{{
                   campaign.metadata.id }}{% else %}<a
-                    href="{{ host_prefix }}/{{ campaign.metadata.source }}/detail/{{ campaign.metadata.id }}"
+                    href="{{ host_prefix }}/{{ campaign.metadata.mode }}/detail/{{ campaign.metadata.id }}"
                     class="blue-link">{{
                     campaign.metadata.id }}</a>{% endif %}</td>
-                <!-- <td>{{ campaign.metadata.source }}</td> -->
+                <!-- <td>{{ campaign.metadata.mode }}</td> -->
                 <td>{{ campaign.metadata.created }}</td>
                 <td style="padding-right:30px;">{% for category in campaign.metadata.config.annotation_span_categories
                   %}
@@ -287,16 +283,16 @@
                   {% endfor %}
                 </td>
                 <td style="padding-right:30px;">
-                  {% if campaign.metadata.source == 'llm_eval' or campaign.metadata.source == 'llm_gen' %}
+                  {% if campaign.metadata.mode == 'llm_eval' or campaign.metadata.mode == 'llm_gen' %}
                   {% include 'include/progress_bar_llm.html' %}
-                  {% elif campaign.metadata.source == 'crowdsourcing' %}
+                  {% elif campaign.metadata.mode == 'crowdsourcing' %}
                   {% include 'include/progress_bar_crowdsourcing.html' %}
                   {% else %}
                   external
                   {% endif %}
                 </td>
                 <td>
-                  <a onclick="deleteCampaign('{{ campaign.metadata.id }}', '{{ campaign.metadata.source }}')"
+                  <a onclick="deleteCampaign('{{ campaign.metadata.id }}', '{{ campaign.metadata.mode }}')"
                     class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Delete the campaign">
                     <i class="fa fa-trash"></i>
                   </a>
@@ -318,4 +314,5 @@
   window.model_outputs = {{ model_outputs | tojson | safe }};
 </script>
 <script src="{{ host_prefix }}/static/js/utils.js"></script>
+<script src="{{ host_prefix }}/static/js/campaigns.js"></script>
 <script src="{{ host_prefix }}/static/js/manage.js"></script>

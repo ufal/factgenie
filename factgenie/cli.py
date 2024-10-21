@@ -7,17 +7,12 @@ import click
 
 from flask.cli import FlaskGroup
 from factgenie.campaigns import CampaignMode
+from factgenie.utils import load_dataset_config
 
 
 @click.command()
 def list_datasets():
-    import yaml
-    from factgenie import DATASET_CONFIG_PATH
-
-    """List all available datasets."""
-    with open(DATASET_CONFIG_PATH) as f:
-        config = yaml.safe_load(f)
-
+    config = load_dataset_config()
     for dataset_id, _ in config.items():
         print(dataset_id)
 
@@ -43,7 +38,7 @@ def run_llm_campaign(
     campaign_id = slugify(campaign_id)
     campaign_data = [{"dataset": dataset_id, "split": split, "setup_id": setup_id}]
 
-    config = workflows.load_dataset_config()
+    config = load_dataset_config()
     dataset_config = config[dataset_id]
     datasets = {dataset_id: workflows.instantiate_dataset(dataset_id, dataset_config)}
 
@@ -52,7 +47,7 @@ def run_llm_campaign(
 
     configs = workflows.load_configs(mode)
     metric_config = configs[llm_metric_config]
-    campaign = workflows.llm_campaign_new(
+    campaign = workflows.create_llm_campaign(
         mode, campaign_id, metric_config, campaign_data, datasets, overwrite=overwrite
     )
 

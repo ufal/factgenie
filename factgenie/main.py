@@ -38,6 +38,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 app = Flask("factgenie", template_folder=TEMPLATES_DIR, static_folder=STATIC_DIR)
 app.db = {}
 app.db["annotation_index"] = {}
+app.db["output_index"] = {}
 app.db["lock"] = threading.Lock()
 app.db["threads"] = {}
 app.db["announcers"] = {}
@@ -201,6 +202,7 @@ def browse():
             host_prefix=app.config["host_prefix"],
         )
 
+    workflows.generate_output_index(app)
     workflows.generate_annotation_index(app)
 
     return render_template(
@@ -242,7 +244,7 @@ def clear_output():
 def crowdsourcing():
     llm_configs = workflows.load_configs(mode=CampaignMode.LLM_EVAL)
     crowdsourcing_configs = workflows.load_configs(mode=CampaignMode.CROWDSOURCING)
-    campaigns = workflows.get_sorted_campaign_list(app, modes=[CampaignMode.CROWDSOURSING])
+    campaigns = workflows.get_sorted_campaign_list(app, modes=[CampaignMode.CROWDSOURCING])
 
     return render_template(
         "pages/crowdsourcing.html",
@@ -282,7 +284,13 @@ def crowdsourcing_create():
     config = data.get("config")
 
     config = workflows.parse_crowdsourcing_config(config)
-    workflows.crowdsourcing_campaign_new(app, campaign_id, config, campaign_data)
+
+    try:
+        workflows.create_crowdsourcing_campaign(app, campaign_id, config, campaign_data)
+        workflows.load_campaign(app, campaign_id=campaign_id)
+    except Exception as e:
+        traceback.print_exc()
+        return utils.error(f"Error while creating campaign: {e}")
 
     return utils.success()
 
@@ -440,12 +448,9 @@ def render_example():
         return utils.error(f"Error\n\t{e}\nwhile getting example data: {dataset_id=}, {split=}, {example_idx=}")
 
 
-@app.route("/export_campaign_outputs", methods=["POST"])
+@app.route("/export_campaign_outputs/<campaign_id>", methods=["GET", "POST"])
 @login_required
-def export_campaign_outputs():
-    data = request.get_json()
-    campaign_id = data.get("campaign_id")
-
+def export_campaign_outputs(campaign_id):
     return workflows.export_campaign_outputs(campaign_id)
 
 
@@ -492,11 +497,10 @@ def login():
 @app.route("/llm_gen", methods=["GET", "POST"])
 @login_required
 def llm_campaign():
-    logger.info(f"LLM campaign page loaded")
-
     mode = utils.get_mode_from_path(request.path)
 
-    campaigns = workflows.get_sorted_campaign_list(app, modes=[CampaignMode.LLM_EVAL, CampaignMode.LLM_GEN])
+    campaigns = workflows.get_sorted_campaign_list(app, modes=[mode])
+
     llm_configs = workflows.load_configs(mode=mode)
     crowdsourcing_configs = workflows.load_configs(mode=CampaignMode.CROWDSOURCING)
 
@@ -529,11 +533,11 @@ def llm_campaign_create():
     datasets = app.db["datasets_obj"]
 
     try:
-        workflows.llm_campaign_new(mode, campaign_id, config, campaign_data, datasets)
-        workflows.load_campaign(app, campaign_id=campaign_id, mode=mode)
+        workflows.create_llm_campaign(mode, campaign_id, config, campaign_data, datasets)
+        workflows.load_campaign(app, campaign_id=campaign_id)
     except Exception as e:
         traceback.print_exc()
-        return workflows.error(f"Error while creating campaign: {e}")
+        return utils.error(f"Error while creating campaign: {e}")
 
     return utils.success()
 
@@ -601,7 +605,7 @@ def llm_campaign_run():
     data = request.get_json()
     campaign_id = data.get("campaignId")
 
-    app.db["announcers"][campaign_id] = announcer = workflows.MessageAnnouncer()
+    app.db["announcers"][campaign_id] = announcer = utils.MessageAnnouncer()
     app.db["threads"][campaign_id] = {
         "running": True,
     }
@@ -617,7 +621,7 @@ def llm_campaign_run():
         return workflows.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, threads)
     except Exception as e:
         traceback.print_exc()
-        return workflows.error(f"Error while running campaign: {e}")
+        return utils.error(f"Error while running campaign: {e}")
 
 
 @app.route("/llm_campaign/update_metadata", methods=["POST"])
@@ -670,16 +674,15 @@ def llm_campaign_pause():
 @login_required
 def manage():
     datasets = workflows.get_local_dataset_overview(app)
-    dataset_classes = list(get_dataset_classes().keys())
 
     datasets_enabled = {k: v for k, v in datasets.items() if v["enabled"]}
-    model_outputs = workflows.get_model_outputs_overview(app, datasets_enabled)
+    model_outputs = workflows.get_model_outputs_overview(app, datasets_enabled, compact=True)
 
-    datasets_for_download = workflows.get_datasets_for_download(app)
+    resources = utils.load_resources_config()
 
     # set as `downloaded` the datasets that are already downloaded
-    for dataset_id in datasets_for_download.keys():
-        datasets_for_download[dataset_id]["downloaded"] = dataset_id in datasets
+    for dataset_id in resources.keys():
+        resources[dataset_id]["downloaded"] = dataset_id in datasets
 
     campaigns = workflows.get_sorted_campaign_list(
         app, modes=[CampaignMode.CROWDSOURCING, CampaignMode.LLM_EVAL, CampaignMode.LLM_GEN, CampaignMode.EXTERNAL]
@@ -688,8 +691,7 @@ def manage():
     return render_template(
         "pages/manage.html",
         datasets=datasets,
-        dataset_classes=dataset_classes,
-        datasets_for_download=datasets_for_download,
+        resources=resources,
         host_prefix=app.config["host_prefix"],
         model_outputs=model_outputs,
         campaigns=campaigns,
@@ -731,11 +733,12 @@ def save_generation_outputs():
 
 @app.route("/submit_annotations", methods=["POST"])
 def submit_annotations():
-    logger.info(f"Received annotations")
     data = request.get_json()
     campaign_id = data["campaign_id"]
     annotation_set = data["annotation_set"]
     annotator_id = data["annotator_id"]
+
+    logger.info(f"Received annotations for {campaign_id} by {annotator_id}")
 
     return workflows.save_annotations(app, campaign_id, annotation_set, annotator_id)
 
@@ -756,13 +759,14 @@ def set_dataset_enabled():
 @login_required
 def upload_dataset():
     data = request.get_json()
-    dataset_id = data.get("id")
+    dataset_id = slugify(data.get("name"))
+    dataset_name = data.get("name")
     dataset_description = data.get("description")
     dataset_format = data.get("format")
     dataset_data = data.get("dataset")
 
     try:
-        workflows.upload_dataset(app, dataset_id, dataset_description, dataset_format, dataset_data)
+        workflows.upload_dataset(app, dataset_id, dataset_name, dataset_description, dataset_format, dataset_data)
     except Exception as e:
         traceback.print_exc()
         return utils.error(f"Error while uploading dataset: {e}")

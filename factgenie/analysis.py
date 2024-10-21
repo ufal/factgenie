@@ -11,6 +11,7 @@ from collections import defaultdict
 from scipy.stats import pearsonr
 import sys
 from pathlib import Path
+from slugify import slugify
 import logging
 import coloredlogs
 import factgenie.workflows as workflows
@@ -28,16 +29,17 @@ def get_example_info(j, campaign_id):
         "annotator_id": j["annotator_id"],
         "annotator_group": j.get("annotator_group", 0),
         "campaign_id": campaign_id,
-        "dataset": j["dataset"],
+        "dataset": slugify(j["dataset"]),
         "example_idx": j["example_idx"],
-        "setup_id": j["setup_id"],
-        "split": j["split"],
+        "setup_id": slugify(j["setup_id"]),
+        "split": slugify(j["split"]),
         "flags": j.get("flags", []),
         "options": j.get("options", []),
         "text_fields": j.get("text_fields", []),
     }
 
 
+# TODO unify with the analogical function in workflows
 def load_annotations(line, campaign_id):
     j = json.loads(line)
     annotation_records = []

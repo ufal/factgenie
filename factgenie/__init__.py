@@ -13,7 +13,7 @@ CROWDSOURCING_CONFIG_DIR = PACKAGE_DIR / "config" / "crowdsourcing"
 INPUT_DIR = PACKAGE_DIR / "data" / "inputs"
 OUTPUT_DIR = PACKAGE_DIR / "data" / "outputs"
 
-DATASET_CONFIG_PATH = PACKAGE_DIR / "data" / "inputs" / "datasets.yml"
+DATASET_CONFIG_PATH = PACKAGE_DIR / "data" / "datasets.yml"
 RESOURCES_CONFIG_PATH = PACKAGE_DIR / "config" / "resources.yml"
 
 MAIN_CONFIG_PATH = PACKAGE_DIR / "config" / "config.yml"

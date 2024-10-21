@@ -42,8 +42,6 @@ from factgenie import (
     LLM_EVAL_CONFIG_DIR,
     LLM_GEN_CONFIG_DIR,
     CROWDSOURCING_CONFIG_DIR,
-    RESOURCES_CONFIG_PATH,
-    DATASET_CONFIG_PATH,
     PREVIEW_STUDY_ID,
 )
 
@@ -120,25 +118,29 @@ def load_campaign(app, campaign_id):
 
 
 def generate_campaign_index(app, force_reload=True):
-    if not force_reload and "campaign_index" in app.db:
-        return app.db["campaign_index"]
+    if "campaign_index" in app.db:
+        campaign_index = app.db["campaign_index"]
+    else:
+        campaign_index = defaultdict(dict)
 
-    campaign_index = defaultdict(dict)
-
+    existing_campaign_ids = set()
     for campaign_dir in Path(CAMPAIGN_DIR).iterdir():
         try:
-            if not campaign_dir.is_dir():
+            metadata = json.load(open(campaign_dir / "metadata.json"))
+            mode = metadata["mode"]
+            campaign_id = metadata["id"]
+            existing_campaign_ids.add(campaign_id)
+
+            if campaign_id in campaign_index and not force_reload:
                 continue
 
-            metadata = json.load(open(campaign_dir / "metadata.json"))
-            mode = metadata.get("mode")
-            campaign_id = metadata["id"]
-
-            campaign = instantiate_campaign(app=app, campaign_id=campaign_id, mode=mode)
-            campaign_index[campaign_id] = campaign
+            campaign_index[campaign_id] = instantiate_campaign(app=app, campaign_id=campaign_id, mode=mode)
         except:
             traceback.print_exc()
             logger.error(f"Error while loading campaign {campaign_dir}")
+
+    # remove campaigns that are no longer in the directory
+    campaign_index = {k: v for k, v in campaign_index.items() if k in existing_campaign_ids}
 
     app.db["campaign_index"] = campaign_index
 
@@ -148,9 +150,7 @@ def generate_campaign_index(app, force_reload=True):
 def get_sorted_campaign_list(app, modes):
     campaign_index = generate_campaign_index(app, force_reload=True)
 
-    campaigns = []
-    for mode in modes:
-        campaigns.extend(campaign_index[mode].values())
+    campaigns = [c for c in campaign_index.values() if c.metadata["mode"] in modes]
 
     campaigns.sort(key=lambda x: x.metadata["created"], reverse=True)
     campaigns = {
@@ -216,6 +216,42 @@ def generate_annotation_index(app):
     return annotations
 
 
+def generate_output_index(app=None, force_reload=True):
+    if app and app.db["output_index"] is not None and not force_reload:
+        return app.db["output_index"]
+
+    outputs = []
+
+    # find recursively all JSONL files in the output directory
+    outs = list(Path(OUTPUT_DIR).glob("**/*.jsonl"))
+
+    for out in outs:
+        with open(out) as f:
+            for line_num, line in enumerate(f):
+                try:
+                    j = json.loads(line)
+
+                    for key in ["dataset", "split", "setup_id"]:
+                        j[key] = slugify(j[key])
+
+                    outputs.append(j)
+                except Exception as e:
+                    logger.error(
+                        f"Error parsing output file {out} at line {line_num + 1}:\n\t{e.__class__.__name__}: {e}"
+                    )
+
+    # if no outputs, create an empty DataFrame with columns `dataset`, `split`, `setup_id`, `example_idx`, `in`, `out`, `metadata`
+    if not outputs:
+        output_index = pd.DataFrame(columns=["dataset", "split", "setup_id", "example_idx", "in", "out", "metadata"])
+    else:
+        output_index = pd.DataFrame.from_records(outputs)
+
+    if app:
+        app.db["output_index"] = output_index
+
+    return output_index
+
+
 def export_campaign_outputs(campaign_id):
     zip_buffer = BytesIO()
 
@@ -259,7 +295,7 @@ def get_example_data(app, dataset_id, split, example_idx):
     # prefix all the "/files" calls with "app.config["host_prefix"]"
     html = html.replace('src="/files', f'src="{app.config["host_prefix"]}/files')
 
-    generated_outputs = dataset.get_outputs_for_idx(split=split, output_idx=example_idx)
+    generated_outputs = get_outputs(app, dataset_id, split, example_idx)
 
     for i, output in enumerate(generated_outputs):
         setup_id = output["setup_id"]
@@ -275,28 +311,67 @@ def get_example_data(app, dataset_id, split, example_idx):
     }
 
 
-def get_model_outputs_overview(app, datasets, non_empty=False):
-    model_outputs = {}
+def get_model_outputs_overview(app, datasets, non_empty=False, compact=False):
+    outputs = generate_output_index(app).copy()
 
-    for dataset_id, dataset_config in datasets.items():
-        dataset = get_dataset(app=app, dataset_id=dataset_id)
-        splits = dataset.get_splits()
+    # filter the df by datasets
+    outputs = outputs[outputs["dataset"].isin(datasets)]
 
-        model_outputs[dataset_id] = {}
-
-        for split in splits:
-            outputs = dataset.get_outputs_for_split(split)
-
-            # extract all key values from the outputs
-            model_outputs[dataset_id][split] = {setup_id: len(output) for setup_id, output in outputs.items()}
-
+    # if non_empty, filter only the examples with outputs
     if non_empty:
-        for dataset_id, splits in model_outputs.items():
-            model_outputs[dataset_id] = {k: v for k, v in splits.items() if v}
+        outputs = outputs[outputs["out"].notnull()]
 
-        model_outputs = {k: v for k, v in model_outputs.items() if v}
+    if compact:
+        # aggregate `example_idx` to list, drop "in", "out", "metadata"
+        outputs = (
+            outputs.groupby(["dataset", "split", "setup_id"])
+            .agg(example_idx=pd.NamedAgg(column="example_idx", aggfunc=list))
+            .reset_index()
+        )
+        # rename "example_idx" to "output_ids"
+        outputs = outputs.rename(columns={"example_idx": "output_ids"})
 
-    return model_outputs
+    outputs = outputs.to_dict(orient="records")
+
+    return outputs
+
+
+def get_output(dataset, split, setup_id, example_idx):
+    output_index = generate_output_index()
+
+    output = output_index[
+        (output_index["dataset"] == dataset)
+        & (output_index["split"] == split)
+        & (output_index["setup_id"] == setup_id)
+        & (output_index["example_idx"] == example_idx)
+    ]
+
+    if len(output) == 0:
+        return None
+
+    return output.iloc[0]
+
+
+def get_outputs(app, dataset_id, split, example_idx):
+    outputs = generate_output_index(app, force_reload=False)
+
+    outputs = outputs[
+        (outputs["dataset"] == dataset_id) & (outputs["split"] == split) & (outputs["example_idx"] == example_idx)
+    ]
+
+    outputs = outputs.to_dict(orient="records")
+
+    return outputs
+
+
+def get_output_ids(dataset, split, setup_id):
+    output_index = generate_output_index()
+
+    output_ids = output_index[
+        (output_index["dataset"] == dataset) & (output_index["split"] == split) & (output_index["setup_id"] == setup_id)
+    ]["example_idx"].tolist()
+
+    return output_ids
 
 
 def select_batch_idx(db, seed):
@@ -365,9 +440,16 @@ def generate_llm_campaign_db(mode, datasets, campaign_id, campaign_data):
 
     for c in campaign_data:
         dataset = datasets[c["dataset"]]
+
         # for llm_gen, setup_id based on the generation model
-        setup_id = c["setup_id"] if mode == CampaignMode.LLM_GEN else campaign_id
-        for i in dataset.get_output_ids(c["split"], setup_id):
+        if mode == CampaignMode.LLM_EVAL:
+            setup_id = c["setup_id"]
+            ids = get_output_ids(dataset.id, c["split"], setup_id)
+        elif mode == CampaignMode.LLM_GEN:
+            setup_id = campaign_id
+            ids = list(range(dataset.get_example_count(c["split"])))
+
+        for i in ids:
             record = {
                 "dataset": c["dataset"],
                 "split": c["split"],
@@ -441,33 +523,6 @@ def generate_campaign_db(app, campaign_data, config):
     return df
 
 
-def load_resources_config():
-    with open(RESOURCES_CONFIG_PATH) as f:
-        config = yaml.safe_load(f)
-
-    return config
-
-
-def load_dataset_config():
-    if not DATASET_CONFIG_PATH.exists():
-        with open(DATASET_CONFIG_PATH, "w") as f:
-            logger.info("Creating an empty dataset config file")
-            f.write("---\n")
-
-    with open(DATASET_CONFIG_PATH) as f:
-        config = yaml.safe_load(f)
-
-    if config is None:
-        config = {}
-
-    return config
-
-
-def save_dataset_config(config):
-    with open(DATASET_CONFIG_PATH, "w") as f:
-        yaml.dump(config, f, indent=2, allow_unicode=True)
-
-
 def parse_campaign_config(config):
     def parse_value(value):
         try:
@@ -483,7 +538,7 @@ def parse_campaign_config(config):
 
 
 def set_dataset_enabled(app, dataset_id, enabled):
-    config = load_dataset_config()
+    config = utils.load_dataset_config()
     config[dataset_id]["enabled"] = enabled
 
     if enabled:
@@ -492,17 +547,18 @@ def set_dataset_enabled(app, dataset_id, enabled):
     else:
         app.db["datasets_obj"].pop(dataset_id, None)
 
-    save_dataset_config(config)
+    utils.save_dataset_config(config)
 
 
 def get_local_dataset_overview(app):
-    config = load_dataset_config()
+    config = utils.load_dataset_config()
     overview = {}
 
     for dataset_id, dataset_config in config.items():
         class_name = dataset_config["class"]
         params = dataset_config.get("params", {})
         is_enabled = dataset_config.get("enabled", True)
+        name = dataset_config.get("name", dataset_id)
         description = dataset_config.get("description", "")
         splits = dataset_config.get("splits", [])
         dataset_type = dataset_config.get("type", "default")
@@ -520,15 +576,18 @@ def get_local_dataset_overview(app):
                     traceback.print_exc()
                     continue
 
-            dataset.outputs = dataset.load_generated_outputs(dataset.output_path)
-
             example_count = {split: dataset.get_example_count(split) for split in dataset.get_splits()}
 
-            output_ids = {}
-            for split in dataset.get_splits():
-                output_ids[split] = {}
-                for setup_id in dataset.outputs[split]:
-                    output_ids[split][setup_id] = dataset.get_output_ids(split, setup_id)
+            output_index = generate_output_index(app)
+            output_ids = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+
+            for _, row in output_index.iterrows():
+                dataset = row["dataset"]
+                split = row["split"]
+                setup_id = row["setup_id"]
+                example_idx = row["example_idx"]
+                output_ids[dataset][split][setup_id].append(example_idx)
+
         else:
             example_count = {}
 
@@ -537,6 +596,7 @@ def get_local_dataset_overview(app):
             "params": params,
             "enabled": is_enabled,
             "splits": splits,
+            "name": name,
             "description": description,
             "example_count": example_count,
             "output_ids": output_ids,
@@ -546,14 +606,14 @@ def get_local_dataset_overview(app):
     return overview
 
 
-def get_datasets_for_download(app):
-    config = load_resources_config()
+def get_resources(app):
+    config = utils.load_resources_config()
 
     return config
 
 
 def download_dataset(app, dataset_id):
-    config = load_resources_config()
+    config = utils.load_resources_config()
     dataset_config = config.get(dataset_id)
 
     if dataset_config is None:
@@ -580,10 +640,11 @@ def download_dataset(app, dataset_id):
     )
 
     # add an entry in the dataset config
-    config = load_dataset_config()
+    config = utils.load_dataset_config()
 
     config[dataset_id] = {
         "class": dataset_config["class"],
+        "name": dataset_config.get("name", dataset_id),
         "description": dataset_config.get("description", ""),
         "splits": dataset_config["splits"],
         "enabled": True,
@@ -592,18 +653,20 @@ def download_dataset(app, dataset_id):
     dataset = instantiate_dataset(dataset_id, config[dataset_id])
     app.db["datasets_obj"][dataset_id] = dataset
 
-    save_dataset_config(config)
+    utils.save_dataset_config(config)
 
     return dataset
 
 
 def delete_dataset(app, dataset_id):
-    config = load_dataset_config()
+    config = utils.load_dataset_config()
     config.pop(dataset_id, None)
-    save_dataset_config(config)
+    utils.save_dataset_config(config)
 
     # remove the data directory
     shutil.rmtree(f"factgenie/data/{dataset_id}", ignore_errors=True)
+
+    delete_model_outputs(dataset_id, None, None)
 
     app.db["datasets_obj"].pop(dataset_id, None)
 
@@ -630,15 +693,30 @@ def export_dataset(app, dataset_id):
 
 def export_outputs(app, dataset_id, split, setup_id):
     zip_buffer = BytesIO()
-    output_path = OUTPUT_DIR / dataset_id / split / setup_id
 
+    # output_path = OUTPUT_DIR / dataset_id / split / setup_id
+
+    # with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+    #     for root, dirs, files in os.walk(output_path):
+    #         for file in files:
+    #             zip_file.write(
+    #                 os.path.join(root, file),
+    #                 os.path.relpath(os.path.join(root, file), output_path),
+    #             )
+
+    # TODO: collect instead outputs from all JSONL files
+
+    output_index = generate_output_index(app)
+    outputs = output_index[
+        (output_index["dataset"] == dataset_id)
+        & (output_index["split"] == split)
+        & (output_index["setup_id"] == setup_id)
+    ]
+    # write the outputs to a JSONL file in the zip archive
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
-        for root, dirs, files in os.walk(output_path):
-            for file in files:
-                zip_file.write(
-                    os.path.join(root, file),
-                    os.path.relpath(os.path.join(root, file), output_path),
-                )
+        with zip_file.open(f"{dataset_id}_{split}_{setup_id}.jsonl", "w") as f:
+            for _, row in outputs.iterrows():
+                f.write(json.dumps(row.to_dict()) + "\n")
 
     # Set response headers for download
     response = make_response(zip_buffer.getvalue())
@@ -666,7 +744,7 @@ def instantiate_dataset(dataset_id, dataset_config):
 
 
 def instantiate_datasets():
-    config = load_dataset_config()
+    config = utils.load_dataset_config()
     datasets = {}
 
     for dataset_id, dataset_config in config.items():
@@ -684,14 +762,13 @@ def instantiate_datasets():
     return datasets
 
 
-def upload_dataset(app, dataset_id, dataset_description, dataset_format, dataset_data):
+def upload_dataset(app, dataset_id, dataset_name, dataset_description, dataset_format, dataset_data):
     params = {
         "text": {"suffix": "txt", "class": "basic.PlainTextDataset", "type": "default"},
         "jsonl": {"suffix": "jsonl", "class": "basic.JSONLDataset", "type": "json"},
         "csv": {"suffix": "csv", "class": "basic.CSVDataset", "type": "table"},
         "html": {"suffix": "zip", "class": "basic.HTMLDataset", "type": "default"},
     }
-    dataset_id = slugify(dataset_id)
     data_dir = f"factgenie/data/{dataset_id}"
     os.makedirs(data_dir, exist_ok=True)
 
@@ -717,36 +794,32 @@ def upload_dataset(app, dataset_id, dataset_description, dataset_format, dataset
                 zip_ref.extractall(f"{data_dir}/{split}")
 
     # add an entry in the dataset config
-    config = load_dataset_config()
+    config = utils.load_dataset_config()
     config[dataset_id] = {
+        "name": dataset_name,
         "class": params[dataset_format]["class"],
         "description": dataset_description,
         "splits": list(dataset_data.keys()),
         "enabled": True,
     }
-    save_dataset_config(config)
+    utils.save_dataset_config(config)
 
     app.db["datasets_obj"][dataset_id] = instantiate_dataset(dataset_id, config[dataset_id])
 
 
 def upload_model_outputs(dataset, split, setup_id, model_outputs):
-    path = Path(f"{dataset.output_path}/{split}/{setup_id}/files")
+    path = Path(OUTPUT_DIR) / dataset.id
     path.mkdir(parents=True, exist_ok=True)
 
     generated = model_outputs.strip().split("\n")
     setup_id = slugify(setup_id)
-
-    if setup_id in dataset.outputs[split]:
-        raise ValueError(f"Output for {setup_id} already exists in {split}")
 
     if len(generated) != len(dataset.examples[split]):
         raise ValueError(
             f"Output count mismatch for {setup_id} in {split}: {len(generated)} vs {len(dataset.examples[split])}"
         )
 
-    dataset.outputs[split][setup_id] = {}
-
-    with open(f"{path}/{setup_id}.jsonl", "w") as f:
+    with open(f"{path}/{split}-{setup_id}.jsonl", "w") as f:
         for i, out in enumerate(generated):
             j = {
                 "dataset": dataset.id,
@@ -756,8 +829,6 @@ def upload_model_outputs(dataset, split, setup_id, model_outputs):
                 "out": out,
             }
             f.write(json.dumps(j) + "\n")
-
-            dataset.outputs[split][setup_id][i] = j
 
     with open(f"{path.parent}/metadata.json", "w") as f:
         json.dump(
@@ -770,16 +841,31 @@ def upload_model_outputs(dataset, split, setup_id, model_outputs):
         )
 
 
-def delete_model_outputs(dataset, split, setup_id):
-    path = Path(f"{dataset.output_path}/{split}/{setup_id}")
+def delete_model_outputs(dataset, split=None, setup_id=None):
+    path = Path(OUTPUT_DIR)
 
-    if path.exists():
-        shutil.rmtree(path)
+    # look through all JSON files in the output directory
+    for file in path.glob("*.jsonl"):
+        new_lines = []
 
-    dataset.outputs[split].pop(setup_id, None)
+        with open(file) as f:
+            for line in f:
+                j = json.loads(line)
+
+                # None means all
+                if (split is None or j["split"] == split) and (setup_id is None or j["setup_id"] == setup_id):
+                    continue
+
+                new_lines.append(line)
+
+        if len(new_lines) == 0:
+            os.remove(file)
+        else:
+            with open(file, "w") as f:
+                f.writelines(new_lines)
 
 
-def llm_campaign_new(mode, campaign_id, config, campaign_data, datasets, overwrite=False):
+def create_llm_campaign(mode, campaign_id, config, campaign_data, datasets, overwrite=False):
     campaign_id = slugify(campaign_id)
 
     # create a new directory
@@ -789,37 +875,34 @@ def llm_campaign_new(mode, campaign_id, config, campaign_data, datasets, overwri
         else:
             shutil.rmtree(os.path.join(CAMPAIGN_DIR, campaign_id))
 
-    os.makedirs(os.path.join(CAMPAIGN_DIR, campaign_id, "files"), exist_ok=True)
+    try:
+        os.makedirs(os.path.join(CAMPAIGN_DIR, campaign_id, "files"), exist_ok=True)
 
-    # create the annotation CSV
-    db = generate_llm_campaign_db(mode, datasets, campaign_id, campaign_data)
-    db_path = os.path.join(CAMPAIGN_DIR, campaign_id, "db.csv")
-    logger.info(f"DB with {len(db)} free examples created for {campaign_id} at {db_path}")
-    db.to_csv(db_path, index=False)
+        # create the annotation CSV
+        db = generate_llm_campaign_db(mode, datasets, campaign_id, campaign_data)
+        db_path = os.path.join(CAMPAIGN_DIR, campaign_id, "db.csv")
+        logger.info(f"DB with {len(db)} free examples created for {campaign_id} at {db_path}")
+        db.to_csv(db_path, index=False)
 
-    # save metadata
-    metadata_path = os.path.join(CAMPAIGN_DIR, campaign_id, "metadata.json")
-    logger.info(f"Metadata for {campaign_id} saved at {metadata_path}")
-    with open(metadata_path, "w") as f:
-        json.dump(
-            {
-                "id": campaign_id,
-                "created": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "mode": mode,
-                "status": CampaignStatus.IDLE,
-                "config": config,
-            },
-            f,
-            indent=4,
-        )
-
-    # create the campaign object
-    if mode == CampaignMode.LLM_EVAL:
-        campaign = LLMCampaignEval(campaign_id=campaign_id)
-    elif mode == CampaignMode.LLM_GEN:
-        campaign = LLMCampaignGen(campaign_id=campaign_id)
-
-    return campaign
+        # save metadata
+        metadata_path = os.path.join(CAMPAIGN_DIR, campaign_id, "metadata.json")
+        logger.info(f"Metadata for {campaign_id} saved at {metadata_path}")
+        with open(metadata_path, "w") as f:
+            json.dump(
+                {
+                    "id": campaign_id,
+                    "created": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "mode": mode,
+                    "status": CampaignStatus.IDLE,
+                    "config": config,
+                },
+                f,
+                indent=4,
+            )
+    except Exception as e:
+        # cleanup
+        shutil.rmtree(os.path.join(CAMPAIGN_DIR, campaign_id))
+        raise e
 
 
 def generate_default_id(app, mode, prefix):
@@ -1058,33 +1141,39 @@ def parse_crowdsourcing_config(config):
     return config
 
 
-def crowdsourcing_campaign_new(app, campaign_id, config, campaign_data):
+def create_crowdsourcing_campaign(app, campaign_id, config, campaign_data):
     # create a new directory
     if os.path.exists(os.path.join(CAMPAIGN_DIR, campaign_id)):
         return jsonify({"error": "Campaign already exists"})
 
-    os.makedirs(os.path.join(CAMPAIGN_DIR, campaign_id, "files"), exist_ok=True)
+    try:
+        os.makedirs(os.path.join(CAMPAIGN_DIR, campaign_id, "files"), exist_ok=True)
 
-    # create the annotation CSV
-    db = generate_campaign_db(app, campaign_data, config=config)
-    db.to_csv(os.path.join(CAMPAIGN_DIR, campaign_id, "db.csv"), index=False)
+        # create the annotation CSV
+        db = generate_campaign_db(app, campaign_data, config=config)
+        db.to_csv(os.path.join(CAMPAIGN_DIR, campaign_id, "db.csv"), index=False)
 
-    # save metadata
-    with open(os.path.join(CAMPAIGN_DIR, campaign_id, "metadata.json"), "w") as f:
-        json.dump(
-            {
-                "id": campaign_id,
-                "mode": CampaignMode.CROWDSOURCING,
-                "config": config,
-                "created": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            },
-            f,
-            indent=4,
-        )
+        # save metadata
+        with open(os.path.join(CAMPAIGN_DIR, campaign_id, "metadata.json"), "w") as f:
+            json.dump(
+                {
+                    "id": campaign_id,
+                    "mode": CampaignMode.CROWDSOURCING,
+                    "config": config,
+                    "created": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                },
+                f,
+                indent=4,
+            )
 
-    # prepare the crowdsourcing HTML page
-    create_crowdsourcing_page(campaign_id, config)
-    load_campaign(app, campaign_id)
+        # prepare the crowdsourcing HTML page
+        create_crowdsourcing_page(campaign_id, config)
+
+        load_campaign(app, campaign_id)
+    except Exception as e:
+        # cleanup
+        shutil.rmtree(os.path.join(CAMPAIGN_DIR, campaign_id))
+        raise e
 
 
 def generate_flags(flags):
@@ -1217,6 +1306,8 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, th
         if row["status"] == ExampleStatus.FINISHED:
             continue
 
+        db.loc[i, "start"] = float(time.time())
+
         dataset_id = row["dataset"]
         split = row["split"]
         setup_id = row.get("setup_id")
@@ -1226,9 +1317,7 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, th
         example = dataset.get_example(split, example_idx)
 
         if mode == CampaignMode.LLM_EVAL:
-            generated_output = dataset.get_output_for_idx_by_setup(
-                split=split, output_idx=example_idx, setup_id=setup_id
-            )
+            generated_output = get_output(dataset, split, setup_id, example_idx)
             output = model.annotate_example(example, generated_output)
 
         elif mode == CampaignMode.LLM_GEN:
@@ -1291,7 +1380,7 @@ def save_generation_outputs(app, campaign_id, setup_id):
     Load the files from the `GENERATIONS_DIR` and save them in the appropriate subdirectory in `OUTPUT_DIR`.
     """
 
-    campaign = load_campaign(app, campaign_id, mode=CampaignMode.LLM_GEN)
+    campaign = load_campaign(app, campaign_id)
     metadata = campaign.metadata
 
     # load the metadata

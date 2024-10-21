@@ -3,10 +3,15 @@ import queue
 import os
 import urllib
 import logging
+import yaml
+from slugify import slugify
 from tqdm import tqdm
 from pathlib import Path
 from flask import jsonify
 from factgenie.campaigns import CampaignMode
+from factgenie import RESOURCES_CONFIG_PATH, DATASET_CONFIG_PATH
+
+logger = logging.getLogger(__name__)
 
 
 # https://maxhalford.github.io/blog/flask-sse-no-deps/
@@ -58,6 +63,37 @@ def get_mode_from_path(path):
         return CampaignMode.LLM_EVAL
     elif path.startswith("/llm_gen"):
         return CampaignMode.LLM_GEN
+
+
+def load_resources_config():
+    with open(RESOURCES_CONFIG_PATH) as f:
+        config = yaml.safe_load(f)
+
+    return config
+
+
+def load_dataset_config():
+    if not DATASET_CONFIG_PATH.exists():
+        with open(DATASET_CONFIG_PATH, "w") as f:
+            logger.info("Creating an empty dataset config file")
+            f.write("---\n")
+
+    with open(DATASET_CONFIG_PATH) as f:
+        config = yaml.safe_load(f)
+
+    # slugify all keys
+    if config is not None:
+        config = {slugify(k): v for k, v in config.items()}
+
+    if config is None:
+        config = {}
+
+    return config
+
+
+def save_dataset_config(config):
+    with open(DATASET_CONFIG_PATH, "w") as f:
+        yaml.dump(config, f, indent=2, allow_unicode=True)
 
 
 # source: https://github.com/lhotse-speech/lhotse/blob/bc2c0a294b1437b90d1581d4f214348d2f8bfc12/lhotse/utils.py#L465

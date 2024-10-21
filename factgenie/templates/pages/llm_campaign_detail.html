@@ -68,9 +68,9 @@
             configuration</a>
           {% if mode == 'llm_gen' %}
           <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" id="save-generations-button"
-            data-bs-target="#save-generations-modal" title="Export as model outputs">
+            data-bs-target="#save-generations-modal" title="Save as model outputs">
             <!-- print out metadata.status -->
-            <i class="fa fa-file-text"></i> Export as model outputs
+            <i class="fa fa-file-text"></i> Save as model outputs
           </a>
           {% endif %}
           {% if mode == 'llm_eval' %}
@@ -94,9 +94,7 @@
           <h4>Examples</h4>
           <div id="llm-status">
             <table data-toggle="table" data-pagination="true" data-page-size="100" data-pagination-parts="['pageList']"
-              data-detail-view-icon="true" data-search-align="left" data-detail-view="true"
-              data-detail-formatter="detailFormatter" data-searchable="false" data-detail-filter="detailFilter"
-              data-icons='{"detailOpen": "bi-chevron-down", "detailClose": "bi-chevron-up"}'
+              data-search-align="left" data-searchable="false"
               data-classes="table table-sm table-striped table-llm-detail">
               <thead>
                 <tr>
@@ -107,8 +105,8 @@
                   <th scope="col" data-sortable="true">Split</th>
                   <th scope="col" data-sortable="true">Example</th>
                   <th scope="col" data-sortable="true">Status</th>
+                  <th scope="col" data-width="700">Output</th>
                   <th scope="col">Actions</th>
-                  <th scope="col" data-visible="false">Output</th>
                 </tr>
               </thead>
               <tbody>
@@ -124,13 +122,13 @@
 
                   <td><span class="badge bg-{{ example.status }}" id="statusBtn{{ rowId }}">{{ example.status }}</span>
                   </td>
-                  <!-- use collapse for hiding annotations -->
                   <td>
-                    <a class="btn btn-sm btn-outline-secondary"
-                      href="{{host_prefix}}/browse?dataset={{ example.dataset }}&split={{ example.split }}&example_idx={{ example.example_idx }}"
-                      role="button">
-                      <i class="fa fa-eye"></i>
-                    </a>
+                    <div class="card" style="max-height: 60px; margin: 5px 20px 5px 5px;">
+                      <pre id="annotPre{{ rowId }}"
+                        style="padding: 7px; overflow-y: auto; margin: 0px !important;">{{ example.output }}</pre>
+                    </div>
+                  </td>
+                  <td>
                     <a class="btn btn-sm btn-outline-secondary"
                       onclick="clearOutput('{{ metadata.id }}', '{{ mode }}', '{{ example.example_idx }}')"
                       data-bs-toggle="tooltip" title="Clear outputs" id="clearOutput{{ rowId }}"
@@ -138,12 +136,13 @@
                       endif %}>
                       <i class="fa fa-recycle"></i>
                     </a>
+                    <a class="btn btn-sm btn-outline-secondary"
+                      href="{{host_prefix}}/browse?dataset={{ example.dataset }}&split={{ example.split }}&example_idx={{ example.example_idx }}"
+                      role="button" title="Show example">
+                      <i class="fa fa-external-link"></i>
+                    </a>
                   </td>
-                  <td style="display: none;">
-                    <div class="card card-body">
-                      <pre id="annotPre{{ rowId }}">{{ example.output }}</pre>
-                    </div>
-                  </td>
+
                 </tr>
                 {% endfor %}
               </tbody>

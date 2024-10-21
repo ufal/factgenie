@@ -223,6 +223,8 @@ function gatherComparisonData() {
         for (const dataset of campaign_datasets) {
             for (const split of campaign_splits) {
                 for (const output of campaign_outputs) {
+
+                    debugger;
                     if (model_outs[dataset][split] !== undefined && output in model_outs[dataset][split]) {
                         combinations.push({ dataset: dataset, split: split, setup_id: output, example_cnt: datasets[dataset].output_ids[split][output].length });
                     }
@@ -233,6 +235,7 @@ function gatherComparisonData() {
         // get all available combinations of datasets and splits
         for (const dataset of campaign_datasets) {
             for (const split of campaign_splits) {
+                debugger;
                 if (split in model_outs[dataset]) {
                     combinations.push({ dataset: dataset, split: split, example_cnt: datasets[dataset].example_count[split] });
                 }
@@ -396,8 +399,9 @@ function setCampaignStatus(campaignId, status) {
 }
 
 function setExampleStatus(status, button) {
-    button.removeClass("btn-free btn-finished");
-    button.addClass(`btn-${status}`);
+    button.removeClass("bg-free bg-finished");
+    button.addClass(`bg-${status}`);
+    button.text(status);
 }
 
 
@@ -426,6 +430,9 @@ function startLLMCampaignListener(campaignId) {
         const annotation_button = $(`#annotBtn${rowId}`);
         annotation_button.show();
 
+        const clear_output_button = $(`#clearOutput${rowId}`);
+        clear_output_button.show();
+
         // update the annotation content
         const annotation_content = example.output;
         const annotation_div = $(`#annotPre${rowId}`);
@@ -436,6 +443,10 @@ function startLLMCampaignListener(campaignId) {
         } else {
             annotation_div.text(annotation_content);
         }
+
+        console.log(annotation_content);
+
+        console.log(annotation_div);
 
         // update the status
         const status_button = $(`#statusBtn${rowId}`);
@@ -472,7 +483,7 @@ function updateCampaignConfig(campaignId) {
     });
 
     $.post({
-        url: `${url_prefix}/llm_campaign/update_metadata?mode=${mode}`,
+        url: `${url_prefix}/llm_campaign/update_metadata`,
         contentType: 'application/json',
         data: JSON.stringify({
             campaignId: campaignId,

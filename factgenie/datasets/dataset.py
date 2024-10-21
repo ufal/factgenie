@@ -44,7 +44,6 @@ class Dataset(ABC):
     def __init__(self, dataset_id, **kwargs):
         self.id = dataset_id
         self.data_path = INPUT_DIR / self.id
-        self.output_path = OUTPUT_DIR / self.id
 
         self.splits = kwargs.get("splits", ["train", "dev", "test"])
         self.description = kwargs.get("description", "")
@@ -57,9 +56,6 @@ class Dataset(ABC):
             examples = self.postprocess_data(examples=examples)
 
             self.examples[split] = examples
-
-        # load outputs
-        self.outputs = self.load_generated_outputs(self.output_path)
 
     # --------------------------------
     # TODO: implement in subclasses
@@ -142,50 +138,6 @@ class Dataset(ABC):
     # end TODO
     # --------------------------------
 
-    def load_generated_outputs(self, output_path):
-        """
-        Load the generated outputs for the dataset.
-
-        Parameters
-        ----------
-        output_path : str
-            Path to the output directory.
-
-        Returns
-        -------
-        outputs : dict
-            Dictionary with the generated outputs for each split and setup, e.g. {"train": {"setup1": output1, "setup2": output2}, "test": {"setup1": output1, "setup2": output2}}.
-        """
-        outputs = defaultdict(dict)
-
-        # find recursively all JSONL files in the output directory
-        outs = list(Path(output_path).glob("**/*.jsonl"))
-
-        for out in outs:
-            with open(out) as f:
-                for line_num, line in enumerate(f):
-                    try:
-                        j = json.loads(line)
-
-                        j["setup_id"] = slugify(j["setup_id"])
-
-                        split = j["split"]
-                        setup_id = j["setup_id"]
-                        example_idx = j["example_idx"]
-
-                        if split not in outputs:
-                            outputs[split] = {}
-
-                        if setup_id not in outputs[split]:
-                            outputs[split][setup_id] = {}
-
-                        outputs[split][setup_id][example_idx] = j
-                    except Exception as e:
-                        logger.error(f"Error parsing output file {out} at line {line_num + 1}:\n\t{e}")
-                        raise e
-
-        return outputs
-
     def postprocess_data(self, examples):
         """
         Postprocess the data after loading.
@@ -197,48 +149,10 @@ class Dataset(ABC):
         """
         return examples
 
-    def get_outputs_for_split(self, split):
-        """
-        Get the list of generated outputs for the given split.
-        """
-        return self.outputs[split]
-
-    def get_output_for_idx_by_setup(self, split, output_idx, setup_id):
-        """
-        Get the generated output for the given split, output index, and setup ID.
-        """
-        if setup_id in self.outputs[split]:
-            model_out = self.outputs[split][setup_id]
-
-            if output_idx in model_out:
-                return model_out[output_idx]["out"]
-
-        logger.warning(f"No output found for {setup_id=}, {output_idx=}, {split=}")
-        return None
-
-    def get_output_ids(self, split, setup_id):
-        """
-        Get the list of IDs of existing outputs for the given split.
-        """
-        return list(self.outputs[split][setup_id].keys())
-
-    def get_outputs_for_idx(self, split, output_idx):
-        """
-        Get the generated outputs for the given split and output index.
-        """
-        outs_all = []
-
-        for outs in self.outputs[split].values():
-            if output_idx in outs:
-                outs_all.append(outs[output_idx])
-
-        return outs_all
-
     def get_example(self, split, example_idx):
         """
         Get the example at the given index for the given split.
         """
-
         example = self.examples[split][example_idx]
 
         return example

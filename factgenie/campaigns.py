@@ -46,16 +46,6 @@ class Campaign:
         self.load_db()
         self.load_metadata()
 
-        # temporary fix for the old campaigns
-        if self.metadata.get("status") in ["new", "paused"]:
-            self.metadata["status"] = CampaignStatus.IDLE
-            self.update_metadata()
-
-        # if the db does not contain the `end` column, add it
-        if "end" not in self.db.columns:
-            self.db["end"] = ""
-            self.update_db(self.db)
-
     def get_finished_examples(self):
         # load all the JSONL files in the "files" subdirectory
         examples_finished = []
@@ -94,6 +84,7 @@ class Campaign:
         self.db["status"] = ExampleStatus.FREE
         self.db["annotator_id"] = ""
         self.db["start"] = None
+        self.db["end"] = None
         self.update_db(self.db)
 
         self.metadata["status"] = CampaignStatus.IDLE
@@ -107,6 +98,7 @@ class Campaign:
         self.db.loc[mask, "status"] = ExampleStatus.FREE
         self.db.loc[mask, "annotator_id"] = ""
         self.db.loc[mask, "start"] = None
+        self.db.loc[mask, "end"] = None
 
         self.update_db(self.db)
 
@@ -239,19 +231,15 @@ class LLMCampaign(Campaign):
 
 class LLMCampaignEval(LLMCampaign):
     def get_overview(self):
-        # pair the examples in db with the finished examples
-        # we need to match the examples on (dataset, split, setup, example_idx)
-        # add the annotations to the df
+        self.load_db()
+        overview_db = self.db.copy()
+        overview_db["output"] = ""
 
         # get the finished examples
         finished_examples = self.get_finished_examples()
         example_index = {
             (ex["dataset"], ex["split"], ex["setup_id"], ex["example_idx"]): str(ex) for ex in finished_examples
         }
-
-        self.load_db()
-        overview_db = self.db.copy()
-        overview_db["output"] = ""
 
         for i, row in self.db.iterrows():
             key = (row["dataset"], row["split"], row["setup_id"], row["example_idx"])

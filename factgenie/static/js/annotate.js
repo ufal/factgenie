@@ -218,6 +218,8 @@ function loadAnnotations() {
                 goToAnnotation(0);
             });
             YPet.start();
+
+            $("#hideOverlayBtn").attr("disabled", false);
         })
         .catch((e) => {
             // Handle errors if any request fails
