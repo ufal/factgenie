@@ -177,15 +177,3 @@ class Dataset(ABC):
         Get the string with description of the dataset.
         """
         return self.description
-
-    def get_type(self):
-        """
-        Get the type of the dataset displayed in the web interface.
-
-        Returns
-        -------
-        type : str
-            Type of the dataset: {"default", "json", "text", "table"}
-        """
-
-        return self.type

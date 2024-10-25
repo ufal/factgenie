@@ -24,43 +24,11 @@ logger = logging.getLogger(__name__)
 # coloredlogs.install(level="INFO", logger=logger, fmt="%(asctime)s %(levelname)s %(message)s")
 
 
-def get_example_info(j, campaign_id):
-    return {
-        "annotator_id": j["annotator_id"],
-        "annotator_group": j.get("annotator_group", 0),
-        "campaign_id": campaign_id,
-        "dataset": slugify(j["dataset"]),
-        "example_idx": j["example_idx"],
-        "setup_id": slugify(j["setup_id"]),
-        "split": slugify(j["split"]),
-        "flags": j.get("flags", []),
-        "options": j.get("options", []),
-        "text_fields": j.get("text_fields", []),
-    }
-
-
-# TODO unify with the analogical function in workflows
-def load_annotations(line, campaign_id):
-    j = json.loads(line)
-    annotation_records = []
-
-    r = get_example_info(j, campaign_id)
-
-    for annotation in j["annotations"]:
-        r["annotation_type"] = int(annotation["type"])
-        r["annotation_start"] = annotation["start"]
-        r["annotation_text"] = annotation["text"]
-
-        annotation_records.append(r.copy())
-
-    return annotation_records
-
-
-def create_example_record(line, campaign_id, annotation_span_categories, annotation_records):
+def create_example_record(line, metadata, annotation_span_categories, annotation_records):
     # a record is created even if there are no annotations
     j = json.loads(line)
 
-    example_record = get_example_info(j, campaign_id)
+    example_record = workflows.create_annotation_example_record(j, metadata)
 
     for i, category in enumerate(annotation_span_categories):
         example_record["cat_" + str(i)] = 0
@@ -85,21 +53,20 @@ def load_annotations_for_campaign(campaign):
     annotation_index = []
     example_index = []
 
-    campaign_id = campaign.metadata["id"]
     annotation_span_categories = campaign.metadata["config"]["annotation_span_categories"]
 
-    jsonl_files = glob.glob(os.path.join(CAMPAIGN_DIR, campaign_id, "files", "*.jsonl"))
+    jsonl_files = glob.glob(os.path.join(CAMPAIGN_DIR, campaign.metadata["id"], "files", "*.jsonl"))
 
     for jsonl_file in jsonl_files:
         with open(jsonl_file) as f:
             lines = f.readlines()
         for line in lines:
             try:
-                annotation_records = load_annotations(line, campaign_id)
+                annotation_records = workflows.load_annotations_from_record(line, campaign.metadata, split_spans=True)
                 annotation_index += annotation_records
 
                 example_record = create_example_record(
-                    line, campaign_id, annotation_span_categories, annotation_records
+                    line, campaign.metadata, annotation_span_categories, annotation_records
                 )
                 example_index.append(example_record)
             except Exception as e:
@@ -174,6 +141,7 @@ def compute_avg_ann_counts(ann_counts, example_index):
         dataset = row["dataset"]
         split = row["split"]
         setup_id = row["setup_id"]
+
         ann_counts.loc[i, "example_count"] = (
             example_index[
                 (example_index["dataset"] == dataset)
@@ -207,7 +175,10 @@ def compute_prevalence(ann_counts, example_index):
             & (example_index["cat_" + str(annotation_type)] > 0)
         ]
 
-        ann_counts.loc[i, "prevalence"] = examples.shape[0] / row["example_count"]
+        if row["example_count"] == 0:
+            ann_counts.loc[i, "prevalence"] = 0
+        else:
+            ann_counts.loc[i, "prevalence"] = examples.shape[0] / row["example_count"]
 
         # round to three decimal places
         ann_counts["prevalence"] = ann_counts["prevalence"].round(3)

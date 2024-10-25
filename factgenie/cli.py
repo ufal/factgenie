@@ -32,7 +32,7 @@ def run_llm_campaign(
 ):
     """Runs the LLM campaign from CLI with no web server."""
     from slugify import slugify
-    from factgenie import workflows
+    from factgenie import workflows, llm_campaign
     from factgenie.models import ModelFactory
 
     campaign_id = slugify(campaign_id)
@@ -47,7 +47,7 @@ def run_llm_campaign(
 
     configs = workflows.load_configs(mode)
     metric_config = configs[llm_metric_config]
-    campaign = workflows.create_llm_campaign(
+    campaign = llm_campaign.create_llm_campaign(
         mode, campaign_id, metric_config, campaign_data, datasets, overwrite=overwrite
     )
 
@@ -57,7 +57,7 @@ def run_llm_campaign(
 
     model = ModelFactory.from_config(metric_config, mode=mode)
 
-    return workflows.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, running_campaigns)
+    return llm_campaign.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, running_campaigns)
 
 
 def create_app(**kwargs):
@@ -86,8 +86,8 @@ def create_app(**kwargs):
     )
 
     from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, CAMPAIGN_DIR, INPUT_DIR, OUTPUT_DIR
-    from factgenie import workflows
-    from factgenie.workflows import check_login
+    import factgenie.workflows as workflows
+    from factgenie.utils import check_login
 
     if not MAIN_CONFIG_PATH.exists():
         raise ValueError(

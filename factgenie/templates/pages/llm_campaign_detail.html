@@ -67,14 +67,14 @@
             data-bs-target="#config-modal-{{ metadata.id }}"><i class="fa fa-cog"></i> Show
             configuration</a>
           {% if mode == 'llm_gen' %}
-          <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" id="save-generations-button"
+          <a type="button" class="btn btn-primary" data-bs-toggle="modal" id="save-generations-button"
             data-bs-target="#save-generations-modal" title="Save as model outputs">
             <!-- print out metadata.status -->
             <i class="fa fa-paste"></i> Save as model outputs
           </a>
           {% endif %}
           {% if mode == 'llm_eval' %}
-          <a href="{{ host_prefix }}/analyze/detail/{{ campaign_id }}?source={{ mode }}" type="button"
+          <a href="{{ host_prefix }}/analyze/detail/{{ campaign_id }}" type="button"
             class="btn btn-outline-secondary"><i class="fa fa-area-chart"></i> View statistics</a>
           {% endif %}
         </div>

@@ -130,7 +130,7 @@ class LLMMetric(Model):
 
         if self.annotation_key not in model_json:
             logger.error(f"Cannot find the key `{self.annotation_key}` in {model_json=}")
-            return []
+            return annotation_list
 
         for annotation in model_json[self.annotation_key]:
             # find the `start` index of the error in the text
@@ -215,7 +215,7 @@ class OpenAIMetric(LLMMetric):
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
-            return {"error": str(e)}
+            raise e
 
 
 class OllamaMetric(LLMMetric):
@@ -256,10 +256,14 @@ class OllamaMetric(LLMMetric):
         try:
             logger.debug(f"Calling {msg}")
             response = requests.post(self.config["api_url"], json=request_d)
-            response_json = response.json()
+            if response.status_code != 200:
+                raise ValueError(f"Received status code {response.status_code} from the API. Response: {response.text}")
 
-            if "error" in response_json:
-                return response_json
+            try:
+                response_json = response.json()
+            except json.JSONDecodeError:
+                logger.warning(f"Received non-JSON response: {response.text}")
+                return []
 
             annotation_str = response_json["response"]
 
@@ -269,7 +273,7 @@ class OllamaMetric(LLMMetric):
         except (ConnectionError, requests.exceptions.ConnectionError) as e:
             # notifiy the user that the API is down
             logger.error(f"Connection error: {e}")
-            return {"error": str(e)}
+            raise e
         except Exception as e:
             # ignore occasional problems not to interrupt the annotation process
             logger.error(f"Received\n\t{response=}\n\t{annotation_str=}\n\t{j=}\nError:{e}")
@@ -417,7 +421,7 @@ class TextGenerationWebuiGen(LLMGen):
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
-            return {"error": str(e)}
+            raise e
 
 
 class OllamaGen(LLMGen):
@@ -466,9 +470,9 @@ class OllamaGen(LLMGen):
         except (ConnectionError, requests.exceptions.ConnectionError) as e:
             # notifiy the user that the API is down
             logger.error(f"Connection error: {e}")
-            return {"error": str(e)}
+            raise e
         except Exception as e:
             # ignore occasional problems not to interrupt the annotation process
             logger.error(f"Received\n\t{response=}\n\t{output=}\nError:{e}")
             traceback.print_exc()
-            return []
+            raise e

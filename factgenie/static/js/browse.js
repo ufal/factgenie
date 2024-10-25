@@ -1,14 +1,9 @@
-const sizes = [66, 33];
-
-const generated_outputs = window.generated_outputs;
-
 var current_example_idx = 0;
 var selected_campaigns = [];
 var splitInstance = Split(['#centerpanel', '#rightpanel'], {
-    sizes: sizes,
+    sizes: [66, 33],
     gutterSize: 1,
 });
-
 
 function changeDataset() {
     $("#dataset-spinner").show();
@@ -36,7 +31,6 @@ function changeSplit() {
 }
 
 function changeExample(dataset, split, example_idx) {
-    // used only for direct links
     $("#dataset-spinner").show();
     $('#dataset-select').val(dataset);
     $('#split-select').empty();
@@ -88,10 +82,9 @@ function createOutputBoxes(generated_outputs) {
 
     // find all campaign ids in output annotations
     const campaign_ids = new Set();
-
     generated_outputs.forEach(output => {
         output.annotations.forEach(annotation => {
-            campaign_ids.add(annotation.metadata.id);
+            campaign_ids.add(annotation.campaign_id);
         });
     });
     const selectBox = $("#annotations-select");
@@ -142,7 +135,6 @@ function fetchExample(dataset, split, example_idx) {
     if (!window.location.href.includes(newUrl)) {
         history.pushState(null, '', newUrl);
     }
-
     $.get(`${url_prefix}/example`, {
         "dataset": dataset,
         "example_idx": example_idx,
@@ -158,7 +150,7 @@ function fetchExample(dataset, split, example_idx) {
 
         showRawData(data);
 
-        total_examples = data.total_examples;
+        total_examples = datasets[dataset].example_count[split];
         $("#total-examples").html(total_examples - 1);
 
         createOutputBoxes(data.generated_outputs);
@@ -173,14 +165,14 @@ function getAnnotatedOutput(output, campaign_id) {
     const content = output.out.replace(/\\n/g, '<br>');
 
     // if the campaign_id is in output.annotations, show the annotated content
-    const annotations_campaign = output.annotations.filter(a => a.metadata.id == campaign_id);
+    const annotations_campaign = output.annotations.filter(a => a.campaign_id == campaign_id);
 
     var placeholder = $('<pre>', { id: `out-${setup_id}-${campaign_id}-placeholder`, class: `font-mono out-placeholder out-${campaign_id}-placeholder` });
     var annotated_content;
 
     if (annotations_campaign.length > 0) {
         const annotations = annotations_campaign[0];
-        const annotation_span_categories = annotations.metadata.config.annotation_span_categories;
+        const annotation_span_categories = annotations.annotation_span_categories;
 
         annotated_content = highlightContent(content, annotations, annotation_span_categories);
     } else {
@@ -196,7 +188,7 @@ function getAnnotatedOutput(output, campaign_id) {
 }
 
 function getExampleLevelFields(output, campaign_id) {
-    const fieldsCampaign = output.annotations.filter(a => a.metadata.id == campaign_id)[0];
+    const fieldsCampaign = output.annotations.filter(a => a.campaign_id == campaign_id)[0];
 
     if (fieldsCampaign === undefined) {
         return null;

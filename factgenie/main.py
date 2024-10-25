@@ -1,19 +1,13 @@
 #!/usr/bin/env python3
 import os
 import json
-import time
 import logging
 import time
 import threading
 import traceback
 import shutil
 import datetime
-import markdown
 import urllib.parse
-
-import factgenie.workflows as workflows
-import factgenie.analysis as analysis
-import factgenie.utils as utils
 
 from flask import (
     Flask,
@@ -25,19 +19,23 @@ from flask import (
     redirect,
     send_from_directory,
 )
-from collections import defaultdict
 from slugify import slugify
 
-from factgenie import PREVIEW_STUDY_ID, CAMPAIGN_DIR, TEMPLATES_DIR, STATIC_DIR
+import factgenie.crowdsourcing as crowdsourcing
+import factgenie.llm_campaign as llm_campaign
+import factgenie.workflows as workflows
+import factgenie.analysis as analysis
+import factgenie.utils as utils
+
+from factgenie import CAMPAIGN_DIR, TEMPLATES_DIR, STATIC_DIR, INPUT_DIR
 from factgenie.campaigns import CampaignMode, CampaignStatus, ExampleStatus
 from factgenie.models import ModelFactory
-from factgenie.datasets.dataset import get_dataset_classes
 
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask("factgenie", template_folder=TEMPLATES_DIR, static_folder=STATIC_DIR)
 app.db = {}
-app.db["annotation_index"] = {}
+app.db["annotation_index"] = None
 app.db["output_index"] = None
 app.db["lock"] = threading.Lock()
 app.db["running_campaigns"] = set()
@@ -103,7 +101,7 @@ def login_required(f):
             if not auth:
                 return redirect(app.config["host_prefix"] + "/login")
             username, password = auth.split(":")
-            if not workflows.check_login(app, username, password):
+            if not utils.check_login(app, username, password):
                 return redirect(app.config["host_prefix"] + "/login")
 
         return f(*args, **kwargs)
@@ -119,7 +117,6 @@ def login_required(f):
 @login_required
 def index():
     logger.info(f"Main page loaded")
-
     return render_template(
         "pages/index.html",
         host_prefix=app.config["host_prefix"],
@@ -158,10 +155,10 @@ def annotate(campaign_id):
     campaign = workflows.load_campaign(app, campaign_id=campaign_id)
 
     service = campaign.metadata["config"]["service"]
-    service_ids = workflows.get_service_ids(service, request.args)
+    service_ids = crowdsourcing.get_service_ids(service, request.args)
 
     metadata = campaign.metadata
-    annotation_set = workflows.get_annotator_batch(app, campaign, service_ids)
+    annotation_set = crowdsourcing.get_annotator_batch(app, campaign, service_ids)
 
     if not annotation_set:
         # no more available examples
@@ -195,21 +192,20 @@ def browse():
     datasets = workflows.get_local_dataset_overview(app)
     datasets = {k: v for k, v in datasets.items() if v["enabled"]}
 
+    # force reload the annotation and output index
+    workflows.get_annotation_index(app, force_reload=True)
+    workflows.get_output_index(app=app, force_reload=True)
+
     if not datasets:
         return render_template(
             "pages/no_datasets.html",
             host_prefix=app.config["host_prefix"],
         )
-
-    # workflows.generate_output_index(app)
-    # workflows.generate_annotation_index(app)
-
     return render_template(
         "pages/browse.html",
         display_example=display_example,
         datasets=datasets,
         host_prefix=app.config["host_prefix"],
-        annotations=app.db["annotation_index"],
     )
 
 
@@ -240,7 +236,7 @@ def clear_output():
 
 @app.route("/crowdsourcing", methods=["GET", "POST"])
 @login_required
-def crowdsourcing():
+def crowdsourcing_page():
     llm_configs = workflows.load_configs(mode=CampaignMode.LLM_EVAL)
     crowdsourcing_configs = workflows.load_configs(mode=CampaignMode.CROWDSOURCING)
     campaigns = workflows.get_sorted_campaign_list(app, modes=[CampaignMode.CROWDSOURCING])
@@ -282,10 +278,10 @@ def crowdsourcing_create():
     campaign_data = data.get("campaignData")
     config = data.get("config")
 
-    config = workflows.parse_crowdsourcing_config(config)
+    config = crowdsourcing.parse_crowdsourcing_config(config)
 
     try:
-        workflows.create_crowdsourcing_campaign(app, campaign_id, config, campaign_data)
+        crowdsourcing.create_crowdsourcing_campaign(app, campaign_id, config, campaign_data)
         workflows.load_campaign(app, campaign_id=campaign_id)
     except Exception as e:
         traceback.print_exc()
@@ -412,7 +408,7 @@ def duplicate_config():
         llm_config = campaign.metadata["config"]
         config = {"annotation_span_categories": llm_config["annotation_span_categories"]}
 
-    workflows.save_config(filename, config, mode=mode_to)
+    utils.save_config(filename, config, mode=mode_to)
 
     return utils.success()
 
@@ -424,7 +420,7 @@ def duplicate_eval():
     campaign_id = data.get("campaignId")
     new_campaign_id = slugify(data.get("newCampaignId"))
 
-    ret = workflows.duplicate_llm_campaign(app, mode, campaign_id, new_campaign_id)
+    ret = llm_campaign.duplicate_llm_campaign(app, mode, campaign_id, new_campaign_id)
 
     return ret
 
@@ -434,9 +430,11 @@ def render_example():
     dataset_id = request.args.get("dataset")
     split = request.args.get("split")
     example_idx = max(int(request.args.get("example_idx")), 0)
+    setup_id = request.args.get("setup_id", None)
 
     try:
-        example_data = workflows.get_example_data(app, dataset_id, split, example_idx)
+        example_data = workflows.get_example_data(app, dataset_id, split, example_idx, setup_id)
+
         return jsonify(example_data)
     except Exception as e:
         traceback.print_exc()
@@ -474,7 +472,7 @@ def export_outputs():
 @app.route("/files/<path:filename>", methods=["GET", "POST"])
 def download_file(filename):
     # serving external files for datasets
-    return send_from_directory("data", filename)
+    return send_from_directory(INPUT_DIR, filename)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -482,7 +480,7 @@ def login():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
-        if workflows.check_login(app, username, password):
+        if utils.check_login(app, username, password):
             # redirect to the home page ("/")
             resp = make_response(redirect(app.config["host_prefix"] + "/"))
             resp.set_cookie("auth", f"{username}:{password}")
@@ -495,7 +493,7 @@ def login():
 @app.route("/llm_eval", methods=["GET", "POST"])
 @app.route("/llm_gen", methods=["GET", "POST"])
 @login_required
-def llm_campaign():
+def llm_campaign_page():
     mode = utils.get_mode_from_path(request.path)
 
     campaigns = workflows.get_sorted_campaign_list(app, modes=[mode])
@@ -525,14 +523,14 @@ def llm_campaign_create():
     config = data.get("config")
 
     if mode == CampaignMode.LLM_EVAL:
-        config = workflows.parse_llm_eval_config(config)
+        config = llm_campaign.parse_llm_eval_config(config)
     elif mode == CampaignMode.LLM_GEN:
-        config = workflows.parse_llm_gen_config(config)
+        config = llm_campaign.parse_llm_gen_config(config)
 
     datasets = app.db["datasets_obj"]
 
     try:
-        workflows.create_llm_campaign(mode, campaign_id, config, campaign_data, datasets)
+        llm_campaign.create_llm_campaign(mode, campaign_id, config, campaign_data, datasets)
         workflows.load_campaign(app, campaign_id=campaign_id)
     except Exception as e:
         traceback.print_exc()
@@ -615,10 +613,10 @@ def llm_campaign_run():
         model = ModelFactory.from_config(config, mode=mode)
         running_campaigns = app.db["running_campaigns"]
 
-        ret = workflows.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, running_campaigns)
+        ret = llm_campaign.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, running_campaigns)
 
         if hasattr(ret, "error"):
-            workflows.pause_llm_campaign(app, campaign_id)
+            llm_campaign.pause_llm_campaign(app, campaign_id)
             return utils.error(f"Error while running campaign: {ret.error}")
         else:
             return ret
@@ -636,7 +634,7 @@ def llm_campaign_update_config():
     campaign_id = data.get("campaignId")
     config = data.get("config")
 
-    config = workflows.parse_campaign_config(config)
+    config = llm_campaign.parse_campaign_config(config)
     campaign = workflows.load_campaign(app, campaign_id=campaign_id)
     campaign.metadata["config"] = config
     campaign.update_metadata()
@@ -665,7 +663,7 @@ def llm_campaign_pause():
     data = request.get_json()
     campaign_id = data.get("campaignId")
 
-    workflows.pause_llm_campaign(app, campaign_id)
+    llm_campaign.pause_llm_campaign(app, campaign_id)
 
     resp = jsonify(success=True, status=CampaignStatus.IDLE)
     return resp
@@ -707,15 +705,15 @@ def save_config():
     mode = data.get("mode")
 
     if mode == CampaignMode.LLM_EVAL:
-        config = workflows.parse_llm_eval_config(config)
+        config = llm_campaign.parse_llm_eval_config(config)
     elif mode == CampaignMode.LLM_GEN:
-        config = workflows.parse_llm_gen_config(config)
+        config = llm_campaign.parse_llm_gen_config(config)
     elif mode == CampaignMode.CROWDSOURCING:
-        config = workflows.parse_crowdsourcing_config(config)
+        config = crowdsourcing.parse_crowdsourcing_config(config)
     else:
         return utils.error(f"Invalid mode: {mode}")
 
-    workflows.save_config(filename, config, mode=mode)
+    utils.save_config(filename, config, mode=mode)
 
     return utils.success()
 
@@ -727,7 +725,7 @@ def save_generation_outputs():
     campaign_id = data.get("campaignId")
     model_name = slugify(data.get("modelName"))
 
-    workflows.save_generation_outputs(app, campaign_id, model_name)
+    llm_campaign.save_generation_outputs(app, campaign_id, model_name)
 
     return utils.success()
 
@@ -741,7 +739,7 @@ def submit_annotations():
 
     logger.info(f"Received annotations for {campaign_id} by {annotator_id}")
 
-    return workflows.save_annotations(app, campaign_id, annotation_set, annotator_id)
+    return crowdsourcing.save_annotations(app, campaign_id, annotation_set, annotator_id)
 
 
 @app.route("/set_dataset_enabled", methods=["POST"])

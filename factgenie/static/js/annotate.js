@@ -80,13 +80,13 @@ function collectTextFields() {
 }
 
 
-function fetchAnnotation(dataset, split, example_idx, annotation_idx) {
+function fetchAnnotation(dataset, split, setup_id, example_idx, annotation_idx) {
     return new Promise((resolve, reject) => {
-        // console.log(`fetching ${dataset} ${split} ${example_idx}`);
         $.get(`${url_prefix}/example`, {
             "dataset": dataset,
             "example_idx": example_idx,
             "split": split,
+            "setup_id": setup_id
         }, function (data) {
             $('<div>', {
                 id: `out-text-${annotation_idx}`,
@@ -94,13 +94,9 @@ function fetchAnnotation(dataset, split, example_idx, annotation_idx) {
                 style: 'display: none;'
             }).appendTo('#outputarea');
 
-            // filter the data to only include the setup we want
-            const setup_id = annotation_set[annotation_idx].setup_id;
-
-            data.generated_outputs = data.generated_outputs.filter(o => o.setup_id == setup_id)[0];
-
+            // we have always only a single generated output here
+            data.generated_outputs = data.generated_outputs[0];
             examples_cached[annotation_idx] = data;
-
             resolve();
         }).fail(function () {
             reject();
@@ -174,7 +170,9 @@ function loadAnnotations() {
         const dataset = example.dataset;
         const split = example.split;
         const example_idx = example.example_idx;
-        const promise = fetchAnnotation(dataset, split, example_idx, annotation_idx);
+        const setup_id = example.setup_id;
+
+        const promise = fetchAnnotation(dataset, split, setup_id, example_idx, annotation_idx);
         promises.push(promise);
     }
     Promise.all(promises)

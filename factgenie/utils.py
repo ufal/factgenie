@@ -4,12 +4,19 @@ import os
 import urllib
 import logging
 import yaml
+import json
 from slugify import slugify
 from tqdm import tqdm
 from pathlib import Path
 from flask import jsonify
 from factgenie.campaigns import CampaignMode
-from factgenie import RESOURCES_CONFIG_PATH, DATASET_CONFIG_PATH
+from factgenie import (
+    CROWDSOURCING_CONFIG_DIR,
+    LLM_EVAL_CONFIG_DIR,
+    LLM_GEN_CONFIG_DIR,
+    RESOURCES_CONFIG_PATH,
+    DATASET_CONFIG_PATH,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -194,3 +201,40 @@ def resumable_download(
                     _download(urllib.request.Request(url, headers=ua_headers), 0)
             else:
                 raise e
+
+
+def announce(announcer, payload):
+    msg = format_sse(data=json.dumps(payload))
+    if announcer is not None:
+        announcer.announce(msg=msg)
+
+
+def check_login(app, username, password):
+    c_username = app.config["login"]["username"]
+    c_password = app.config["login"]["password"]
+    assert isinstance(c_username, str) and isinstance(
+        c_password, str
+    ), "Invalid login credentials 'username' and 'password' should be strings. Escape them with quotes in the yaml config."
+    return username == c_username and password == c_password
+
+
+def save_config(filename, config, mode):
+    # https://github.com/yaml/pyyaml/issues/121#issuecomment-1018117110
+    def yaml_multiline_string_pipe(dumper, data):
+        text_list = [line.rstrip() for line in data.splitlines()]
+        fixed_data = "\n".join(text_list)
+        if len(text_list) > 1:
+            return dumper.represent_scalar("tag:yaml.org,2002:str", fixed_data, style="|")
+        return dumper.represent_scalar("tag:yaml.org,2002:str", fixed_data)
+
+    yaml.add_representer(str, yaml_multiline_string_pipe)
+
+    if mode == CampaignMode.LLM_EVAL:
+        save_dir = LLM_EVAL_CONFIG_DIR
+    elif mode == CampaignMode.LLM_GEN:
+        save_dir = LLM_GEN_CONFIG_DIR
+    else:
+        save_dir = CROWDSOURCING_CONFIG_DIR
+
+    with open(os.path.join(save_dir, filename), "w") as f:
+        yaml.dump(config, f, indent=2, allow_unicode=True)

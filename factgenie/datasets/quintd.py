@@ -39,7 +39,7 @@ class QuintdDataset(Dataset):
 
             for split in splits:
                 resumable_download(
-                    url=data_url.format(dataset_id=dataset_id, split=split),
+                    url=data_url.format(dataset_id=dataset_id.replace("-", "_"), split=split),
                     filename=f"{data_download_dir}/{split}.json",
                     force_download=False,
                 )

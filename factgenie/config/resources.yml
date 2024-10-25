@@ -111,7 +111,7 @@ quintd1-wikidata:
   - dev
   - test
 xsum-debug:
-  name: XSum-debug
+  name: xsum-debug
   class: basic.PlainTextDataset
   data-link: https://owncloud.cesnet.cz/index.php/s/W3eYWbEfCyKqHEl/download
   description: Sample of 5 examples from the <a href="https://github.com/EdinburghNLP/XSum">XSum</a>

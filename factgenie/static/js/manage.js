@@ -27,6 +27,33 @@ function addDatasetSplit() {
     datasetSplits.append(newSplit);
 }
 
+function deleteCampaign(campaignId, mode) {
+    // ask for confirmation
+    if (!confirm(`Are you sure you want to delete the campaign ${campaignId}? All the data will be lost!`)) {
+        return;
+    }
+
+    $.post({
+        url: `${url_prefix}/delete_campaign`,
+        contentType: 'application/json', // Specify JSON content type
+        data: JSON.stringify({
+            campaignId: campaignId,
+            mode: mode,
+        }),
+        success: function (response) {
+            console.log(response);
+
+            if (response.success !== true) {
+                alert(response.error);
+            } else {
+                window.location.hash = "#annotations";
+                // reload the page
+                location.reload();
+            }
+        }
+    });
+}
+
 function deleteOutput(dataset, split, setup_id) {
     // ask for confirmation
     if (!confirm(`Are you sure you want to delete the output for ${setup_id}?`)) {
@@ -59,6 +86,7 @@ function changeDataset() {
 
     // set available splits in #split-select
     $('#split-select').empty();
+
     for (const split of datasets[dataset].splits) {
         $('#split-select').append(`<option value="${split}">${split}</option>`);
     }
@@ -91,6 +119,9 @@ function downloadDataset(datasetId) {
                 // remove the spinner
                 // $(`#spinner-download-${datasetId}`).remove();
                 // $(`#check-downloaded-${datasetId}`).show();
+
+                window.location.hash = "#local";
+                debugger;
                 location.reload();
             }
         }
@@ -213,6 +244,7 @@ function uploadDataset() {
                     $("#upload-dataset-btn").text("Upload dataset").prop("disabled", false);
                 } else {
                     // reload
+                    window.location.hash = "#local";
                     location.reload();
                 }
             }
@@ -252,8 +284,9 @@ function uploadDataset() {
 
 
 $(document).ready(function () {
-    $("#dataset-select").val(Object.keys(datasets)[0]).trigger("change");
-
+    if (Object.keys(datasets).length > 0) {
+        $("#dataset-select").val(Object.keys(datasets)[0]).trigger("change");
+    }
     // Function to activate the tab based on the anchor
     function activateTabFromAnchor() {
         var anchor = window.location.hash.substring(1);
