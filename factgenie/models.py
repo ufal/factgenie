@@ -136,9 +136,9 @@ class LLMMetric(Model):
             # find the `start` index of the error in the text
             start_pos = text.lower().find(annotation["text"].lower(), current_pos)
 
-            if current_pos != 0 and start_pos == -1:
-                # try from the beginning
-                start_pos = text.find(annotation["text"])
+            # if current_pos != 0 and start_pos == -1:
+            #     # try from the beginning
+            #     start_pos = text.find(annotation["text"])
 
             if start_pos == -1:
                 logger.warning(f"Cannot find {annotation=} in text {text}, skipping")
