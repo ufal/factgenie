@@ -18,7 +18,7 @@ Annotate LLM outputs with a lightweight, self-hosted web application 🌈
 </div>
 
 ## 📢  News
-- **08/10/2024** — We added  [step-by-step walkthrougs](../../wiki/00-Tutorials) on using factgenie for generating and annotating outputs for a dataset of basketball reports 🏀
+- **08/10/2024** — We added  [step-by-step walkthrougs](../../wiki/Tutorials) on using factgenie for generating and annotating outputs for a dataset of basketball reports 🏀
 - **07/10/2024** — We removed the example datasets from the repository. Instead, you can find them in the _External Resources_ section in the _Manage data_ interface.
 - **24/09/2024** — We introduced a brand new factgenie logo!
 - **19/09/2024** — On the Analytics page, you can now see detailed statistics about annotations and compute inter-annotator agreement 📈
@@ -54,26 +54,26 @@ factgenie run --host=127.0.0.1 --port 5000
 
 See the following **wiki pages** that that will guide you through various use-cases of factgenie:
 
-| Topic                                                                  | Description                                        |
-| ---------------------------------------------------------------------- | -------------------------------------------------- |
-| 🔧 [Setup](../../wiki/01-Setup)                                         | How to install factgenie.                          |
-| 🗂️ [Data Management](../../wiki/02-Data-Management)                     | How to manage datasets and model outputs.          |
-| 🤖 [LLM Annotations](../../wiki/03-LLM-Annotations)                     | How to annotate outputs using LLMs.                |
-| 👥 [Crowdsourcing Annotations](../../wiki/04-Crowdsourcing-Annotations) | How to annotate outputs using human crowdworkers.  |
-| ✍️  [Generating Outputs](../../wiki/05-Generating-Outputs)              | How to generate outputs using LLMs.                |
-| 📊 [Analyzing Annotations](../../wiki/06-Analyzing-Annotations)         | How to obtain statistics on collected annotations. |
-| 🌱 [Contributing](../../wiki/07-Contributing)                           | How to contribute to factgenie.                    |
+| Topic                                                               | Description                                        |
+| ------------------------------------------------------------------- | -------------------------------------------------- |
+| 🔧 [Setup](../../wiki/Setup)                                         | How to install factgenie.                          |
+| 🗂️ [Data Management](../../wiki/Data-Management)                     | How to manage datasets and model outputs.          |
+| 🤖 [LLM Annotations](../../wiki/LLM-Annotations)                     | How to annotate outputs using LLMs.                |
+| 👥 [Crowdsourcing Annotations](../../wiki/Crowdsourcing-Annotations) | How to annotate outputs using human crowdworkers.  |
+| ✍️  [Generating Outputs](../../wiki/Generating-Outputs)              | How to generate outputs using LLMs.                |
+| 📊 [Analyzing Annotations](../../wiki/Analyzing-Annotations)         | How to obtain statistics on collected annotations. |
+| 🌱 [Contributing](../../wiki/Contributing)                           | How to contribute to factgenie.                    |
 
 ## 🔥 Tutorials
 We also provide step-by-step walkthroughs showing how to employ factgenie on the [the dataset from the Shared Task in Evaluating Semantic Accuracy](https://github.com/ehudreiter/accuracySharedTask):
 
-| Tutorial                                                                                                                       | Description                                                                                      |
-| ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| [🏀 #1: Importing a custom dataset](../../wiki/00-Tutorials#-tutorial-1-importing-a-custom-dataset)                             | Loading the basketball statistics and model-generated basketball reports into the web interface. |
-| [💬 #2: Generating outputs](../../wiki/00-Tutorials#-tutorial-2-generating-outputs)                                             | Using Llama 3.1 with Ollama for generating basketball reports.                                   |
-| [📊 #3: Customizing data visualization](../../wiki/00-Tutorials#-tutorial-3-customizing-data-visualization)                     | Manually creating a custom dataset class for better data visualization.                          |
-| [🤖 #4: Annotating outputs with an LLM](../../wiki/00-Tutorials#-tutorial-4-annotating-outputs-with-an-llm)                     | Using GPT-4o for annotating errors in the basketball reports.                                    |
-| [👨‍💼 #5: Annotating outputs with human annotators](../../wiki/00-Tutorials#-tutorial-5-annotating-outputs-with-human-annotators) | Using human annotators for annotating errors in the basketball reports.                          |
+| Tutorial                                                                                                                    | Description                                                                                      |
+| --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| [🏀 #1: Importing a custom dataset](../../wiki/Tutorials#-tutorial-1-importing-a-custom-dataset)                             | Loading the basketball statistics and model-generated basketball reports into the web interface. |
+| [💬 #2: Generating outputs](../../wiki/Tutorials#-tutorial-2-generating-outputs)                                             | Using Llama 3.1 with Ollama for generating basketball reports.                                   |
+| [📊 #3: Customizing data visualization](../../wiki/Tutorials#-tutorial-3-customizing-data-visualization)                     | Manually creating a custom dataset class for better data visualization.                          |
+| [🤖 #4: Annotating outputs with an LLM](../../wiki/Tutorials#-tutorial-4-annotating-outputs-with-an-llm)                     | Using GPT-4o for annotating errors in the basketball reports.                                    |
+| [👨‍💼 #5: Annotating outputs with human annotators](../../wiki/Tutorials#-tutorial-5-annotating-outputs-with-human-annotators) | Using human annotators for annotating errors in the basketball reports.                          |
 
 
 ## 💬 Cite us
