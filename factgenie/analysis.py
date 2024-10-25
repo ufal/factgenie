@@ -281,6 +281,11 @@ def compute_pearson_macro_average(counts, first_ann_idx, second_ann_idx):
 
     for c, cat_counts in counts.items():
         r, _ = pearsonr(cat_counts[first_ann_idx], cat_counts[second_ann_idx])
+
+        # if r is nan, set it to 0
+        if not r == r:
+            r = 0
+
         coefficients.append(r)
 
     return round(sum(coefficients) / len(coefficients), 2), [round(coeff, 2) for coeff in coefficients]
@@ -296,7 +301,9 @@ def compute_pearson_micro_average(counts, first_ann_idx, second_ann_idx):
     return round(r, 2)
 
 
-def compute_pearson_correlation(dataset_level_counts, example_level_counts, annotator_count, annotator_group_ids):
+def compute_pearson_correlation(
+    dataset_level_counts, example_level_counts, annotator_count, annotator_group_ids, compute_dataset_level_corr
+):
     results = []
 
     for a in range(annotator_count):
@@ -304,14 +311,22 @@ def compute_pearson_correlation(dataset_level_counts, example_level_counts, anno
             a_group_id = annotator_group_ids[a]
             b_group_id = annotator_group_ids[b]
 
-            r_data_macro, r_data_list = compute_pearson_macro_average(
-                dataset_level_counts, first_ann_idx=a, second_ann_idx=b
-            )
+            if compute_dataset_level_corr:
+                r_data_macro, r_data_list = compute_pearson_macro_average(
+                    dataset_level_counts, first_ann_idx=a, second_ann_idx=b
+                )
+            else:
+                r_data_macro, r_data_list = None, None
+
             r_example_macro, r_example_list = compute_pearson_macro_average(
                 example_level_counts, first_ann_idx=a, second_ann_idx=b
             )
 
-            r_data_micro = compute_pearson_micro_average(dataset_level_counts, first_ann_idx=a, second_ann_idx=b)
+            if compute_dataset_level_corr:
+                r_data_micro = compute_pearson_micro_average(dataset_level_counts, first_ann_idx=a, second_ann_idx=b)
+            else:
+                r_data_micro = None
+
             r_example_micro = compute_pearson_micro_average(example_level_counts, first_ann_idx=a, second_ann_idx=b)
 
             results.append(
@@ -415,12 +430,13 @@ def compute_inter_annotator_agreement(app, selected_campaigns, combinations, cam
     dataset_level_counts, example_level_counts = compute_span_counts(
         example_index=example_index, annotator_count=annotator_count, combinations=combinations, cat_columns=cat_columns
     )
-
+    compute_dataset_level_corr = len(combinations) > 1
     results = compute_pearson_correlation(
         dataset_level_counts=dataset_level_counts,
         example_level_counts=example_level_counts,
         annotator_count=annotator_count,
         annotator_group_ids=annotator_group_ids,
+        compute_dataset_level_corr=compute_dataset_level_corr,
     )
 
     return results

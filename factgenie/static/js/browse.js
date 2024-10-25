@@ -156,6 +156,9 @@ function fetchExample(dataset, split, example_idx) {
         createOutputBoxes(data.generated_outputs);
         showSelectedCampaigns();
         updateDisplayedAnnotations();
+    }).fail(function (response) {
+        console.log(response);
+        alert("Failed to fetch example.");
     });
 }
 
