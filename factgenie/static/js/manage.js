@@ -121,7 +121,6 @@ function downloadDataset(datasetId) {
                 // $(`#check-downloaded-${datasetId}`).show();
 
                 window.location.hash = "#local";
-                debugger;
                 location.reload();
             }
         }

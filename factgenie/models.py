@@ -373,7 +373,7 @@ class OpenAIGen(LLMGen):
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
-            return {"error": str(e)}
+            raise e
 
 
 class TextGenerationWebuiGen(LLMGen):
@@ -462,7 +462,7 @@ class OllamaGen(LLMGen):
             response_json = response.json()
 
             if "error" in response_json:
-                return response_json
+                raise ValueError(f"Received error from the API: {response_json['error']}")
 
             output = response_json["message"]["content"]
             logger.info(output)
