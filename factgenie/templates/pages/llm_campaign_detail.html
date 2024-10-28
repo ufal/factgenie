@@ -126,13 +126,8 @@
                     <div class="card detail-out-card" id="annotCard{{ rowId }}" {% if example.status !='finished' %}
                       style=" display: none;" {% endif %}>
                       <textarea id="annotPre{{ rowId }}" class="detail-out font-monospace small"
-                        disabled>{{ example.output }}</textarea>
+                        disabled>{{ example.record }}</textarea>
                     </div>
-
-                    <!-- <div class="card detail-out-card" id="annotCard{{ rowId }}" {% if example.status !='finished' %}
-                      style=" display: none;" {% endif %}>
-                      <pre id="annotPre{{ rowId }}" class="detail-out">{{ example.output }}</pre>
-                    </div> -->
                   </td>
                   <td>
                     <a class="btn btn-sm btn-outline-secondary"

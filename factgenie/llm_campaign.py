@@ -13,7 +13,6 @@ import traceback
 from slugify import slugify
 from factgenie.campaigns import CampaignMode, CampaignStatus, ExampleStatus
 from flask import jsonify
-from factgenie.crowdsourcing import save_annotation
 import factgenie.utils as utils
 import factgenie.workflows as workflows
 
@@ -137,8 +136,8 @@ def generate_llm_campaign_db(mode, datasets, campaign_id, campaign_data):
     df = pd.DataFrame.from_records(all_examples)
 
     # create a column for batch index and assign each example to a batch
-    df["annotator_group"] = 0
     df["annotator_id"] = ""
+    df["annotator_group"] = 0
     df["status"] = ExampleStatus.FREE
     df["start"] = None
     df["end"] = None
@@ -146,94 +145,103 @@ def generate_llm_campaign_db(mode, datasets, campaign_id, campaign_data):
     return df
 
 
-def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, running_campaigns):
-    start_time = int(time.time())
+def get_campaign_overview(app, campaign, mode):
+    campaign.load_db()
+    df = campaign.db.copy()
 
-    # set metadata status
-    campaign.metadata["status"] = CampaignStatus.RUNNING
-    campaign.update_metadata()
+    if mode == CampaignMode.LLM_EVAL:
+
+        breakpoint()
+        df["record"] = df.apply(
+            lambda row: workflows.get_annotations(
+                app, row["dataset"], row["split"], row["example_idx"], row["setup_id"]
+            ),
+            axis=1,
+        )
+    elif mode == CampaignMode.LLM_GEN:
+        breakpoint()
+        df["record"] = df.apply(
+            lambda row: workflows.get_output_for_setup(
+                row["dataset"], row["split"], row["example_idx"], row["setup_id"], force_reload=False
+            ),
+            axis=1,
+        )
+    # replace NaNs with None
+    df = df.where(pd.notnull(df), None)
+
+    return df.to_dict(orient="records")
+
+
+def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, running_campaigns):
     db = campaign.db
 
+    # set campaign status to running
+    campaign.metadata["status"] = CampaignStatus.RUNNING
+    campaign.metadata["last_run"] = int(time.time())
+    campaign.update_metadata()
     logger.info(f"Starting LLM campaign {campaign_id}")
 
-    for i, row in db.iterrows():
+    # regenerate output index
+    workflows.get_output_index(app=None, force_reload=True)
+
+    # generate outputs / annotations for all free examples in the db
+    for i, row in db[db.status == ExampleStatus.FREE].iterrows():
         # campaign was paused
         if campaign_id not in running_campaigns:
             break
 
-        if row["status"] == ExampleStatus.FINISHED:
-            continue
-
-        db.loc[i, "start"] = float(time.time())
-
         dataset_id = row["dataset"]
         split = row["split"]
-        setup_id = row.get("setup_id")
         example_idx = row["example_idx"]
+        example = datasets[dataset_id].get_example(split, example_idx)
+        # only for llm_eval
+        setup_id = row.get("setup_id")
 
-        dataset = datasets[dataset_id]
-        example = dataset.get_example(split, example_idx)
+        db.loc[i, "start"] = float(time.time())
+        db.loc[i, "annotator_id"] = campaign.metadata["config"]["model"] + "-" + campaign_id
 
-        utils.announce(
-            announcer,
-            {
-                "campaign_id": campaign_id,
-                "type": "status",
-                "message": f"Example {example_idx}: Waiting for model response",
-            },
-        )
-
-        if mode == CampaignMode.LLM_EVAL:
-            generated_output = workflows.get_output_for_setup(dataset_id, split, example_idx, setup_id)
-
-            generated_output = str(generated_output["out"]) if generated_output else None
-
-            if generated_output is None:
-                return utils.error(
-                    f"Model output not found for dataset {dataset_id}, split {split}, example {example_idx}, setup {setup_id}"
+        # generate output or annotate example
+        try:
+            if mode == CampaignMode.LLM_EVAL:
+                generated_output = workflows.get_output_for_setup(
+                    dataset_id, split, example_idx, setup_id, force_reload=False
                 )
-            try:
-                output = model.annotate_example(example, generated_output)
-            except Exception as e:
-                traceback.print_exc()
-                return utils.error(str(e))
-
-        elif mode == CampaignMode.LLM_GEN:
-            try:
-                output = model.generate_output(example)
-            except Exception as e:
-                traceback.print_exc()
-                return utils.error(str(e))
-
-        if mode == CampaignMode.LLM_EVAL:
-            annotator_id = model.get_annotator_id()
-
-            record = save_annotation(
-                annotator_id, campaign_id, dataset_id, split, setup_id, example_idx, output, start_time
+                res = model.annotate_example(data=example, text=generated_output["output"])
+                res["output"] = generated_output
+            elif mode == CampaignMode.LLM_GEN:
+                res = model.generate_output(data=example)
+        except Exception as e:
+            traceback.print_exc()
+            return utils.error(
+                f"Error processing example {dataset_id}-{split}-{example_idx}: {e.__class__.__name__}: {str(e)}"
             )
-            # frontend adjustments
-            record["output"] = record.pop("annotations")
-        elif mode == CampaignMode.LLM_GEN:
-            record = save_generated_output(campaign_id, dataset_id, split, example_idx, output, start_time)
 
-            # frontend adjustments
-            record["setup_id"] = setup_id
-            record["output"] = record.pop("out")
-
-        db.loc[i, "status"] = ExampleStatus.FINISHED
+        # update the DB
         db.loc[i, "end"] = float(time.time())
+        db.loc[i, "status"] = ExampleStatus.FINISHED
+
         campaign.update_db(db)
 
+        # save the record to a JSONL file
+        response = save_record(
+            mode=mode,
+            dataset_id=dataset_id,
+            split=split,
+            example_idx=example_idx,
+            setup_id=setup_id,
+            campaign=campaign,
+            row=db.loc[i],
+            result=res,
+        )
+
+        # send a response to the frontend
         stats = campaign.get_stats()
-        finished_examples_cnt = stats["finished"]
-        payload = {"campaign_id": campaign_id, "stats": stats, "type": "result", "annotation": record}
+        payload = {"campaign_id": campaign_id, "stats": stats, "type": "result", "response": response}
 
         utils.announce(announcer, payload)
+        logger.info(f"{campaign_id}: {stats['finished']}/{stats['total']} examples")
 
-        logger.info(f"{campaign_id}: {finished_examples_cnt}/{len(db)} examples")
-
-    final_message = ""
-    # if all fields are finished, set the metadata to finished
+    # if all examples are finished, set the campaign status to finished
     if len(db.status.unique()) == 1 and db.status.unique()[0] == ExampleStatus.FINISHED:
         campaign.metadata["status"] = CampaignStatus.FINISHED
         campaign.update_metadata()
@@ -241,18 +249,7 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, ru
         if campaign_id in running_campaigns:
             running_campaigns.remove(campaign_id)
 
-        if mode == CampaignMode.LLM_EVAL:
-            final_message = (
-                f"All examples have been annotated. You can find the annotations in {CAMPAIGN_DIR}/{campaign_id}/files."
-            )
-        elif mode == CampaignMode.LLM_GEN:
-            final_message = (
-                f"All examples have been generated. You can find the outputs in {CAMPAIGN_DIR}/{campaign_id}/files."
-            )
-    else:
-        logger.warning("Spurious exit from the loop")
-
-    return jsonify(success=True, status=campaign.metadata["status"], final_message=final_message)
+    return jsonify(success=True, status=campaign.metadata["status"])
 
 
 def pause_llm_campaign(app, campaign_id):
@@ -306,6 +303,44 @@ def parse_campaign_config(config):
     return parsed_config
 
 
+def save_record(mode, dataset_id, split, example_idx, setup_id, campaign, row, result):
+    campaign_id = campaign.metadata["id"]
+
+    save_dir = os.path.join(CAMPAIGN_DIR, campaign_id, "files")
+    os.makedirs(save_dir, exist_ok=True)
+
+    # save the output
+    record = {
+        "dataset": dataset_id,
+        "split": split,
+        "setup_id": setup_id,
+        "example_idx": example_idx,
+        "prompt": result["prompt"],
+        "output": result["output"],
+        "metadata": campaign.metadata["config"].copy(),
+    }
+
+    last_run = campaign.metadata["last_run"]
+
+    if mode == CampaignMode.LLM_EVAL:
+        record["annotations"] = result["annotations"]
+        record["setup_id"] = setup_id
+        filename = f"{dataset_id}-{split}-{setup_id}-{last_run}.jsonl"
+    elif mode == CampaignMode.LLM_GEN:
+        filename = f"{dataset_id}-{split}-{last_run}.jsonl"
+
+    record["metadata"]["annotator_id"] = row["annotator_id"]
+    record["metadata"]["campaign_id"] = campaign_id
+    record["metadata"]["start_timestamp"] = row["start"]
+    record["metadata"]["end_timestamp"] = row["end"]
+
+    # append the record to the file from the current run
+    with open(os.path.join(save_dir, filename), "a") as f:
+        f.write(json.dumps(record) + "\n")
+
+    return record
+
+
 def save_generation_outputs(app, campaign_id, setup_id):
     """
     Load the files from the `GENERATIONS_DIR` and save them in the appropriate subdirectory in `OUTPUT_DIR`.
@@ -328,8 +363,6 @@ def save_generation_outputs(app, campaign_id, setup_id):
                     record = json.loads(line)
                     # replace the campaign_id with the desired setup_id
                     record["setup_id"] = setup_id
-                    # imprint campaign configuration
-                    record["metadata"] = metadata["config"]
 
                     outputs.append(record)
 
@@ -342,24 +375,3 @@ def save_generation_outputs(app, campaign_id, setup_id):
             f.write(json.dumps(example) + "\n")
 
     return utils.success()
-
-
-def save_generated_output(campaign_id, dataset_id, split, example_idx, output, start_time):
-    save_dir = os.path.join(CAMPAIGN_DIR, campaign_id, "files")
-    os.makedirs(save_dir, exist_ok=True)
-    prompt, generated = output.get("prompt"), output.get("output")
-
-    # save the output
-    record = {
-        "dataset": dataset_id,
-        "split": split,
-        "setup_id": campaign_id,
-        "example_idx": example_idx,
-        "in": prompt,
-        "out": generated,
-    }
-
-    with open(os.path.join(save_dir, f"{dataset_id}-{split}-{start_time}.jsonl"), "a") as f:
-        f.write(json.dumps(record) + "\n")
-
-    return record

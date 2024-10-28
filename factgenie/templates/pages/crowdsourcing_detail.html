@@ -97,6 +97,7 @@
           <thead>
             <tr>
               <th scope="col" data-sortable="true">Batch id</th>
+              <th scope="col" data-sortable="true">Ann. group</th>
               <th scope="col" data-sortable="true">Size</th>
               <th scope="col" data-sortable="true">Status</th>
               <th scope="col" data-sortable="true">Annotator id</th>
@@ -111,6 +112,7 @@
             {% set rowId = (batch.batch_idx|string) %}
             <tr>
               <td>{{ batch.batch_idx }}</td>
+              <td>{{ batch.annotator_group }}</td>
               <td>{{ batch.example_cnt }}</td>
               <td><span id="statusBtn{{ rowId }}" class="badge bg-{{ batch.status }}">{{ batch.status }}</span>
               </td>
@@ -119,7 +121,7 @@
               <td>{{ batch | elapsed }}</td>
               <td>
                 <a class="btn btn-sm btn-outline-secondary"
-                  onclick="clearOutput('{{ metadata.id }}', '{{ mode }}', '{{ batch.batch_idx }}')"
+                  onclick="clearOutput('{{ metadata.id }}', '{{ mode }}', '{{ batch.batch_idx }}', {{ batch.annotator_group }})"
                   data-bs-toggle="tooltip" title="Clear outputs and set free" id="clearOutput{{ rowId }}"
                   aria-controls="collapseExample" {% if batch.status=='free' %} style="display: none;" {% endif %}>
                   <i class="fa fa-recycle"></i>
@@ -128,7 +130,7 @@
               <td style="display: none;">
                 <div class="card card-body" style="display: block !important;">
                   <b>examples:</b>
-                  {% for e in batch.example_details %}
+                  {% for e in batch.example_list %}
                   <!-- link, open in new tab -->
                   <a href="{{ host_prefix }}/browse?dataset={{ batch.dataset }}&split={{ batch.split }}&example_idx={{ e.example_idx }}"
                     class="btn btn-outline-secondary btn-sm" target="_blank">

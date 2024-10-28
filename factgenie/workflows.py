@@ -99,9 +99,9 @@ def get_example_data(app, dataset_id, split, example_idx, setup_id=None):
     html = html.replace('src="/files', f'src="{app.config["host_prefix"]}/files')
 
     if setup_id:
-        generated_outputs = [get_output_for_setup(dataset_id, split, example_idx, setup_id)]
+        generated_outputs = [get_output_for_setup(dataset_id, split, example_idx, setup_id, force_reload=False)]
     else:
-        generated_outputs = get_outputs(app, dataset_id, split, example_idx)
+        generated_outputs = get_outputs(app, dataset_id, split, example_idx, force_reload=False)
 
     for i, output in enumerate(generated_outputs):
         setup_id = output["setup_id"]
@@ -207,18 +207,18 @@ def load_annotations_for_campaign(subdir):
     for jsonl_file in jsonl_files:
         with open(jsonl_file) as f:
             for line in f:
-                annotation_records = load_annotations_from_record(line, metadata)
+                annotation_records = load_annotations_from_record(line)
                 annotations_campaign.append(annotation_records[0])
 
     return annotations_campaign
 
 
-def create_annotation_example_record(j, metadata):
+def create_annotation_example_record(j):
     return {
-        "annotation_span_categories": metadata["config"]["annotation_span_categories"],
-        "annotator_id": j["annotator_id"],
-        "annotator_group": j.get("annotator_group", 0),
-        "campaign_id": slugify(metadata["id"]),
+        "annotation_span_categories": j["metadata"]["annotation_span_categories"],
+        "annotator_id": j["metadata"]["annotator_id"],
+        "annotator_group": j["metadata"].get("annotator_group"),
+        "campaign_id": slugify(j["metadata"]["campaign_id"]),
         "dataset": slugify(j["dataset"]),
         "example_idx": int(j["example_idx"]),
         "setup_id": slugify(j["setup_id"]),
@@ -229,22 +229,22 @@ def create_annotation_example_record(j, metadata):
     }
 
 
-def load_annotations_from_record(line, metadata, split_spans=False):
+def load_annotations_from_record(line, split_spans=False):
     j = json.loads(line)
     annotation_records = []
 
-    r = create_annotation_example_record(j, metadata)
+    record = create_annotation_example_record(j)
 
     if split_spans:
         for annotation in j["annotations"]:
-            r["annotation_type"] = int(annotation["type"])
-            r["annotation_start"] = annotation["start"]
-            r["annotation_text"] = annotation["text"]
+            record["annotation_type"] = int(annotation["type"])
+            record["annotation_start"] = annotation["start"]
+            record["annotation_text"] = annotation["text"]
 
-            annotation_records.append(r.copy())
+            annotation_records.append(record.copy())
     else:
-        r["annotations"] = j["annotations"]
-        annotation_records.append(r)
+        record["annotations"] = j["annotations"]
+        annotation_records.append(record)
 
     return annotation_records
 
@@ -252,6 +252,8 @@ def load_annotations_from_record(line, metadata, split_spans=False):
 def get_annotation_index(app, force_reload=True):
     if app and app.db["annotation_index"] is not None and not force_reload:
         return app.db["annotation_index"]
+
+    logger.info("Reloading annotation index")
 
     # contains annotations for each generated output
     annotations = []
@@ -283,6 +285,9 @@ def get_annotations(app, dataset_id, split, example_idx, setup_id):
         & (annotation_index["setup_id"] == setup_id)
     ]
 
+    if annotations.empty:
+        return []
+
     return annotations.to_dict(orient="records")
 
 
@@ -290,7 +295,10 @@ def get_output_index(app=None, force_reload=True):
     if app and app.db["output_index"] is not None and not force_reload:
         return app.db["output_index"]
 
+    logger.info("Reloading output index")
+
     outputs = []
+    cols = ["dataset", "split", "setup_id", "example_idx", "output"]
 
     # find recursively all JSONL files in the output directory
     outs = list(Path(OUTPUT_DIR).rglob("*.jsonl"))
@@ -305,11 +313,7 @@ def get_output_index(app=None, force_reload=True):
                         j[key] = slugify(j[key])
 
                     # drop any keys that are not in the key set
-                    j = {
-                        k: v
-                        for k, v in j.items()
-                        if k in ["dataset", "split", "setup_id", "example_idx", "out"]
-                    }
+                    j = {k: v for k, v in j.items() if k in cols}
 
                     outputs.append(j)
                 except Exception as e:
@@ -317,7 +321,10 @@ def get_output_index(app=None, force_reload=True):
                         f"Error parsing output file {out} at line {line_num + 1}:\n\t{e.__class__.__name__}: {e}"
                     )
 
-    output_index = pd.DataFrame.from_records(outputs)
+    if outputs:
+        output_index = pd.DataFrame.from_records(outputs)
+    else:
+        output_index = pd.DataFrame(columns=cols)
 
     if app:
         app.db["output_index"] = output_index
@@ -643,7 +650,25 @@ def export_outputs(app, dataset_id, split, setup_id):
     return response
 
 
-def get_model_outputs_overview(app, datasets, non_empty=False):
+def get_available_data(app, datasets):
+    data = []
+
+    for dataset_id in datasets:
+        splits = datasets[dataset_id]["splits"]
+
+        for split in splits:
+            data.append(
+                {
+                    "dataset": dataset_id,
+                    "split": split,
+                    "output_ids": list(range(datasets[dataset_id]["example_count"][split])),
+                }
+            )
+
+    return data
+
+
+def get_model_outputs_overview(app, datasets):
     output_index = get_output_index(app)
 
     if output_index.empty:
@@ -653,11 +678,7 @@ def get_model_outputs_overview(app, datasets, non_empty=False):
     outputs = output_index.copy()
     outputs = outputs[outputs["dataset"].isin(datasets)]
 
-    # if non_empty, filter only the examples with outputs
-    if non_empty:
-        outputs = outputs[outputs["out"].notnull()]
-
-    # aggregate `example_idx` to list, drop "in", "out", "metadata"
+    # aggregate output ids into a list
     outputs = (
         outputs.groupby(["dataset", "split", "setup_id"])
         .agg(example_idx=pd.NamedAgg(column="example_idx", aggfunc=list))
@@ -670,8 +691,8 @@ def get_model_outputs_overview(app, datasets, non_empty=False):
     return outputs
 
 
-def get_output_for_setup(dataset, split, example_idx, setup_id):
-    output_index = get_output_index()
+def get_output_for_setup(dataset, split, example_idx, setup_id, force_reload=True):
+    output_index = get_output_index(app=None, force_reload=force_reload)
 
     if output_index.empty:
         return None
@@ -683,14 +704,14 @@ def get_output_for_setup(dataset, split, example_idx, setup_id):
         & (output_index["example_idx"] == example_idx)
     ]
 
-    if len(output) == 0:
+    if output.empty:
         return None
 
     return output.to_dict(orient="records")[0]
 
 
-def get_outputs(app, dataset_id, split, example_idx):
-    outputs = get_output_index(app, force_reload=False)
+def get_outputs(app, dataset_id, split, example_idx, force_reload=True):
+    outputs = get_output_index(app, force_reload=force_reload)
 
     if outputs.empty:
         return []
@@ -736,7 +757,7 @@ def upload_model_outputs(dataset, split, setup_id, model_outputs):
                 "split": split,
                 "setup_id": setup_id,
                 "example_idx": i,
-                "out": out,
+                "output": out,
             }
             f.write(json.dumps(j) + "\n")
 
@@ -774,3 +795,9 @@ def generate_default_id(app, mode, prefix):
         i += 1
 
     return default_campaign_id
+
+
+def refresh_indexes(app):
+    # force reload the annotation and output index
+    get_annotation_index(app, force_reload=True)
+    get_output_index(app=app, force_reload=True)

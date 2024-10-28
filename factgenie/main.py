@@ -152,6 +152,7 @@ def analyze_detail(campaign_id):
 
 @app.route("/annotate/<campaign_id>", methods=["GET", "POST"])
 def annotate(campaign_id):
+    workflows.refresh_indexes(app)
     campaign = workflows.load_campaign(app, campaign_id=campaign_id)
 
     service = campaign.metadata["config"]["service"]
@@ -189,12 +190,9 @@ def browse():
     else:
         display_example = None
 
+    workflows.refresh_indexes(app)
     datasets = workflows.get_local_dataset_overview(app)
     datasets = {k: v for k, v in datasets.items() if v["enabled"]}
-
-    # force reload the annotation and output index
-    workflows.get_annotation_index(app, force_reload=True)
-    workflows.get_output_index(app=app, force_reload=True)
 
     if not datasets:
         return render_template(
@@ -227,9 +225,14 @@ def clear_output():
     data = request.get_json()
     campaign_id = data.get("campaignId")
     idx = int(data.get("idx"))
+    annotator_group = data.get("annotatorGroup")
 
     campaign = workflows.load_campaign(app, campaign_id=campaign_id)
-    campaign.clear_output(idx)
+
+    if annotator_group:
+        campaign.clear_output(idx, annotator_group)
+    else:
+        campaign.clear_output(idx)
 
     return utils.success()
 
@@ -296,7 +299,7 @@ def crowdsourcing_new():
     datasets = workflows.get_local_dataset_overview(app)
     datasets = {k: v for k, v in datasets.items() if v["enabled"]}
 
-    model_outs = workflows.get_model_outputs_overview(app, datasets, non_empty=True)
+    available_data = workflows.get_model_outputs_overview(app, datasets)
     configs = workflows.load_configs(mode=CampaignMode.CROWDSOURCING)
 
     default_campaign_id = workflows.generate_default_id(app=app, mode=CampaignMode.CROWDSOURCING, prefix="campaign")
@@ -305,7 +308,7 @@ def crowdsourcing_new():
         "pages/crowdsourcing_new.html",
         default_campaign_id=default_campaign_id,
         datasets=datasets,
-        model_outs=model_outs,
+        available_data=available_data,
         configs=configs,
         host_prefix=app.config["host_prefix"],
     )
@@ -543,6 +546,8 @@ def llm_campaign_create():
 @app.route("/llm_gen/detail/<campaign_id>", methods=["GET", "POST"])
 @login_required
 def llm_campaign_detail(campaign_id):
+    workflows.refresh_indexes(app)
+
     mode = utils.get_mode_from_path(request.path)
     campaign = workflows.load_campaign(app, campaign_id=campaign_id)
 
@@ -551,6 +556,7 @@ def llm_campaign_detail(campaign_id):
         campaign.update_metadata()
 
     overview = campaign.get_overview()
+
     finished_examples = [x for x in overview if x["status"] == ExampleStatus.FINISHED]
 
     return render_template(
@@ -573,8 +579,10 @@ def llm_campaign_new():
     datasets = workflows.get_local_dataset_overview(app)
     datasets = {k: v for k, v in datasets.items() if v["enabled"]}
 
-    non_empty = True if mode == "llm_eval" else False
-    model_outs = workflows.get_model_outputs_overview(app, datasets, non_empty=non_empty)
+    if mode == CampaignMode.LLM_EVAL:
+        available_data = workflows.get_model_outputs_overview(app, datasets)
+    else:
+        available_data = workflows.get_available_data(app, datasets)
 
     # get a list of available metrics
     llm_configs = workflows.load_configs(mode=mode)
@@ -587,7 +595,7 @@ def llm_campaign_new():
         mode=mode,
         datasets=datasets,
         default_campaign_id=default_campaign_id,
-        model_outs=model_outs,
+        available_data=available_data,
         configs=llm_configs,
         metric_types=metric_types,
         host_prefix=app.config["host_prefix"],

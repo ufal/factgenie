@@ -164,8 +164,9 @@ function fetchExample(dataset, split, example_idx) {
 
 function getAnnotatedOutput(output, campaign_id) {
     const setup_id = output.setup_id;
+
     // replace newlines with any spaces around them with <br>
-    const content = output.out.replace(/\\n/g, '<br>');
+    const content = output.output.replace(/\\n/g, '<br>');
 
     // if the campaign_id is in output.annotations, show the annotated content
     const annotations_campaign = output.annotations.filter(a => a.campaign_id == campaign_id);

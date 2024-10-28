@@ -49,6 +49,50 @@ function addOutputButton(output) {
     `);
 }
 
+
+function gatherComparisonData() {
+    var campaign_datasets = [];
+    var campaign_splits = [];
+    var campaign_outputs = [];
+
+    $(".btn-check-dataset").each(function () {
+        if ($(this).prop("checked")) {
+            campaign_datasets.push($(this).attr("data-content"));
+        }
+    });
+    $(".btn-check-split").each(function () {
+        if ($(this).prop("checked")) {
+            campaign_splits.push($(this).attr("data-content"));
+        }
+    });
+    $(".btn-check-output").each(function () {
+        if ($(this).prop("checked")) {
+            campaign_outputs.push($(this).attr("data-content"));
+        }
+    });
+    var combinations = [];
+
+    if (mode == "llm_eval" || mode == "crowdsourcing") {
+        // Select all the available combinations according to the selection
+        combinations = available_data.filter(function (model_out) {
+            return campaign_datasets.includes(model_out.dataset) && campaign_splits.includes(model_out.split) && campaign_outputs.includes(model_out.setup_id);
+        });
+        // Remove duplicates
+        combinations = combinations.filter((v, i, a) => a.findIndex(t => (t.dataset === v.dataset && t.split === v.split && t.setup_id === v.setup_id)) === i);
+
+    } else if (mode == "llm_gen") {
+        // Select all the available combinations according to the selection
+        combinations = available_data.filter(function (model_out) {
+            return campaign_datasets.includes(model_out.dataset) && campaign_splits.includes(model_out.split);
+        });
+        // Remove duplicates
+        combinations = combinations.filter((v, i, a) => a.findIndex(t => (t.dataset === v.dataset && t.split === v.split)) === i);
+    }
+
+    return combinations;
+}
+
+
 function sortCheckboxes(container) {
     // Sort all the checkboxes in the given container alphabetically
     const checkboxes = container.find('.form-check-input');
@@ -102,7 +146,7 @@ function updateComparisonData() {
     $('#outputs-container').empty();
 
     // unique splits
-    const splits = model_outs
+    const splits = available_data
         .filter(model_out => selectedDatasets.includes(model_out.dataset))
         .map(model_out => model_out.split)
         .filter((value, index, self) => self.indexOf(value) === index);
@@ -112,7 +156,7 @@ function updateComparisonData() {
     }
 
     // unique outputs
-    const outputs = model_outs
+    const outputs = available_data
         .filter(model_out => selectedDatasets.includes(model_out.dataset) && selectedSplits.includes(model_out.split))
         .map(model_out => model_out.setup_id)
         .filter((value, index, self) => self.indexOf(value) === index);

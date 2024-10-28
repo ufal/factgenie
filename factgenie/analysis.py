@@ -28,7 +28,7 @@ def create_example_record(line, metadata, annotation_span_categories, annotation
     # a record is created even if there are no annotations
     j = json.loads(line)
 
-    example_record = workflows.create_annotation_example_record(j, metadata)
+    example_record = workflows.create_annotation_example_record(j)
 
     for i, category in enumerate(annotation_span_categories):
         example_record["cat_" + str(i)] = 0
@@ -62,7 +62,7 @@ def load_annotations_for_campaign(campaign):
             lines = f.readlines()
         for line in lines:
             try:
-                annotation_records = workflows.load_annotations_from_record(line, campaign.metadata, split_spans=True)
+                annotation_records = workflows.load_annotations_from_record(line, split_spans=True)
                 annotation_index += annotation_records
 
                 example_record = create_example_record(

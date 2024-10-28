@@ -9,6 +9,7 @@ annotation_span_categories:
     color: "#bbbbbb"
 service: prolific
 examples_per_batch: 10
+annotators_per_example: 1
 annotation_granularity: words
 sort_order: sort-example-ids-shuffle-setups
 idle_time: 120

@@ -90,9 +90,12 @@ class Campaign:
         self.metadata["status"] = CampaignStatus.IDLE
         self.update_metadata()
 
-    def clear_single_output(self, idx, idx_type="example_idx"):
+    def clear_single_output(self, idx, idx_type="example_idx", annotator_group=None):
         # Identify the rows where idx_type matches idx
         mask = self.db[idx_type] == idx
+
+        if annotator_group:
+            mask = mask & (self.db["annotator_group"] == annotator_group)
 
         # Update the DataFrame using .loc
         self.db.loc[mask, "status"] = ExampleStatus.FREE
@@ -105,8 +108,6 @@ class Campaign:
         if self.metadata.get("status") == CampaignStatus.FINISHED:
             self.metadata["status"] = CampaignStatus.IDLE
             self.update_metadata()
-
-        logger.info(f"Cleared outputs and assignments for {idx}")
 
         # remove any outputs from JSONL files
         dataset = self.db.loc[mask, "dataset"].values[0]
@@ -126,8 +127,11 @@ class Campaign:
                         and data["split"] == split
                         and data["setup_id"] == setup_id
                         and data[idx_type] == example_idx
+                        and data["metadata"].get("annotator_group", None) == annotator_group
                     ):
                         f.write(line)
+
+        logger.info(f"Cleared outputs and assignments for {idx}")
 
 
 class ExternalCampaign(Campaign):
@@ -154,57 +158,9 @@ class HumanCampaign(Campaign):
                 logger.info(f"Freeing example {example.example_idx} for {self.campaign_id} due to idle time")
                 self.clear_single_output(example.example_idx)
 
-    def get_examples_for_batch(self, batch_idx):
-        annotator_batch = []
-
-        # find all examples for this batch in self.db
-        batch_examples = self.db[self.db["batch_idx"] == batch_idx]
-
-        for _, row in batch_examples.iterrows():
-            annotator_batch.append(
-                {
-                    "dataset": row["dataset"],
-                    "split": row["split"],
-                    "setup_id": row["setup_id"],
-                    "example_idx": row["example_idx"],
-                    "annotator_group": row["annotator_group"],
-                }
-            )
-        return annotator_batch
-
-    def get_overview(self):
-        self.load_db()
-        overview_db = self.db.copy()
-        # replace NaN with empty string
-        overview_db = overview_db.where(pd.notnull(overview_db), "")
-
-        # group by batch idx
-        # add a column with the number of examples for each batch
-        # for other columns keep first item
-        overview_db = overview_db.groupby("batch_idx").agg(
-            {
-                "dataset": "first",
-                "split": "first",
-                "example_idx": "count",
-                "setup_id": "first",
-                "status": "first",
-                "start": "first",
-                "end": "first",
-                "annotator_id": "first",
-                "annotator_group": "first",
-            }
-        )
-
-        overview_db["example_details"] = overview_db.index.map(lambda batch_idx: self.get_examples_for_batch(batch_idx))
-
-        overview_db = overview_db.rename(columns={"example_idx": "example_cnt"}).reset_index()
-        overview_db = overview_db.to_dict(orient="records")
-
-        return overview_db
-
     def get_stats(self):
         # group by batch_idx, keep the first row of each group
-        batch_stats = self.db.groupby("batch_idx").first()
+        batch_stats = self.db.groupby(["batch_idx", "annotator_group"]).first()
 
         return {
             "total": len(batch_stats),
@@ -213,8 +169,42 @@ class HumanCampaign(Campaign):
             "free": len(batch_stats[batch_stats["status"] == ExampleStatus.FREE]),
         }
 
-    def clear_output(self, idx):
-        self.clear_single_output(idx, idx_type="batch_idx")
+    def clear_output(self, idx, annotator_group):
+        self.clear_single_output(idx, idx_type="batch_idx", annotator_group=annotator_group)
+
+    def get_overview(self):
+        self.load_db()
+        df = self.db.copy()
+        # replace NaN with empty string
+        df = df.where(pd.notnull(df), "")
+
+        # Group by batch_idx and annotator_group
+        grouped = df.groupby(["batch_idx", "annotator_group"])
+
+        # Aggregate the necessary columns
+        overview_df = grouped.agg(
+            example_list=pd.NamedAgg(
+                column="example_idx",
+                aggfunc=lambda x: x.index.map(
+                    lambda idx: {
+                        "dataset": df.at[idx, "dataset"],
+                        "split": df.at[idx, "split"],
+                        "setup_id": df.at[idx, "setup_id"],
+                        "example_idx": df.at[idx, "example_idx"],
+                    }
+                ).tolist(),
+            ),
+            example_cnt=pd.NamedAgg(column="example_idx", aggfunc="count"),
+            status=pd.NamedAgg(column="status", aggfunc="first"),
+            annotator_id=pd.NamedAgg(column="annotator_id", aggfunc="first"),
+            start=pd.NamedAgg(column="start", aggfunc="first"),
+            end=pd.NamedAgg(column="end", aggfunc="first"),
+        ).reset_index()
+
+        for col in ["status", "annotator_id", "start", "end"]:
+            overview_df[col] = overview_df[col].astype(df[col].dtype)
+
+        return overview_df.to_dict(orient="records")
 
 
 class LLMCampaign(Campaign):
@@ -240,13 +230,14 @@ class LLMCampaignEval(LLMCampaign):
         example_index = {
             (ex["dataset"], ex["split"], ex["setup_id"], ex["example_idx"]): str(ex) for ex in finished_examples
         }
+        overview_db["record"] = {}
 
         for i, row in self.db.iterrows():
             key = (row["dataset"], row["split"], row["setup_id"], row["example_idx"])
             example = ast.literal_eval(example_index.get(key, "{}"))
 
             annotations = example.get("annotations", [])
-            overview_db.at[i, "output"] = str(annotations)
+            overview_db.at[i, "record"] = str(annotations)
 
         overview_db = overview_db.to_dict(orient="records")
 
@@ -254,6 +245,7 @@ class LLMCampaignEval(LLMCampaign):
 
 
 class LLMCampaignGen(LLMCampaign):
+    # Enables showing the generated outputs on the campaign detail page even though the outputs are not yet exported
     def get_overview(self):
         finished_examples = self.get_finished_examples()
 
@@ -261,13 +253,13 @@ class LLMCampaignGen(LLMCampaign):
 
         self.load_db()
         overview_db = self.db.copy()
-        overview_db["output"] = ""
+        overview_db["record"] = ""
 
         for i, row in self.db.iterrows():
             key = (row["dataset"], row["split"], row["example_idx"])
             example = ast.literal_eval(example_index.get(key, "{}"))
 
-            overview_db.at[i, "output"] = str(example.get("out", ""))
+            overview_db.at[i, "record"] = str(example.get("output", ""))
 
         overview_db = overview_db.to_dict(orient="records")
         return overview_db

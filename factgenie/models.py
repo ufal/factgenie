@@ -136,10 +136,6 @@ class LLMMetric(Model):
             # find the `start` index of the error in the text
             start_pos = text.lower().find(annotation["text"].lower(), current_pos)
 
-            # if current_pos != 0 and start_pos == -1:
-            #     # try from the beginning
-            #     start_pos = text.find(annotation["text"])
-
             if start_pos == -1:
                 logger.warning(f"Cannot find {annotation=} in text {text}, skipping")
                 continue
@@ -169,6 +165,19 @@ class LLMMetric(Model):
         return prompt_template.replace("{data}", str(data_for_prompt)).replace("{text}", text)
 
     def annotate_example(self, data, text):
+        """
+        Annotate the given text with the model.
+
+        Args:
+            data: the data to be used in the prompt
+            text: the text to be annotated
+
+        Returns:
+            A dictionary: {
+                "prompt": the prompt used for the annotation,
+                "annotations": a list of annotations
+            }
+        """
         raise NotImplementedError("Override this method in the subclass to call the LLM API")
 
 
@@ -211,7 +220,7 @@ class OpenAIMetric(LLMMetric):
             j = json.loads(annotation_str)
             logger.info(j)
 
-            return self.postprocess_annotations(text=text, model_json=j)
+            return {"prompt": prompt, "annotations": self.postprocess_annotations(text=text, model_json=j)}
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
@@ -269,7 +278,10 @@ class OllamaMetric(LLMMetric):
 
             j = self.postprocess_output(annotation_str)
             logger.info(j)
-            return self.postprocess_annotations(text=text, model_json=j)
+            return {
+                "prompt": prompt,
+                "annotations": self.postprocess_annotations(text=text, model_json=j),
+            }
         except (ConnectionError, requests.exceptions.ConnectionError) as e:
             # notifiy the user that the API is down
             logger.error(f"Connection error: {e}")
@@ -278,7 +290,7 @@ class OllamaMetric(LLMMetric):
             # ignore occasional problems not to interrupt the annotation process
             logger.error(f"Received\n\t{response=}\n\t{annotation_str=}\n\t{j=}\nError:{e}")
             traceback.print_exc()
-            return []
+            return {}
 
 
 class LLMGen(Model):
@@ -305,6 +317,7 @@ class LLMGen(Model):
             if output.endswith(suffix):
                 output = output[: -len(suffix)]
 
+        output = output.strip()
         return output
 
     def prompt(self, data):
@@ -323,6 +336,18 @@ class LLMGen(Model):
         return data
 
     def generate_output(self, data):
+        """
+        Generate the output with the model.
+
+        Args:
+            data: the data to be used in the prompt
+
+        Returns:
+            A dictionary: {
+                "prompt": the prompt used for the generation,
+                "output": the generated output
+            }
+        """
         raise NotImplementedError("Override this method in the subclass to call the LLM API")
 
 
@@ -366,9 +391,10 @@ class OpenAIGen(LLMGen):
                 **self.config.get("model_args", {}),
             )
             output = response.choices[0].message.content
+            output = self.postprocess_output(output)
             logger.info(output)
 
-            return {"prompt": prompt, "output": self.postprocess_output(output)}
+            return {"prompt": prompt, "output": output}
 
         except Exception as e:
             traceback.print_exc()
@@ -415,9 +441,10 @@ class TextGenerationWebuiGen(LLMGen):
             )
 
             output = response.choices[0].message.content
+            output = self.postprocess_output(output)
             logger.info(output)
 
-            return {"prompt": prompt, "output": self.postprocess_output(output)}
+            return {"prompt": prompt, "output": output}
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
@@ -465,8 +492,9 @@ class OllamaGen(LLMGen):
                 raise ValueError(f"Received error from the API: {response_json['error']}")
 
             output = response_json["message"]["content"]
+            output = self.postprocess_output(output)
             logger.info(output)
-            return {"prompt": prompt, "output": self.postprocess_output(output)}
+            return {"prompt": prompt, "output": output}
         except (ConnectionError, requests.exceptions.ConnectionError) as e:
             # notifiy the user that the API is down
             logger.error(f"Connection error: {e}")

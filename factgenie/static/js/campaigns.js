@@ -1,4 +1,4 @@
-const model_outs = window.model_outs;
+const available_data = window.available_data;
 
 function clearCampaign(campaignId) {
     // ask for confirmation
@@ -19,7 +19,7 @@ function clearCampaign(campaignId) {
     });
 }
 
-function clearOutput(campaignId, mode, idx) {
+function clearOutput(campaignId, mode, idx, annotatorGroup) {
     // ask for confirmation
     if (!confirm(`Are you sure you want to free the row id ${idx}? Any collected outputs will be deleted.`)) {
         return;
@@ -31,6 +31,7 @@ function clearOutput(campaignId, mode, idx) {
             campaignId: campaignId,
             mode: mode,
             idx: idx,
+            annotatorGroup: annotatorGroup
         }),
         success: function (response) {
             console.log(response);
@@ -196,46 +197,6 @@ function duplicateEval(inputDuplicateId, campaignId) {
 }
 
 
-function gatherComparisonData() {
-    var campaign_datasets = [];
-    var campaign_splits = [];
-    var campaign_outputs = [];
-
-    $(".btn-check-dataset").each(function () {
-        if ($(this).prop("checked")) {
-            campaign_datasets.push($(this).attr("data-content"));
-        }
-    });
-    $(".btn-check-split").each(function () {
-        if ($(this).prop("checked")) {
-            campaign_splits.push($(this).attr("data-content"));
-        }
-    });
-    $(".btn-check-output").each(function () {
-        if ($(this).prop("checked")) {
-            campaign_outputs.push($(this).attr("data-content"));
-        }
-    });
-    var combinations = [];
-
-    if (mode == "llm_eval" || mode == "crowdsourcing") {
-        combinations = model_outs.filter(function (model_out) {
-            return campaign_datasets.includes(model_out.dataset) && campaign_splits.includes(model_out.split) && campaign_outputs.includes(model_out.setup_id);
-        });
-        combinations = combinations.filter((v, i, a) => a.findIndex(t => (t.dataset === v.dataset && t.split === v.split && t.setup_id === v.setup_id)) === i);
-
-    } else if (mode == "llm_gen") {
-        combinations = model_outs.filter(function (model_out) {
-            return campaign_datasets.includes(model_out.dataset) && campaign_splits.includes(model_out.split);
-        });
-        combinations = combinations.filter((v, i, a) => a.findIndex(t => (t.dataset === v.dataset && t.split === v.split)) === i);
-    }
-
-    return combinations;
-}
-
-
-
 function gatherConfig() {
     var config = {};
 
@@ -244,6 +205,7 @@ function gatherConfig() {
         // config.annotatorPrompt = $("#annotatorPrompt").val();
         config.finalMessage = finalMessageMDE.value();
         config.examplesPerBatch = $("#examplesPerBatch").val();
+        config.annotatorsPerExample = $("#annotatorsPerExample").val();
         config.idleTime = $("#idleTime").val();
         config.annotationGranularity = $("#annotationGranularity").val();
         config.service = $("#service").val();
@@ -403,7 +365,7 @@ function showResult(payload, campaignId) {
     console.log(`Progress: ${progress}%`);
 
     // update the annotation button
-    const example = payload.annotation;
+    const example = payload.response;
     const dataset = example.dataset;
     const split = example.split;
     const setup_id = example.setup_id;
@@ -416,14 +378,13 @@ function showResult(payload, campaignId) {
     clear_output_button.show();
 
     // update the annotation content
-    const annotation_content = example.output;
     const annotation_div = $(`#annotPre${rowId}`);
 
-    // if annotation_content is a dict, convert it to a string
-    if (typeof annotation_content === 'object') {
-        annotation_div.text(JSON.stringify(annotation_content));
-    } else {
-        annotation_div.text(annotation_content);
+    // llm_eval mode
+    if (example.annotations !== undefined) {
+        annotation_div.text(JSON.stringify(example.annotations));
+    } else { // llm_gen mode
+        annotation_div.text(example.output);
     }
     $(`#annotCard${rowId}`).show();
     // update the status
@@ -431,15 +392,13 @@ function showResult(payload, campaignId) {
     setExampleStatus("finished", status_button);
 }
 
-function finalizeCampaign(campaignId, payload) {
+function finalizeCampaign(campaignId) {
     console.log("Closing the connection");
 
     setCampaignStatus(campaignId, "finished");
     $(`#run-button-${campaignId}`).hide();
     $(`#stop-button-${campaignId}`).hide();
     $(`#download-button-${campaignId}`).show();
-
-    $("#log-area").text(payload.final_message);
 
     if (window.mode == "llm_gen") {
         $("#save-generations-button").show();
@@ -463,7 +422,7 @@ function startLLMCampaignListener(campaignId) {
 
             if (payload.stats.finished == payload.stats.total) {
                 source.close();
-                finalizeCampaign(campaignId, payload);
+                finalizeCampaign(campaignId);
             }
         }
     };
@@ -519,6 +478,7 @@ function updateCrowdsourcingConfig() {
     const annotatorInstructions = cfg.annotator_instructions;
     const finalMessage = cfg.final_message;
     const examplesPerBatch = cfg.examples_per_batch;
+    const annotatorsPerExample = cfg.annotators_per_example;
     const idleTime = cfg.idle_time;
     const annotationGranularity = cfg.annotation_granularity;
     const service = cfg.service;
@@ -532,6 +492,7 @@ function updateCrowdsourcingConfig() {
     // $("#annotatorPrompt").val(annotatorPrompt);
     finalMessageMDE.value(finalMessage);
     $("#examplesPerBatch").val(examplesPerBatch);
+    $("#annotatorsPerExample").val(annotatorsPerExample);
     $("#idleTime").val(idleTime);
     $("#annotationGranularity").val(annotationGranularity);
     $("#service").val(service);

@@ -176,35 +176,36 @@ def generate_crowdsourcing_campaign_db(app, campaign_data, config):
     all_examples = []
 
     examples_per_batch = config["examples_per_batch"]
+    annotators_per_example = config["annotators_per_example"]
     sort_order = config["sort_order"]
 
     for c in campaign_data:
         for i in workflows.get_output_ids(c["dataset"], c["split"], c["setup_id"]):
-            all_examples.append(
-                {
-                    "dataset": c["dataset"],
-                    "split": c["split"],
-                    "example_idx": i,
-                    "setup_id": c["setup_id"],
-                }
-            )
+            for annotator_group in range(annotators_per_example):
+                all_examples.append(
+                    {
+                        "dataset": c["dataset"],
+                        "split": c["split"],
+                        "example_idx": i,
+                        "setup_id": c["setup_id"],
+                        "annotator_group": annotator_group,
+                    }
+                )
 
+    breakpoint()
     random.seed(42)
 
-    # current flags:
-    # - shuffle-all: shuffle all examples and setups
-    # - sort-example-ids-shuffle-setups: sort examples by example_idx, shuffle setups
-    # - sort-example-ids-keep-setups: sort examples by example_idx, keep the setup order
-    # - keep-all: keep all examples and setups in the default order
-    # we are also still supporting the old "example-level" and "dataset-level" flags
-
-    if sort_order == "dataset-level" or sort_order == "shuffle-all":
+    # shuffle all examples and setups
+    if sort_order == "shuffle-all":
         random.shuffle(all_examples)
-    elif sort_order == "example-level" or sort_order == "sort-example-ids-shuffle-setups":
+    # sort examples by example_idx, shuffle setups
+    elif sort_order == "sort-example-ids-shuffle-setups":
         random.shuffle(all_examples)
         all_examples = sorted(all_examples, key=lambda x: (x["example_idx"], x["dataset"], x["split"]))
+    # sort examples by example_idx, keep the setup order
     elif sort_order == "sort-example-ids-keep-setups":
         all_examples = sorted(all_examples, key=lambda x: (x["example_idx"], x["dataset"], x["split"]))
+    # keep all examples and setups in the default order
     elif sort_order == "keep-all":
         pass
     else:
@@ -214,11 +215,14 @@ def generate_crowdsourcing_campaign_db(app, campaign_data, config):
 
     # create a column for batch index and assign each example to a batch
     df["batch_idx"] = df.index // examples_per_batch
-    df["annotator_group"] = 0
     df["annotator_id"] = ""
     df["status"] = ExampleStatus.FREE
     df["start"] = None
     df["end"] = None
+
+    # if we have multiple `annotators_per_example`, copy each example `annotators_per_example` times
+    if annotators_per_example > 1:
+        df = df.loc[df.index.repeat(annotators_per_example)].reset_index(drop=True)
 
     return df
 
@@ -249,6 +253,7 @@ def parse_crowdsourcing_config(config):
         "annotator_instructions": config.get("annotatorInstructions"),
         "final_message": config.get("finalMessage"),
         "examples_per_batch": int(config.get("examplesPerBatch")),
+        "annotators_per_example": int(config.get("annotatorsPerExample")),
         "idle_time": int(config.get("idleTime")),
         "annotation_granularity": config.get("annotationGranularity"),
         "service": config.get("service"),
@@ -262,24 +267,21 @@ def parse_crowdsourcing_config(config):
     return config
 
 
-def select_batch_idx(db, seed):
-    free_examples = db[db["status"] == ExampleStatus.FREE]
-    assigned_examples = db[db["status"] == ExampleStatus.ASSIGNED]
+def select_batch_idx(db, seed, annotator_groups):
+    # try to find a free batch for the lowest annotator group index
+    for annotator_group in annotator_groups:
+        free_examples = db[db["status"] == ExampleStatus.FREE & db["annotator_group"] == annotator_group]
 
-    if len(free_examples) == 0 and len(assigned_examples) == 0:
+        if len(free_examples) == 0:
+            continue
+
+        example = free_examples.sample(random_state=seed)
+        batch_idx = int(example.batch_idx.values[0])
+        break
+    else:
         raise ValueError("No examples available")
 
-    # if no free examples but still assigned examples, take the oldest assigned example
-    # if len(free_examples) == 0 and len(assigned_examples) > 0:
-    #     free_examples = assigned_examples
-    #     free_examples = free_examples.sort_values(by=["start"])
-    #     free_examples = free_examples.head(1)
-
-    #     logger.info(f"Annotating extra example {free_examples.index[0]}")
-
-    example = free_examples.sample(random_state=seed)
-    batch_idx = int(example.batch_idx.values[0])
-    logger.info(f"Selecting batch {batch_idx}")
+    logger.info(f"Selecting batch {batch_idx}, annotator group {annotator_group}")
 
     return batch_idx
 
@@ -334,7 +336,9 @@ def save_annotations(app, campaign_id, annotation_set, annotator_id):
         batch_idx = annotation_set[0]["batch_idx"]
 
         # if the batch is not assigned to this annotator, return an error
-        batch_annotator_id = db.loc[db["batch_idx"] == batch_idx, "annotator_id"].iloc[0]
+        batch_annotator_id = db.loc[db["batch_idx"] == batch_idx, "annotator_id"]
+
+        breakpoint()
 
         if batch_annotator_id != annotator_id and annotator_id != PREVIEW_STUDY_ID:
             logger.info(
@@ -360,23 +364,3 @@ def save_annotations(app, campaign_id, annotation_set, annotator_id):
         return utils.success(message=final_message_html + preview_message)
 
     return utils.success(message=final_message_html)
-
-
-def save_annotation(annotator_id, campaign_id, dataset_id, split, setup_id, example_idx, annotation_set, start_time):
-    save_dir = os.path.join(CAMPAIGN_DIR, campaign_id, "files")
-    os.makedirs(save_dir, exist_ok=True)
-
-    annotation = {
-        "annotator_group": 0,
-        "annotator_id": annotator_id,
-        "dataset": dataset_id,
-        "setup_id": setup_id,
-        "split": split,
-        "example_idx": example_idx,
-        "annotations": annotation_set,
-    }
-
-    # save the annotation
-    with open(os.path.join(save_dir, f"{annotator_id}-{dataset_id}-{split}-{start_time}.jsonl"), "a") as f:
-        f.write(json.dumps(annotation) + "\n")
-    return annotation

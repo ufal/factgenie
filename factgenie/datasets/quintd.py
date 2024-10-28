@@ -65,6 +65,8 @@ class QuintdDataset(Dataset):
 
                     j = json.loads(requests.get(url).content)
 
+                    breakpoint()
+
                     metadata = j["setup"]
                     metadata["model_args"] = metadata.pop("params")
                     metadata["prompt_template"] = metadata.pop("prompt")
@@ -79,8 +81,8 @@ class QuintdDataset(Dataset):
                                 "setup_id": setup_id,
                                 "example_idx": i,
                                 "metadata": metadata,
-                                "in": gen["in"],
-                                "out": gen["out"],
+                                "prompt": gen["in"],
+                                "output": gen["out"],
                             }
                             f.write(json.dumps(record) + "\n")
 
@@ -124,6 +126,8 @@ class QuintdDataset(Dataset):
 
                     with open(file, "w") as f:
                         for line in lines:
+
+                            breakpoint()
                             line = line.replace("gpt-35", "gpt-3-5")
                             f.write(line)
 

@@ -38,6 +38,7 @@ class LogicNLG(HFDataset):
 
         with open(out_path / f"{setup_id}.jsonl", "w") as f:
             for i, out in enumerate(out_content["generated"]):
+                breakpoint()
                 out["dataset"] = dataset_id
                 out["split"] = split
                 out["setup_id"] = setup_id

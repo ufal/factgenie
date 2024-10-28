@@ -285,7 +285,7 @@
 
 <script>
   window.url_prefix = "{{ host_prefix }}";
-  window.model_outs = {{ model_outs | tojson | safe }};
+  window.available_data = {{ available_data | tojson | safe }};
   window.configs = {{ configs | tojson | safe }};
   window.datasets = {{ datasets | tojson | safe }};
   window.mode = "{{ mode }}";

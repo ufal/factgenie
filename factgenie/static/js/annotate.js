@@ -56,13 +56,15 @@ function collectOptions() {
             const label = $(this).find("label").text().trim();
             const index = $(this).find("select").val();
             const value = $(this).find("select option:selected").text();
-            options.push({ type: type, label: label, index: index, value: value });
+            const optionList = $(this).find("select option");
+            options.push({ type: type, label: label, index: index, value: value, optionList: optionList });
         } else if ($(this).hasClass("option-slider")) {
             const type = "slider";
             const label = $(this).find("label").text();
             const index = $(this).find("input[type='range']").val();
             const value = $(this).find("datalist option")[index].value;
-            options.push({ type: type, label: label, index: index, value: value });
+            const optionList = $(this).find("datalist option");
+            options.push({ type: type, label: label, index: index, value: value, optionList: optionList });
         }
     });
     return options;
@@ -186,7 +188,7 @@ function loadAnnotations() {
 
                 for (const [annotation_idx, data] of Object.entries(examples_cached)) {
 
-                    var p = new Paragraph({ 'text': data.generated_outputs.out, 'granularity': metadata.config.annotation_granularity });
+                    var p = new Paragraph({ 'text': data.generated_outputs.output, 'granularity': metadata.config.annotation_granularity });
 
                     paragraphs[`p${annotation_idx}`] = p;
                     regions[`p${annotation_idx}`] = `#out-text-${annotation_idx}`;
