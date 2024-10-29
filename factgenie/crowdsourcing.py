@@ -270,24 +270,23 @@ def parse_crowdsourcing_config(config):
 
 
 def select_batch(db, seed):
-    # Choose from the batches with the least number of finished examples
-    finished_example_cnt = db.groupby("batch_idx").apply(lambda x: x["status"].eq(ExampleStatus.FINISHED).sum())
-    min_finished = finished_example_cnt.min()
-    eligible_batches = finished_example_cnt[finished_example_cnt == min_finished]
+    # Choose from the batches with the most available annotators
 
-    # Get the rows from the database that correspond to the eligible batches
-    eligible_examples = db[db["batch_idx"].isin(eligible_batches.index)]
+    free_batches = db[db["status"] == ExampleStatus.FREE]
+    annotator_groups_per_batch = free_batches.groupby("batch_idx")["annotator_group"].nunique()
+    eligible_batches = annotator_groups_per_batch[annotator_groups_per_batch == annotator_groups_per_batch.max()]
 
-    # Keep the examples are free
-    eligible_examples = eligible_examples[eligible_examples["status"] == ExampleStatus.FREE]
+    eligible_examples = free_batches[free_batches["batch_idx"].isin(eligible_batches.index)]
 
     # Randomly select an example (with its batch) from the eligible ones
     if not eligible_examples.empty:
         selected_example = eligible_examples.sample(n=1, random_state=seed).iloc[0]
         selected_batch_idx = selected_example["batch_idx"]
 
-        # Get the lowest annotator group for the selected batch
-        selected_annotator_group = db[db["batch_idx"] == selected_batch_idx]["annotator_group"].min()
+        # Get the lowest annotator group for the selected batch which is free
+        selected_annotator_group = db[(db["batch_idx"] == selected_batch_idx) & (db["status"] == ExampleStatus.FREE)][
+            "annotator_group"
+        ].min()
 
         logging.info(f"Selected batch {selected_batch_idx} (annotator group {selected_annotator_group})")
         return selected_batch_idx, selected_annotator_group
@@ -347,7 +346,6 @@ def get_annotator_batch(app, campaign, service_ids, batch_idx=None):
 
         db.loc[mask, "start"] = start
         db.loc[mask, "annotator_id"] = annotator_id
-
         campaign.update_db(db)
 
         annotator_batch = get_examples_for_batch(db, batch_idx, annotator_group)

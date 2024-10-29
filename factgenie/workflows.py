@@ -618,9 +618,9 @@ def delete_model_outputs(dataset, split=None, setup_id=None):
                 f.writelines(new_lines)
 
     # remove any empty directories in the output directory
-    for dirpath, dirnames, _filenames in os.walk(path):
-        if not os.listdir(dirpath):
-            os.rmdir(dirpath)
+    for directory in path.rglob("*"):
+        if directory.is_dir() and not any(directory.iterdir()):
+            directory.rmdir()
 
 
 def export_outputs(app, dataset_id, split, setup_id):
@@ -854,8 +854,8 @@ def save_record(mode, campaign, row, result):
     record["metadata"]["annotator_id"] = str(annotator_id)
     record["metadata"]["annotator_group"] = int(row["annotator_group"])
     record["metadata"]["campaign_id"] = str(campaign_id)
-    record["metadata"]["start_timestamp"] = float(row["start"])
-    record["metadata"]["end_timestamp"] = float(row["end"])
+    record["metadata"]["start_timestamp"] = int(row["start"])
+    record["metadata"]["end_timestamp"] = int(row["end"])
 
     # append the record to the file from the current run
     with open(os.path.join(save_dir, filename), "a") as f:
