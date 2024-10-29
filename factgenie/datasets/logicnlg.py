@@ -38,22 +38,22 @@ class LogicNLG(HFDataset):
 
         with open(out_path / f"{setup_id}.jsonl", "w") as f:
             for i, out in enumerate(out_content["generated"]):
-                breakpoint()
                 out["dataset"] = dataset_id
                 out["split"] = split
                 out["setup_id"] = setup_id
                 out["example_idx"] = i
 
                 out["metadata"] = {
-                    "table_id": out["table_id"],
-                    "claims": out["claims"],
-                    "claim_ids": out["claims_ids"],
+                    "table_id": out.pop("table_id"),
+                    "claims": out.pop("claims"),
+                    "claim_ids": out.pop("claims_ids"),
                 }
+                out["output"] = out.pop("out")
 
                 f.write(json.dumps(out) + "\n")
 
         # filter the examples for our subset of tables
-        table_ids = [out["table_id"] for out in out_content["generated"]]
+        table_ids = [out["metadata"]["table_id"] for out in out_content["generated"]]
         tables = {}
 
         with open(data_download_dir / split / "dataset.jsonl") as f:

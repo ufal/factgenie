@@ -65,8 +65,6 @@ class QuintdDataset(Dataset):
 
                     j = json.loads(requests.get(url).content)
 
-                    breakpoint()
-
                     metadata = j["setup"]
                     metadata["model_args"] = metadata.pop("params")
                     metadata["prompt_template"] = metadata.pop("prompt")
@@ -126,10 +124,17 @@ class QuintdDataset(Dataset):
 
                     with open(file, "w") as f:
                         for line in lines:
-
-                            breakpoint()
                             line = line.replace("gpt-35", "gpt-3-5")
-                            f.write(line)
+                            j = json.loads(line)
+
+                            record_metadata = metadata["config"].copy()
+                            record_metadata["campaign_id"] = campaign_id
+                            record_metadata["annotator_id"] = j.pop("annotator_id")
+                            record_metadata["annotator_group"] = 0
+
+                            j["metadata"] = record_metadata
+
+                            f.write(json.dumps(j) + "\n")
 
                 os.remove(f"{annotation_download_dir}/{campaign_id}.zip")
 

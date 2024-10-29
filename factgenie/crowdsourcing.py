@@ -90,6 +90,9 @@ def create_crowdsourcing_page(campaign_id, config):
         f.write(content)
 
     # create a symlink to the page in the templates folder
+    if os.path.exists(symlink_path):
+        os.remove(symlink_path)
+
     os.symlink(final_page_path, symlink_path)
 
 
@@ -192,7 +195,6 @@ def generate_crowdsourcing_campaign_db(app, campaign_data, config):
                     }
                 )
 
-    breakpoint()
     random.seed(42)
 
     # shuffle all examples and setups
@@ -268,6 +270,8 @@ def parse_crowdsourcing_config(config):
 
 
 def select_batch_idx(db, seed, annotator_groups):
+
+    breakpoint()
     # try to find a free batch for the lowest annotator group index
     for annotator_group in annotator_groups:
         free_examples = db[db["status"] == ExampleStatus.FREE & db["annotator_group"] == annotator_group]
@@ -298,6 +302,7 @@ def get_annotator_batch(app, campaign, service_ids):
 
         seed = random.seed(str(start) + str(service_ids.values()))
 
+        breakpoint()
         try:
             batch_idx = select_batch_idx(db, seed)
         except ValueError:

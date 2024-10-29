@@ -155,6 +155,8 @@ def generate_campaign_index(app, force_reload=True):
 
     existing_campaign_ids = set()
     for campaign_dir in Path(CAMPAIGN_DIR).iterdir():
+        if not campaign_dir.is_dir():
+            continue
         try:
             metadata = json.load(open(campaign_dir / "metadata.json"))
             mode = metadata["mode"]

@@ -126,7 +126,9 @@ def index():
 @app.route("/analyze", methods=["GET", "POST"])
 @login_required
 def analyze():
-    campaigns = workflows.get_sorted_campaign_list(app, modes=[CampaignMode.CROWDSOURCING, CampaignMode.LLM_EVAL])
+    campaigns = workflows.get_sorted_campaign_list(
+        app, modes=[CampaignMode.CROWDSOURCING, CampaignMode.LLM_EVAL, CampaignMode.EXTERNAL]
+    )
 
     return render_template(
         "pages/analyze.html",
@@ -387,7 +389,7 @@ def download_dataset():
         workflows.download_dataset(app, dataset_id)
     except Exception as e:
         traceback.print_exc()
-        return jsonify({"error": f"Error while downloading dataset: {e}"})
+        return jsonify({"error": f"Error while downloading dataset: {e.__class__.__name__}: {e}"})
 
     return utils.success()
 
