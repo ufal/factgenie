@@ -232,14 +232,10 @@ def clear_output():
     data = request.get_json()
     campaign_id = data.get("campaignId")
     idx = int(data.get("idx"))
-    annotator_group = data.get("annotatorGroup")
+    annotator_group = int(data.get("annotatorGroup"))
 
     campaign = workflows.load_campaign(app, campaign_id=campaign_id)
-
-    if annotator_group:
-        campaign.clear_output(idx, annotator_group)
-    else:
-        campaign.clear_output(idx)
+    campaign.clear_output(idx, annotator_group)
 
     return utils.success()
 
@@ -628,7 +624,9 @@ def llm_campaign_run():
         model = ModelFactory.from_config(config, mode=mode)
         running_campaigns = app.db["running_campaigns"]
 
-        ret = llm_campaign.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, running_campaigns, app=app)
+        ret = llm_campaign.run_llm_campaign(
+            mode, campaign_id, announcer, campaign, datasets, model, running_campaigns, app=app
+        )
 
         if hasattr(ret, "error"):
             llm_campaign.pause_llm_campaign(app, campaign_id)

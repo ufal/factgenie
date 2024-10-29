@@ -145,7 +145,7 @@ def generate_llm_campaign_db(mode, datasets, campaign_id, campaign_data):
     return df
 
 
-def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, running_campaigns):
+def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, running_campaigns, app=None):
     db = campaign.db
 
     # set campaign status to running
@@ -177,7 +177,7 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, ru
         try:
             if mode == CampaignMode.LLM_EVAL:
                 generated_output = workflows.get_output_for_setup(
-                    dataset_id, split, example_idx, setup_id, force_reload=False
+                    dataset_id, split, example_idx, setup_id, app=app, force_reload=False
                 )
                 res = model.annotate_example(data=example, text=generated_output["output"])
                 res["output"] = generated_output
@@ -198,9 +198,6 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, ru
         # save the record to a JSONL file
         response = workflows.save_record(
             mode=mode,
-            dataset_id=dataset_id,
-            split=split,
-            example_idx=example_idx,
             setup_id=setup_id,
             campaign=campaign,
             row=db.loc[i],

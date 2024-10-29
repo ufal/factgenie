@@ -108,7 +108,6 @@ def get_example_data(app, dataset_id, split, example_idx, setup_id=None):
     for i, output in enumerate(generated_outputs):
         setup_id = output["setup_id"]
         annotations = get_annotations(app, dataset_id, split, example_idx, setup_id)
-
         generated_outputs[i]["annotations"] = annotations
 
     return {
@@ -221,7 +220,7 @@ def create_annotation_example_record(j):
     return {
         "annotation_span_categories": j["metadata"]["annotation_span_categories"],
         "annotator_id": j["metadata"]["annotator_id"],
-        "annotator_group": j["metadata"].get("annotator_group"),
+        "annotator_group": int(j["metadata"].get("annotator_group", 0)),
         "campaign_id": slugify(j["metadata"]["campaign_id"]),
         "dataset": slugify(j["dataset"]),
         "example_idx": int(j["example_idx"]),

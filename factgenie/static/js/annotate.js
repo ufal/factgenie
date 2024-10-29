@@ -56,14 +56,19 @@ function collectOptions() {
             const label = $(this).find("label").text().trim();
             const index = $(this).find("select").val();
             const value = $(this).find("select option:selected").text();
-            const optionList = $(this).find("select option");
+
+            const optionList = $(this).find("select option").map(function () {
+                return $(this).text();
+            }).get();
             options.push({ type: type, label: label, index: index, value: value, optionList: optionList });
         } else if ($(this).hasClass("option-slider")) {
             const type = "slider";
             const label = $(this).find("label").text();
             const index = $(this).find("input[type='range']").val();
             const value = $(this).find("datalist option")[index].value;
-            const optionList = $(this).find("datalist option");
+            const optionList = $(this).find("datalist option").map(function () {
+                return $(this).val();
+            }).get();
             options.push({ type: type, label: label, index: index, value: value, optionList: optionList });
         }
     });

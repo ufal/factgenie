@@ -90,18 +90,11 @@ class Campaign:
         self.metadata["status"] = CampaignStatus.IDLE
         self.update_metadata()
 
-    def clear_single_output(self, idx, idx_type="example_idx", annotator_group=None):
-        # Identify the rows where idx_type matches idx
-        mask = self.db[idx_type] == idx
-
-        if annotator_group:
-            mask = mask & (self.db["annotator_group"] == annotator_group)
-
-        # Update the DataFrame using .loc
-        self.db.loc[mask, "status"] = ExampleStatus.FREE
-        self.db.loc[mask, "annotator_id"] = ""
-        self.db.loc[mask, "start"] = None
-        self.db.loc[mask, "end"] = None
+    def clear_output_by_idx(self, db_idx):
+        self.db.loc[db_idx, "status"] = ExampleStatus.FREE
+        self.db.loc[db_idx, "annotator_id"] = ""
+        self.db.loc[db_idx, "start"] = None
+        self.db.loc[db_idx, "end"] = None
 
         self.update_db(self.db)
 
@@ -110,10 +103,10 @@ class Campaign:
             self.update_metadata()
 
         # remove any outputs from JSONL files
-        dataset = self.db.loc[mask, "dataset"].values[0]
-        split = self.db.loc[mask, "split"].values[0]
-        setup_id = self.db.loc[mask, "setup_id"].values[0]
-        example_idx = self.db.loc[mask, idx_type].values[0]
+        dataset = self.db.loc[db_idx, "dataset"]
+        split = self.db.loc[db_idx, "split"]
+        setup_id = self.db.loc[db_idx, "setup_id"]
+        example_idx = self.db.loc[db_idx, "example_idx"]
 
         for jsonl_file in glob.glob(os.path.join(self.dir, "files/*.jsonl")):
             with open(jsonl_file, "r") as f:
@@ -126,12 +119,12 @@ class Campaign:
                         data["dataset"] == dataset
                         and data["split"] == split
                         and data["setup_id"] == setup_id
-                        and data[idx_type] == example_idx
-                        and data["metadata"].get("annotator_group", None) == annotator_group
+                        and data["example_idx"] == example_idx
+                        and data["metadata"].get("annotator_group", 0) == self.db.loc[db_idx, "annotator_group"]
                     ):
                         f.write(line)
 
-        logger.info(f"Cleared outputs and assignments for {idx}")
+        logger.info(f"Cleared outputs and assignments for {db_idx}")
 
 
 class ExternalCampaign(Campaign):
@@ -156,7 +149,8 @@ class HumanCampaign(Campaign):
                 > self.metadata["config"]["idle_time"] * 60
             ):
                 logger.info(f"Freeing example {example.example_idx} for {self.campaign_id} due to idle time")
-                self.clear_single_output(example.example_idx)
+                db_index = example.name
+                self.clear_output_by_idx(db_index)
 
     def get_stats(self):
         # group by batch_idx, keep the first row of each group
@@ -170,7 +164,12 @@ class HumanCampaign(Campaign):
         }
 
     def clear_output(self, idx, annotator_group):
-        self.clear_single_output(idx, idx_type="batch_idx", annotator_group=annotator_group)
+        self.load_db()
+        examples_for_batch = self.db[(self.db["batch_idx"] == idx) & (self.db["annotator_group"] == annotator_group)]
+
+        for _, example in examples_for_batch.iterrows():
+            db_index = example.name
+            self.clear_output_by_idx(db_index)
 
     def get_overview(self):
         self.load_db()
@@ -215,8 +214,10 @@ class LLMCampaign(Campaign):
             "free": len(self.db[self.db["status"] == ExampleStatus.FREE]),
         }
 
-    def clear_output(self, idx):
-        self.clear_single_output(idx, idx_type="example_idx")
+    def clear_output(self, idx, annotator_group):
+        example_row = self.db[(self.db["example_idx"] == idx) & (self.db["annotator_group"] == annotator_group)].iloc[0]
+        db_idx = example_row.name
+        self.clear_output_by_idx(db_idx)
 
 
 class LLMCampaignEval(LLMCampaign):
