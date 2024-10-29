@@ -1,12 +1,16 @@
 annotation_span_categories:
   - name: "Incorrect"
     color: "#ffbcbc"
+    description: "The fact in the text contradicts the data."
   - name: "Not checkable"
     color: "#e9d2ff"
+    description: "The fact in the text cannot be checked given the data."
   - name: "Misleading"
     color: "#fff79f"
+    description: "The fact in the text is misleading in the given context."
   - name: "Other"
     color: "#bbbbbb"
+    description: "The text is problematic for another reason, e.g. grammatically or stylistically incorrect, irrelevant, or repetitive."
 service: prolific
 examples_per_batch: 10
 annotators_per_example: 1

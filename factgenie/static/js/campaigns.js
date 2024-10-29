@@ -251,6 +251,57 @@ function pauseLLMCampaign(campaignId) {
     });
 }
 
+function prefillInstructions() {
+    const annotationSpanCategories = getAnnotationSpanCategories();
+    const defaultInstructions = window.default_prompts.crowdsourcing;
+
+    if (annotationSpanCategories.length == 0) {
+        alert("Please add at least one annotation span category.");
+        return;
+    }
+    // if annotatorInstructionsMDE contains some text, ask for confirmation
+    if (annotatorInstructionsMDE.value().length > 0) {
+        if (!confirm("Are you sure you want to overwrite the current instructions?")) {
+            return;
+        }
+    }
+
+    var errorList = [];
+    annotationSpanCategories.forEach((category) => {
+        const span = `- <span style="background-color: ${category.color}"><b>${category.name}</b></span>: ${category.description}`;
+        errorList.push(span);
+    });
+    var instructions = defaultInstructions.replace(/{error_list}/g, errorList.join("\n"));
+    annotatorInstructionsMDE.value(instructions);
+}
+
+function prefillPrompt() {
+    const annotationSpanCategories = getAnnotationSpanCategories();
+    const defaultPrompt = window.default_prompts.llm_eval;
+
+    if (annotationSpanCategories.length == 0) {
+        alert("Please add at least one annotation span category.");
+        return;
+    }
+
+    // if promptTemplate contains some text, ask for confirmation
+    if ($("#prompt-template").val().length > 0) {
+        if (!confirm("Are you sure you want to overwrite the current prompt?")) {
+            return;
+        }
+    }
+    var errorList = [];
+
+    annotationSpanCategories.forEach((category, idx) => {
+        const span = `${idx}: ${category.name} (${category.description})`;
+        errorList.push(span);
+    });
+
+    var prompt = defaultPrompt.replace(/{error_list}/g, errorList.join("\n"));
+    $("#prompt-template").val(prompt);
+}
+
+
 function runLLMCampaign(campaignId) {
     $(`#run-button-${campaignId}`).hide();
     $(`#stop-button-${campaignId}`).show();
@@ -466,6 +517,7 @@ function updateCrowdsourcingConfig() {
         // $("#annotatorPrompt").val("");
         finalMessageMDE.value("");
         $("#examplesPerBatch").val("");
+        $("#annotatorsPerExample").val("");
         $("#idleTime").val("");
         $("#annotation-span-categories").empty();
         $("#flags").empty();
@@ -500,7 +552,7 @@ function updateCrowdsourcingConfig() {
     $("#annotation-span-categories").empty();
 
     annotationSpanCategories.forEach((annotationSpanCategory) => {
-        const newCategory = createAnnotationSpanCategoryElem(annotationSpanCategory.name, annotationSpanCategory.color);
+        const newCategory = createAnnotationSpanCategoryElem(annotationSpanCategory.name, annotationSpanCategory.color, annotationSpanCategory.description);
         $("#annotation-span-categories").append(newCategory);
     });
     $("#flags").empty();
@@ -537,10 +589,10 @@ function updateLLMMetricConfig() {
     const llmConfigValue = $('#llmConfig').val();
 
     if (llmConfigValue === "[None]") {
-        $("#model-name").html("");
-        $("#prompt-template").html("");
-        $("#system-message").html("");
-        $("#api-url").html("");
+        $("#model-name").val("");
+        $("#prompt-template").val("");
+        $("#system-message").val("");
+        $("#api-url").val("");
         $("#model-arguments").empty();
         $("#annotation-span-categories").empty();
         $("#extra-arguments").empty();
@@ -580,7 +632,7 @@ function updateLLMMetricConfig() {
         $("#annotation-span-categories").empty();
 
         annotationSpanCategories.forEach((annotationSpanCategory) => {
-            const newCategory = createAnnotationSpanCategoryElem(annotationSpanCategory.name, annotationSpanCategory.color);
+            const newCategory = createAnnotationSpanCategoryElem(annotationSpanCategory.name, annotationSpanCategory.color, annotationSpanCategory.description);
             $("#annotation-span-categories").append(newCategory);
         });
     }

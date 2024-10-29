@@ -224,7 +224,8 @@ def generate_crowdsourcing_campaign_db(app, campaign_data, config):
     # if we have multiple `annotators_per_example`, repeat the dataframe `annotators_per_example` times, assigning an increasing index of `annotator_group` to each repeating dataframe
     if annotators_per_example > 1:
         df = pd.concat([df] * annotators_per_example, ignore_index=True)
-        df["annotator_group"] = df.index // len(all_examples)
+
+    df["annotator_group"] = df.index // len(all_examples)
 
     return df
 

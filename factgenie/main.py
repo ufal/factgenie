@@ -304,12 +304,14 @@ def crowdsourcing_new():
 
     available_data = workflows.get_model_outputs_overview(app, datasets)
     configs = workflows.load_configs(mode=CampaignMode.CROWDSOURCING)
+    default_prompts = utils.load_default_prompts()
 
     default_campaign_id = workflows.generate_default_id(app=app, mode=CampaignMode.CROWDSOURCING, prefix="campaign")
 
     return render_template(
         "pages/crowdsourcing_new.html",
         default_campaign_id=default_campaign_id,
+        default_prompts=default_prompts,
         datasets=datasets,
         available_data=available_data,
         configs=configs,
@@ -592,12 +594,14 @@ def llm_campaign_new():
     metric_types = list(ModelFactory.model_classes()[mode].keys())
 
     default_campaign_id = workflows.generate_default_id(app, mode=mode, prefix=mode.replace("_", "-"))
+    default_prompts = utils.load_default_prompts()
 
     return render_template(
         f"pages/llm_campaign_new.html",
         mode=mode,
         datasets=datasets,
         default_campaign_id=default_campaign_id,
+        default_prompts=default_prompts,
         available_data=available_data,
         configs=llm_configs,
         metric_types=metric_types,

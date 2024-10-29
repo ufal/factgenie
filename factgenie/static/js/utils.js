@@ -5,7 +5,7 @@ const mode = window.mode;
 function addAnnotationSpanCategory() {
     const annotationSpanCategories = $("#annotation-span-categories");
     const randomColor = '#' + Math.floor(Math.random() * 16777215).toString(16);
-    const newCategory = createAnnotationSpanCategoryElem("", randomColor);
+    const newCategory = createAnnotationSpanCategoryElem("", randomColor, "");
     annotationSpanCategories.append(newCategory);
 }
 
@@ -118,14 +118,17 @@ function createArgElem(key, value) {
     return newArg;
 }
 
-function createAnnotationSpanCategoryElem(name, color) {
+function createAnnotationSpanCategoryElem(name, color, description) {
     const newCategory = $(`
         <div class="row mt-1">
-        <div class="col-6">
+        <div class="col-3">
         <input type="text" class="form-control" name="annotationSpanCategoryName" value="${name}" placeholder="Category name">
         </div>
-        <div class="col-5">
+        <div class="col-1">
         <input type="color" class="form-control" name="annotationSpanCategoryColor" value="${color}">
+        </div>
+        <div class="col-7">
+        <input type="text" class="form-control" name="annotationSpanCategoryDescription" placeholder="Description" value="${description}">
         </div>
         <div class="col-1">
         <button type="button" class="btn btn-danger" onclick="deleteRow(this);">x</button>
@@ -193,7 +196,8 @@ function getAnnotationSpanCategories() {
     $("#annotation-span-categories").children().each(function () {
         const name = $(this).find("input[name='annotationSpanCategoryName']").val();
         const color = $(this).find("input[name='annotationSpanCategoryColor']").val();
-        annotationSpanCategories.push({ name: name, color: color });
+        const description = $(this).find("input[name='annotationSpanCategoryDescription']").val();
+        annotationSpanCategories.push({ name: name, color: color, description: description });
     });
     return annotationSpanCategories;
 }

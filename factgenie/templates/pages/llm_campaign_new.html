@@ -77,39 +77,13 @@
             </div>
 
             <div class="rounded-box mt-4">
-              <div class="row g-3 mb-3 align-items-center">
-                <div class="col-auto">
-                  <i class="fa fa-code"></i>
-                  <span style="margin-left: 5px; margin-right: 10px;">API</span>
-                  <div class="mb-2">
-                    <small class="form-text text-muted">Select one of the available metric types (or add your own class
-                      to
-                      <code>factgenie/metrics.py</code>).
-                    </small>
-                  </div>
-                </div>
-                <div class="form-group mt-1">
-                  <select class="form-select" id="metric-type" name="metric-type">
-                    {% for metric_type in metric_types %}
-                    <option value="{{ metric_type }}">{{ metric_type }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
+              {% if mode == 'llm_eval' %}
+              {% include 'include/annotation_span_categories.html' %}
+              <div class="col-auto mt-3 mb-3">
+                <button type="button" class="btn btn-primary btn-sm" onclick="prefillPrompt();">✨
+                  Pre-fill prompt template</button>
               </div>
-
-              <div class="row g-3 mb-3 align-items-center">
-                <div class="col-auto">
-                  <i class="fa fa-cube"></i>
-                  <span style="margin-left: 5px; margin-right: 10px;">Model</span>
-                  <div class="mb-2">
-                    <small class="form-text text-muted">The identifier of the model you are querying.
-                    </small>
-                  </div>
-                </div>
-                <div class="form-group mt-1">
-                  <textarea class="form-control" id="model-name" name="model-name" rows="1"></textarea>
-                </div>
-              </div>
+              {% endif %}
 
               <div class="row g-3 mb-3 align-items-center">
                 <div class="col-auto">
@@ -164,6 +138,26 @@
 
               <div class="row g-3 mb-3 align-items-center">
                 <div class="col-auto">
+                  <i class="fa fa-code"></i>
+                  <span style="margin-left: 5px; margin-right: 10px;">API</span>
+                  <div class="mb-2">
+                    <small class="form-text text-muted">Select one of the available metric types (or add your own class
+                      to
+                      <code>factgenie/metrics.py</code>).
+                    </small>
+                  </div>
+                </div>
+                <div class="form-group mt-1">
+                  <select class="form-select" id="metric-type" name="metric-type">
+                    {% for metric_type in metric_types %}
+                    <option value="{{ metric_type }}">{{ metric_type }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+
+              <div class="row g-3 mb-3 align-items-center">
+                <div class="col-auto">
                   <i class="fa fa-link"></i>
                   <span style=" margin-left: 10px; margin-right: 10px;">API URL</span>
                   <div class="mb-2">
@@ -175,6 +169,20 @@
                 </div>
                 <div class="form-group mt-1">
                   <textarea class="form-control" id="api-url" name="api-url" rows="1"></textarea>
+                </div>
+              </div>
+
+              <div class="row g-3 mb-3 align-items-center">
+                <div class="col-auto">
+                  <i class="fa fa-cube"></i>
+                  <span style="margin-left: 5px; margin-right: 10px;">Model</span>
+                  <div class="mb-2">
+                    <small class="form-text text-muted">The identifier of the model you are querying.
+                    </small>
+                  </div>
+                </div>
+                <div class="form-group mt-1">
+                  <textarea class="form-control" id="model-name" name="model-name" rows="1"></textarea>
                 </div>
               </div>
 
@@ -196,10 +204,6 @@
                     onclick="addModelArgument();">+</button>
                 </div>
               </div>
-
-              {% if mode == 'llm_eval' %}
-              {% include 'include/annotation_span_categories.html' %}
-              {% endif %}
 
               <div class="row g-3 mb-3 align-items-center">
                 <div class="col-auto">
@@ -288,6 +292,7 @@
   window.available_data = {{ available_data | tojson | safe }};
   window.configs = {{ configs | tojson | safe }};
   window.datasets = {{ datasets | tojson | safe }};
+  window.default_prompts = {{ default_prompts | tojson | safe }};
   window.mode = "{{ mode }}";
 </script>
 <script src="{{ host_prefix }}/static/js/utils.js"></script>

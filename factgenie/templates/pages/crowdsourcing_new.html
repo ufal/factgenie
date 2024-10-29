@@ -81,8 +81,16 @@
             </div>
 
             <div class="rounded-box mt-4">
+              {% include 'include/annotation_span_categories.html' %}
+
+              <div class="col-auto mt-3">
+                <button type="button" class="btn btn-primary btn-sm" onclick="prefillInstructions();">✨
+                  Pre-fill annotator
+                  instructions</button>
+              </div>
+
               <!-- textarea for annotator instructions -->
-              <div class="form-group">
+              <div class="form-group mt-3">
                 <label for="annotatorInstructions">Annotator instructions</label>
                 <div class="mb-2">
                   <small class="form-text text-muted">Instructions shown to the annotators. Use Markdown syntax.</small>
@@ -164,8 +172,7 @@
                 <input type="number" class="form-control" id="idleTime" name="idleTime" min="0">
               </div>
 
-              {% include 'include/annotation_span_categories.html' %}
-              <div class="accordion " id="advancedAccordion">
+              <div class="accordion  mt-3" id="advancedAccordion">
                 <div class="accordion-item">
                   <h2 class="accordion-header" id="headingAdvanced">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
@@ -303,6 +310,7 @@
   window.available_data = {{ available_data | tojson | safe }};
   window.datasets = {{ datasets | tojson | safe }};
   window.configs = {{ configs | tojson | safe }};
+  window.default_prompts = {{ default_prompts | tojson | safe }};
   window.mode = "crowdsourcing";
 
   var annotatorInstructionsMDE = new SimpleMDE({

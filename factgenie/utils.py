@@ -11,11 +11,12 @@ from pathlib import Path
 from flask import jsonify
 from factgenie.campaigns import CampaignMode
 from factgenie import (
-    CROWDSOURCING_CONFIG_DIR,
-    LLM_EVAL_CONFIG_DIR,
-    LLM_GEN_CONFIG_DIR,
     RESOURCES_CONFIG_PATH,
     DATASET_CONFIG_PATH,
+    DEFAULT_PROMPTS_CONFIG_PATH,
+    LLM_EVAL_CONFIG_DIR,
+    LLM_GEN_CONFIG_DIR,
+    CROWDSOURCING_CONFIG_DIR,
 )
 
 logger = logging.getLogger(__name__)
@@ -96,6 +97,13 @@ def load_dataset_config():
         config = {}
 
     return config
+
+
+def load_default_prompts():
+    with open(DEFAULT_PROMPTS_CONFIG_PATH, "r") as f:
+        prompts = yaml.safe_load(f)
+
+    return prompts
 
 
 def save_dataset_config(config):
