@@ -71,7 +71,7 @@ function createOutputBox(content, exampleLevelFields, campaign_id, setup_id) {
     return card;
 }
 
-function createOutputBoxes(generated_outputs) {
+function createOutputBoxes(generated_outputs, highlight_setup_id) {
     // clear the output area
     $("#outputarea").empty();
 
@@ -123,8 +123,13 @@ function createOutputBoxes(generated_outputs) {
             card.appendTo(groupDiv);
             card.hide();
         }
-    }
 
+        // Highlight the output box if highlight_setup_id matches
+        if (highlight_setup_id && highlight_setup_id === output.setup_id) {
+            card.addClass('border border-primary border-2');
+            groupDiv.css({ animation: 'jump-out 0.5s ease' });
+        }
+    }
 }
 
 function fetchExample(dataset, split, example_idx) {
@@ -153,9 +158,11 @@ function fetchExample(dataset, split, example_idx) {
         total_examples = datasets[dataset].example_count[split];
         $("#total-examples").html(total_examples - 1);
 
-        createOutputBoxes(data.generated_outputs);
+        createOutputBoxes(data.generated_outputs, window.highlight_setup_id);
         showSelectedCampaigns();
         updateDisplayedAnnotations();
+
+        window.highlight_setup_id = null;
     }).fail(function (response) {
         console.log(response);
         alert("Failed to fetch example.");

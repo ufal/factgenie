@@ -145,33 +145,6 @@ def generate_llm_campaign_db(mode, datasets, campaign_id, campaign_data):
     return df
 
 
-def get_campaign_overview(app, campaign, mode):
-    campaign.load_db()
-    df = campaign.db.copy()
-
-    if mode == CampaignMode.LLM_EVAL:
-
-        breakpoint()
-        df["record"] = df.apply(
-            lambda row: workflows.get_annotations(
-                app, row["dataset"], row["split"], row["example_idx"], row["setup_id"]
-            ),
-            axis=1,
-        )
-    elif mode == CampaignMode.LLM_GEN:
-        breakpoint()
-        df["record"] = df.apply(
-            lambda row: workflows.get_output_for_setup(
-                row["dataset"], row["split"], row["example_idx"], row["setup_id"], force_reload=False
-            ),
-            axis=1,
-        )
-    # replace NaNs with None
-    df = df.where(pd.notnull(df), None)
-
-    return df.to_dict(orient="records")
-
-
 def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, running_campaigns):
     db = campaign.db
 
@@ -223,7 +196,7 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, ru
         campaign.update_db(db)
 
         # save the record to a JSONL file
-        response = save_record(
+        response = workflows.save_record(
             mode=mode,
             dataset_id=dataset_id,
             split=split,
@@ -301,44 +274,6 @@ def parse_campaign_config(config):
 
     parsed_config = {key: parse_value(value) for key, value in config.items()}
     return parsed_config
-
-
-def save_record(mode, dataset_id, split, example_idx, setup_id, campaign, row, result):
-    campaign_id = campaign.metadata["id"]
-
-    save_dir = os.path.join(CAMPAIGN_DIR, campaign_id, "files")
-    os.makedirs(save_dir, exist_ok=True)
-
-    # save the output
-    record = {
-        "dataset": dataset_id,
-        "split": split,
-        "setup_id": setup_id,
-        "example_idx": example_idx,
-        "prompt": result["prompt"],
-        "output": result["output"],
-        "metadata": campaign.metadata["config"].copy(),
-    }
-
-    last_run = campaign.metadata["last_run"]
-
-    if mode == CampaignMode.LLM_EVAL:
-        record["annotations"] = result["annotations"]
-        record["setup_id"] = setup_id
-        filename = f"{dataset_id}-{split}-{setup_id}-{last_run}.jsonl"
-    elif mode == CampaignMode.LLM_GEN:
-        filename = f"{dataset_id}-{split}-{last_run}.jsonl"
-
-    record["metadata"]["annotator_id"] = row["annotator_id"]
-    record["metadata"]["campaign_id"] = campaign_id
-    record["metadata"]["start_timestamp"] = row["start"]
-    record["metadata"]["end_timestamp"] = row["end"]
-
-    # append the record to the file from the current run
-    with open(os.path.join(save_dir, filename), "a") as f:
-        f.write(json.dumps(record) + "\n")
-
-    return record
 
 
 def save_generation_outputs(app, campaign_id, setup_id):

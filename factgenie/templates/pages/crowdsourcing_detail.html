@@ -98,7 +98,7 @@
             <tr>
               <th scope="col" data-sortable="true">Batch id</th>
               <th scope="col" data-sortable="true">Ann. group</th>
-              <th scope="col" data-sortable="true">Size</th>
+              <th scope="col" data-sortable="true">Examples</th>
               <th scope="col" data-sortable="true">Status</th>
               <th scope="col" data-sortable="true">Annotator id</th>
               <th scope="col" data-sortable="true">Start time</th>
@@ -120,6 +120,11 @@
               <td>{{ batch.start | ctime }}</td>
               <td>{{ batch | elapsed }}</td>
               <td>
+                <a href="{{ host_prefix }}/annotate/{{ metadata.id }}?batch_idx={{ batch.batch_idx }}"
+                  class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip"
+                  title="Preview the crowdsourcing page for the batch">
+                  <i class="fa fa-eye"></i>
+                </a>
                 <a class="btn btn-sm btn-outline-secondary"
                   onclick="clearOutput('{{ metadata.id }}', '{{ mode }}', '{{ batch.batch_idx }}', {{ batch.annotator_group }})"
                   data-bs-toggle="tooltip" title="Clear outputs and set free" id="clearOutput{{ rowId }}"
@@ -129,13 +134,31 @@
               </td>
               <td style="display: none;">
                 <div class="card card-body" style="display: block !important;">
-                  <b>examples:</b>
-                  {% for e in batch.example_list %}
-                  <!-- link, open in new tab -->
-                  <a href="{{ host_prefix }}/browse?dataset={{ e.dataset }}&split={{ e.split }}&example_idx={{ e.example_idx }}"
-                    class="btn btn-outline-secondary btn-sm" target="_blank">
-                    {{ e.dataset }}-{{ e.split }}-{{ e.setup_id }}-{{ e.example_idx }}</a>
-                  {% endfor %}
+                  <table class="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Dataset</th>
+                        <th>Split</th>
+                        <th>Setup id</th>
+                        <th>Example idx</th>
+                        <th>Link</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for e in batch.example_list %}
+                      <tr>
+                        <td>{{ e.dataset }}</td>
+                        <td>{{ e.split }}</td>
+                        <td>{{ e.setup_id }}</td>
+                        <td>{{ e.example_idx }}</td>
+                        <td><a
+                            href="{{ host_prefix }}/browse?dataset={{ e.dataset }}&split={{ e.split }}&example_idx={{ e.example_idx }}&setup_id={{ e.setup_id }}"
+                            class="blue-link" target="_blank">
+                            <i class="fa fa-external-link"></a></td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
                 </div>
               </td>
 

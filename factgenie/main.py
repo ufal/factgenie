@@ -155,13 +155,16 @@ def analyze_detail(campaign_id):
 @app.route("/annotate/<campaign_id>", methods=["GET", "POST"])
 def annotate(campaign_id):
     workflows.refresh_indexes(app)
+
+    # only for preview purposes, batch index is otherwise randomly generated
+    batch_idx = request.args.get("batch_idx", None)
     campaign = workflows.load_campaign(app, campaign_id=campaign_id)
 
     service = campaign.metadata["config"]["service"]
     service_ids = crowdsourcing.get_service_ids(service, request.args)
 
     metadata = campaign.metadata
-    annotation_set = crowdsourcing.get_annotator_batch(app, campaign, service_ids)
+    annotation_set = crowdsourcing.get_annotator_batch(app, campaign, service_ids, batch_idx=batch_idx)
 
     if not annotation_set:
         # no more available examples
@@ -185,6 +188,7 @@ def browse():
     dataset_id = request.args.get("dataset")
     split = request.args.get("split")
     example_idx = request.args.get("example_idx")
+    setup_id = request.args.get("setup_id")
 
     if dataset_id and split and example_idx:
         display_example = {"dataset": dataset_id, "split": split, "example_idx": int(example_idx)}
@@ -204,6 +208,7 @@ def browse():
     return render_template(
         "pages/browse.html",
         display_example=display_example,
+        highlight_setup_id=setup_id,
         datasets=datasets,
         host_prefix=app.config["host_prefix"],
     )
@@ -623,7 +628,7 @@ def llm_campaign_run():
         model = ModelFactory.from_config(config, mode=mode)
         running_campaigns = app.db["running_campaigns"]
 
-        ret = llm_campaign.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, running_campaigns)
+        ret = llm_campaign.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, running_campaigns, app=app)
 
         if hasattr(ret, "error"):
             llm_campaign.pause_llm_campaign(app, campaign_id)

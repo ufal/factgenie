@@ -145,9 +145,9 @@
               <td>{{ record.setup_id }}</td>
               <td>{{ record.output_ids | length }}</td>
               <td>
-                <a href="{{ host_prefix }}/browse?dataset={{ record.dataset }}&split={{ record.split }}&example_idx=0"
+                <a href="{{ host_prefix }}/browse?dataset={{ record.dataset }}&split={{ record.split }}&example_idx=0&setup_id={{ record.setup_id }}"
                   class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Show the outputs">
-                  <i class="fa fa-eye"></i>
+                  <i class="fa fa-external-link"></i>
                 </a>
                 <a href="{{ host_prefix }}/export_outputs?dataset={{ record.dataset }}&split={{ record.split }}&setup_id={{ record.setup_id }}"
                   class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Export model outputs">

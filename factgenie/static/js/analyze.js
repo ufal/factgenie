@@ -99,7 +99,6 @@ function computeAgreement() {
             }
         },
         error: function (response) {
-            debugger;
             alert("An error occurred: " + response.responseText);
         }
     });

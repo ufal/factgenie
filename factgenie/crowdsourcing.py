@@ -184,17 +184,16 @@ def generate_crowdsourcing_campaign_db(app, campaign_data, config):
 
     for c in campaign_data:
         for i in workflows.get_output_ids(c["dataset"], c["split"], c["setup_id"]):
-            for annotator_group in range(annotators_per_example):
-                all_examples.append(
-                    {
-                        "dataset": c["dataset"],
-                        "split": c["split"],
-                        "example_idx": i,
-                        "setup_id": c["setup_id"],
-                        "annotator_group": annotator_group,
-                    }
-                )
+            all_examples.append(
+                {
+                    "dataset": c["dataset"],
+                    "split": c["split"],
+                    "example_idx": i,
+                    "setup_id": c["setup_id"],
+                }
+            )
 
+    # deterministic shuffling
     random.seed(42)
 
     # shuffle all examples and setups
@@ -222,9 +221,10 @@ def generate_crowdsourcing_campaign_db(app, campaign_data, config):
     df["start"] = None
     df["end"] = None
 
-    # if we have multiple `annotators_per_example`, copy each example `annotators_per_example` times
+    # if we have multiple `annotators_per_example`, repeat the dataframe `annotators_per_example` times, assigning an increasing index of `annotator_group` to each repeating dataframe
     if annotators_per_example > 1:
-        df = df.loc[df.index.repeat(annotators_per_example)].reset_index(drop=True)
+        df = pd.concat([df] * annotators_per_example, ignore_index=True)
+        df["annotator_group"] = df.index // len(all_examples)
 
     return df
 
@@ -269,28 +269,54 @@ def parse_crowdsourcing_config(config):
     return config
 
 
-def select_batch_idx(db, seed, annotator_groups):
+def select_batch(db, seed):
+    # Choose from the batches with the least number of finished examples
+    finished_example_cnt = db.groupby("batch_idx").apply(lambda x: x["status"].eq(ExampleStatus.FINISHED).sum())
+    min_finished = finished_example_cnt.min()
+    eligible_batches = finished_example_cnt[finished_example_cnt == min_finished]
 
-    breakpoint()
-    # try to find a free batch for the lowest annotator group index
-    for annotator_group in annotator_groups:
-        free_examples = db[db["status"] == ExampleStatus.FREE & db["annotator_group"] == annotator_group]
+    # Get the rows from the database that correspond to the eligible batches
+    eligible_examples = db[db["batch_idx"].isin(eligible_batches.index)]
 
-        if len(free_examples) == 0:
-            continue
+    # Keep the examples are free
+    eligible_examples = eligible_examples[eligible_examples["status"] == ExampleStatus.FREE]
 
-        example = free_examples.sample(random_state=seed)
-        batch_idx = int(example.batch_idx.values[0])
-        break
+    # Randomly select an example (with its batch) from the eligible ones
+    if not eligible_examples.empty:
+        selected_example = eligible_examples.sample(n=1, random_state=seed).iloc[0]
+        selected_batch_idx = selected_example["batch_idx"]
+
+        # Get the lowest annotator group for the selected batch
+        selected_annotator_group = db[db["batch_idx"] == selected_batch_idx]["annotator_group"].min()
+
+        logging.info(f"Selected batch {selected_batch_idx} (annotator group {selected_annotator_group})")
+        return selected_batch_idx, selected_annotator_group
     else:
-        raise ValueError("No examples available")
-
-    logger.info(f"Selecting batch {batch_idx}, annotator group {annotator_group}")
-
-    return batch_idx
+        raise ValueError("No available batches")
 
 
-def get_annotator_batch(app, campaign, service_ids):
+def get_examples_for_batch(db, batch_idx, annotator_group):
+    annotator_batch = []
+
+    # find all examples for this batch and annotator group
+    batch_examples = db[(db["batch_idx"] == batch_idx) & (db["annotator_group"] == annotator_group)]
+
+    for _, row in batch_examples.iterrows():
+        annotator_batch.append(
+            {
+                "dataset": row["dataset"],
+                "split": row["split"],
+                "setup_id": row["setup_id"],
+                "example_idx": row["example_idx"],
+                "batch_idx": row["batch_idx"],
+                "annotator_group": row["annotator_group"],
+            }
+        )
+
+    return annotator_batch
+
+
+def get_annotator_batch(app, campaign, service_ids, batch_idx=None):
     db = campaign.db
 
     # simple locking over the CSV file to prevent double writes
@@ -299,31 +325,32 @@ def get_annotator_batch(app, campaign, service_ids):
 
         logging.info(f"Acquiring lock for {annotator_id}")
         start = int(time.time())
-
         seed = random.seed(str(start) + str(service_ids.values()))
 
-        breakpoint()
-        try:
-            batch_idx = select_batch_idx(db, seed)
-        except ValueError:
-            # no available batches
-            return []
+        if not batch_idx:
+            # usual case: an annotator opened the annotation page, we need to select the batch
+            try:
+                batch_idx, annotator_group = select_batch(db, seed)
+            except ValueError:
+                # no available batches
+                return []
+        else:
+            # preview mode
+            batch_idx = int(batch_idx)
+            annotator_group = 0
 
+        mask = (db["batch_idx"] == batch_idx) & (db["annotator_group"] == annotator_group)
+
+        # we do not block the example if we are in preview mode
         if annotator_id != PREVIEW_STUDY_ID:
-            # update the CSV
-            db.loc[db["batch_idx"] == batch_idx, "status"] = ExampleStatus.ASSIGNED
-            db.loc[db["batch_idx"] == batch_idx, "start"] = start
-            db.loc[db["batch_idx"] == batch_idx, "annotator_id"] = annotator_id
+            db.loc[mask, "status"] = ExampleStatus.ASSIGNED
 
-            campaign.update_db(db)
+        db.loc[mask, "start"] = start
+        db.loc[mask, "annotator_id"] = annotator_id
 
-        annotator_batch = campaign.get_examples_for_batch(batch_idx)
+        campaign.update_db(db)
 
-        for example in annotator_batch:
-            example.update(
-                {"campaign_id": campaign.campaign_id, "batch_idx": batch_idx, "start_timestamp": start, **service_ids}
-            )
-
+        annotator_batch = get_examples_for_batch(db, batch_idx, annotator_group)
         logging.info(f"Releasing lock for {annotator_id}")
 
     return annotator_batch
@@ -339,11 +366,13 @@ def save_annotations(app, campaign_id, annotation_set, annotator_id):
     with app.db["lock"]:
         db = campaign.db
         batch_idx = annotation_set[0]["batch_idx"]
+        annotator_group = annotation_set[0]["annotator_group"]
+
+        # select the examples for this batch and annotator group
+        mask = (db["batch_idx"] == batch_idx) & (db["annotator_group"] == annotator_group)
 
         # if the batch is not assigned to this annotator, return an error
-        batch_annotator_id = db.loc[db["batch_idx"] == batch_idx, "annotator_id"]
-
-        breakpoint()
+        batch_annotator_id = db.loc[mask].iloc[0]["annotator_id"]
 
         if batch_annotator_id != annotator_id and annotator_id != PREVIEW_STUDY_ID:
             logger.info(
@@ -351,15 +380,42 @@ def save_annotations(app, campaign_id, annotation_set, annotator_id):
             )
             return utils.error(f"Batch not assigned to annotator {annotator_id}")
 
-        with open(os.path.join(save_dir, f"{batch_idx}-{annotator_id}-{now}.jsonl"), "w") as f:
-            for row in annotation_set:
-                f.write(json.dumps(row) + "\n")
-
-        db.loc[db["batch_idx"] == batch_idx, "status"] = ExampleStatus.FINISHED
-        db.loc[db["batch_idx"] == batch_idx, "end"] = now
-
+        # update the db
+        db.loc[mask, "status"] = ExampleStatus.FINISHED
+        db.loc[mask, "end"] = now
         campaign.update_db(db)
-        logger.info(f"Annotations for {campaign_id} (batch {batch_idx}) saved")
+
+        # save the annotations
+        for i, ann in enumerate(annotation_set):
+            row = db.loc[mask].iloc[i]
+
+            # retrieve the related model output to save it with the annotations
+            output = workflows.get_output_for_setup(
+                dataset=row["dataset"],
+                split=row["split"],
+                setup_id=row["setup_id"],
+                example_idx=row["example_idx"],
+                app=app,
+                force_reload=False,
+            )["output"]
+
+            res = {
+                "annotations": ann["annotations"],
+                "flags": ann["flags"],
+                "options": ann["options"],
+                "text_fields": ann["textFields"],
+                "output": output,
+            }
+            # save the record to a JSONL file
+            workflows.save_record(
+                mode=CampaignMode.CROWDSOURCING,
+                campaign=campaign,
+                row=row,
+                result=res,
+            )
+        logger.info(
+            f"Annotations for {campaign_id} (batch {batch_idx}, annotator group {annotator_group}, annotator {annotator_id}) saved."
+        )
 
     final_message_html = markdown.markdown(campaign.metadata["config"]["final_message"])
 

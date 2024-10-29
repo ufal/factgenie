@@ -219,6 +219,7 @@ function loadAnnotations() {
             YPet.start();
 
             $("#hideOverlayBtn").attr("disabled", false);
+            $("#hideOverlayBtn").html("View the annotation page");
         })
         .catch((e) => {
             // Handle errors if any request fails

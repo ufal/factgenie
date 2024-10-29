@@ -99,9 +99,11 @@ def get_example_data(app, dataset_id, split, example_idx, setup_id=None):
     html = html.replace('src="/files', f'src="{app.config["host_prefix"]}/files')
 
     if setup_id:
-        generated_outputs = [get_output_for_setup(dataset_id, split, example_idx, setup_id, force_reload=False)]
+        generated_outputs = [
+            get_output_for_setup(dataset_id, split, example_idx, setup_id, app=app, force_reload=False)
+        ]
     else:
-        generated_outputs = get_outputs(app, dataset_id, split, example_idx, force_reload=False)
+        generated_outputs = get_outputs(dataset_id, split, example_idx, app=app, force_reload=False)
 
     for i, output in enumerate(generated_outputs):
         setup_id = output["setup_id"]
@@ -615,6 +617,11 @@ def delete_model_outputs(dataset, split=None, setup_id=None):
             with open(file, "w") as f:
                 f.writelines(new_lines)
 
+    # remove any empty directories in the output directory
+    for dirpath, dirnames, _filenames in os.walk(path):
+        if not os.listdir(dirpath):
+            os.rmdir(dirpath)
+
 
 def export_outputs(app, dataset_id, split, setup_id):
     zip_buffer = BytesIO()
@@ -693,8 +700,8 @@ def get_model_outputs_overview(app, datasets):
     return outputs
 
 
-def get_output_for_setup(dataset, split, example_idx, setup_id, force_reload=True):
-    output_index = get_output_index(app=None, force_reload=force_reload)
+def get_output_for_setup(dataset, split, example_idx, setup_id, app=None, force_reload=True):
+    output_index = get_output_index(app=app, force_reload=force_reload)
 
     if output_index.empty:
         return None
@@ -712,7 +719,7 @@ def get_output_for_setup(dataset, split, example_idx, setup_id, force_reload=Tru
     return output.to_dict(orient="records")[0]
 
 
-def get_outputs(app, dataset_id, split, example_idx, force_reload=True):
+def get_outputs(dataset_id, split, example_idx, app=None, force_reload=True):
     outputs = get_output_index(app, force_reload=force_reload)
 
     if outputs.empty:
@@ -803,3 +810,55 @@ def refresh_indexes(app):
     # force reload the annotation and output index
     get_annotation_index(app, force_reload=True)
     get_output_index(app=app, force_reload=True)
+
+
+def save_record(mode, campaign, row, result):
+    campaign_id = campaign.metadata["id"]
+
+    save_dir = os.path.join(CAMPAIGN_DIR, campaign_id, "files")
+    os.makedirs(save_dir, exist_ok=True)
+
+    dataset_id = str(row["dataset"])
+    split = str(row["split"])
+    example_idx = int(row["example_idx"])
+    annotator_id = str(row["annotator_id"])
+
+    # save the output
+    record = {
+        "dataset": dataset_id,
+        "split": split,
+        "example_idx": example_idx,
+        "output": result["output"],
+        "metadata": campaign.metadata["config"].copy(),
+    }
+
+    if mode == CampaignMode.LLM_EVAL or mode == CampaignMode.CROWDSOURCING:
+        setup_id = str(row["setup_id"])
+        record["setup_id"] = setup_id
+        record["annotations"] = result["annotations"]
+        record["flags"] = result.get("flags", [])
+        record["options"] = result.get("options", [])
+        record["text_fields"] = result.get("text_fields", [])
+
+    if mode == CampaignMode.LLM_EVAL:
+        record["metadata"]["prompt"] = result["prompt"]
+        last_run = campaign.metadata["last_run"]
+        filename = f"{dataset_id}-{split}-{setup_id}-{last_run}.jsonl"
+    elif mode == CampaignMode.CROWDSOURCING:
+        filename = f"{dataset_id}-{split}-{setup_id}-{annotator_id}.jsonl"
+    elif mode == CampaignMode.LLM_GEN:
+        filename = f"{dataset_id}-{split}-{last_run}.jsonl"
+        last_run = campaign.metadata["last_run"]
+        record["metadata"]["prompt"] = result["prompt"]
+
+    record["metadata"]["annotator_id"] = str(annotator_id)
+    record["metadata"]["annotator_group"] = int(row["annotator_group"])
+    record["metadata"]["campaign_id"] = str(campaign_id)
+    record["metadata"]["start_timestamp"] = float(row["start"])
+    record["metadata"]["end_timestamp"] = float(row["end"])
+
+    # append the record to the file from the current run
+    with open(os.path.join(save_dir, filename), "a") as f:
+        f.write(json.dumps(record, allow_nan=True) + "\n")
+
+    return record

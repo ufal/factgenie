@@ -79,9 +79,9 @@ class QuintdDataset(Dataset):
                                 "setup_id": setup_id,
                                 "example_idx": i,
                                 "metadata": metadata,
-                                "prompt": gen["in"],
                                 "output": gen["out"],
                             }
+                            record["metadata"]["prompt"] = gen["in"]
                             f.write(json.dumps(record) + "\n")
 
                     logger.info(f"Downloaded outputs for {split}/{setup_id}")
