@@ -17,7 +17,7 @@
   {% include 'pages/navbar.html' %}
 
 
-  <div class="container w-50  mt-5">
+  <div class="container w-50 panel-50 mt-5">
     <a href="{{ host_prefix }}/{{ mode }}" class="btn btn-outline-secondary mb-5">← LLM campaigns</a>
     <div class="mt-1">
 
@@ -80,8 +80,10 @@
               {% if mode == 'llm_eval' %}
               {% include 'include/annotation_span_categories.html' %}
               <div class="col-auto mt-3 mb-3">
-                <button type="button" class="btn btn-primary btn-sm" onclick="prefillPrompt();">✨
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="prefillPrompt();">✨
                   Pre-fill prompt template</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="checkAndOpenModal()">📝
+                  Add example to template</button>
               </div>
               {% endif %}
 
@@ -249,6 +251,8 @@
 
       </div>
     </div>
+
+    {% include 'include/example_annotation_modal.html' %}
 
     <div class="modal fade" id="save-cfg-modal" tabindex="-1">
       <div class="modal-dialog">

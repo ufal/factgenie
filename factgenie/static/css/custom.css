@@ -988,3 +988,7 @@ a:hover {
         transform: scale(1);
     }
 }
+
+.panel-50 {
+    min-width: 900px;
+}

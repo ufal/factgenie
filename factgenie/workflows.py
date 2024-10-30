@@ -605,7 +605,12 @@ def delete_model_outputs(dataset, split=None, setup_id=None):
                 j = json.loads(line)
 
                 # None means all
-                if (split is None or j["split"] == split) and (setup_id is None or j["setup_id"] == setup_id):
+                if (
+                    (j["dataset"] == dataset)
+                    and (split is None or j["split"] == split)
+                    and (setup_id is None or j["setup_id"] == setup_id)
+                ):
+                    # delete the line
                     continue
 
                 new_lines.append(line)
