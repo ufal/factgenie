@@ -24,7 +24,7 @@ install_requires = [
 setup(
     name="factgenie",
     version="0.0.1",
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     description="Lightweight self-hosted span annotation tool",
     # contributors as on GitHub
     author="Zdenek Kasner, Ondrej Platek, Patricia Schmidtova, Dave Howcroft, Ondrej Dusek",
