@@ -188,9 +188,8 @@ function getAnnotatedOutput(output, annId, annotations) {
     var placeholder = $('<pre>', { id: `out-${setup_id}-${annId}-placeholder`, class: `font-mono out-placeholder out-${annId}-placeholder` });
     var annotated_content;
 
-    if (annotations !== null) {
+    if (annotations !== null && annotations !== undefined) {
         const annotation_span_categories = annotations.annotation_span_categories;
-
         annotated_content = highlightContent(content, annotations, annotation_span_categories);
     } else {
         // we do not have outputs for the particular campaign -> grey out the text
@@ -205,7 +204,7 @@ function getAnnotatedOutput(output, annId, annotations) {
 }
 
 function getExampleLevelFields(annotations) {
-    if (annotations === null) {
+    if (annotations === null || annotations === undefined) {
         return null;
     }
     // show `outputs.flags`, `outputs.options`, and `outputs.textFields`
