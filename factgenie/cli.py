@@ -268,17 +268,6 @@ def create_app(**kwargs):
         fmt="%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s",
     )
 
-    from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, CAMPAIGN_DIR, INPUT_DIR, OUTPUT_DIR
-    import factgenie.workflows as workflows
-    from factgenie.utils import check_login
-
-    if not MAIN_CONFIG_PATH.exists():
-        raise ValueError(
-            f"Invalid path to config.yml {MAIN_CONFIG_PATH=}. "
-            "Please copy config_TEMPLATE.yml to config.yml "
-            "and change the password, update the host prefix, etc."
-        )
-
     with open(MAIN_CONFIG_PATH) as f:
         config = yaml.safe_load(f)
 
