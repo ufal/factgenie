@@ -4,11 +4,12 @@
 # The local imports in individual functions make CLI way faster.
 # Use them as much as possible and minimize imports at the top of the file.
 import click
-
+import argparse
+import yaml
 from flask.cli import FlaskGroup
 from factgenie.campaigns import CampaignMode
-from factgenie.utils import load_dataset_config
 from factgenie.main import app
+from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, CAMPAIGN_DIR, INPUT_DIR, OUTPUT_DIR
 
 
 def list_datasets(app):
@@ -246,7 +247,9 @@ def create_app(**kwargs):
     import logging
     import coloredlogs
     import os
+    import factgenie.workflows as workflows
     from apscheduler.schedulers.background import BackgroundScheduler
+    from factgenie.utils import check_login
 
     logger = logging.getLogger(__name__)
 
@@ -304,12 +307,7 @@ def create_app(**kwargs):
         logging.getLogger("werkzeug").disabled = True
 
     logger.info("Application ready")
-
     app.config.update(SECRET_KEY=os.urandom(24))
-
-    # register CLI commands
-    # app.cli.add_command(create_llm_campaign)
-    # app.cli.add_command(show)
 
     return app
 
