@@ -63,6 +63,7 @@ See the following **wiki pages** that that will guide you through various use-ca
 | 👥 [Crowdsourcing Annotations](../../wiki/Crowdsourcing-Annotations) | How to annotate outputs using human crowdworkers.  |
 | ✍️  [Generating Outputs](../../wiki/Generating-Outputs)              | How to generate outputs using LLMs.                |
 | 📊 [Analyzing Annotations](../../wiki/Analyzing-Annotations)         | How to obtain statistics on collected annotations. |
+| 💻 [Command Line Interface](../../wiki/CLI)                          | How to use factgenie command line interface.       |
 | 🌱 [Contributing](../../wiki/Contributing)                           | How to contribute to factgenie.                    |
 
 ## 🔥 Tutorials
