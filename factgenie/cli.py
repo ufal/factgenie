@@ -196,7 +196,7 @@ def create_llm_campaign(
     config = configs.get(config_file)
 
     if not config:
-        config_names = [x.split(".")[0] for x in configs.keys()]
+        config_names = [Path(x).stem for x in configs.keys()]
         raise ValueError(f"Config {config_file} not found. Available configs: {config_names}")
 
     llm_campaign.create_llm_campaign(app, mode, campaign_id, config, campaign_data, datasets, overwrite=overwrite)

@@ -846,13 +846,13 @@ def save_record(mode, campaign, row, result):
 
     if mode == CampaignMode.LLM_EVAL:
         record["metadata"]["prompt"] = result["prompt"]
-        last_run = campaign.metadata["last_run"]
+        last_run = campaign.metadata.get("last_run", int(time.time()))
         filename = f"{dataset_id}-{split}-{setup_id}-{last_run}.jsonl"
     elif mode == CampaignMode.CROWDSOURCING:
         filename = f"{dataset_id}-{split}-{setup_id}-{annotator_id}.jsonl"
     elif mode == CampaignMode.LLM_GEN:
+        last_run = campaign.metadata.get("last_run", int(time.time()))
         filename = f"{dataset_id}-{split}-{last_run}.jsonl"
-        last_run = campaign.metadata["last_run"]
         record["metadata"]["prompt"] = result["prompt"]
 
     record["metadata"]["annotator_id"] = str(annotator_id)

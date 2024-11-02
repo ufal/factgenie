@@ -198,7 +198,6 @@ def run_llm_campaign(app, mode, campaign_id, announcer, campaign, datasets, mode
         # save the record to a JSONL file
         response = workflows.save_record(
             mode=mode,
-            setup_id=setup_id,
             campaign=campaign,
             row=db.loc[i],
             result=res,
