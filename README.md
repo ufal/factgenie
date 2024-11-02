@@ -19,7 +19,7 @@ Annotate LLM outputs with a lightweight, self-hosted web application 🌈
 
 ## 📢  News
 - **25/10/2024** — We are preparing the first official release. Stay tuned!
-- **08/10/2024** — We added  [step-by-step walkthrougs](../../wiki/00-Tutorials) on using factgenie for generating and annotating outputs for a dataset of basketball reports 🏀
+- **08/10/2024** — We added  [step-by-step walkthrougs](../../wiki/Tutorials) on using factgenie for generating and annotating outputs for a dataset of basketball reports 🏀
 - **07/10/2024** — We removed the example datasets from the repository. Instead, you can find them in the _External Resources_ section in the _Manage data_ interface.
 - **24/09/2024** — We introduced a brand new factgenie logo!
 - **19/09/2024** — On the Analytics page, you can now see detailed statistics about annotations and compute inter-annotator agreement 📈
@@ -63,6 +63,7 @@ See the following **wiki pages** that that will guide you through various use-ca
 | 👥 [Crowdsourcing Annotations](../../wiki/Crowdsourcing-Annotations) | How to annotate outputs using human crowdworkers.  |
 | ✍️  [Generating Outputs](../../wiki/Generating-Outputs)              | How to generate outputs using LLMs.                |
 | 📊 [Analyzing Annotations](../../wiki/Analyzing-Annotations)         | How to obtain statistics on collected annotations. |
+| 💻 [Command Line Interface](../../wiki/CLI)                          | How to use factgenie command line interface.       |
 | 🌱 [Contributing](../../wiki/Contributing)                           | How to contribute to factgenie.                    |
 
 ## 🔥 Tutorials

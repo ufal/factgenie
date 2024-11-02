@@ -4,60 +4,242 @@
 # The local imports in individual functions make CLI way faster.
 # Use them as much as possible and minimize imports at the top of the file.
 import click
-
+import argparse
+import yaml
 from flask.cli import FlaskGroup
 from factgenie.campaigns import CampaignMode
-from factgenie.utils import load_dataset_config
+from factgenie.main import app
+from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, CAMPAIGN_DIR, INPUT_DIR, OUTPUT_DIR
 
 
-@click.command()
-def list_datasets():
-    config = load_dataset_config()
-    for dataset_id, _ in config.items():
+def list_datasets(app):
+    """List all available datasets."""
+    from factgenie.workflows import get_local_dataset_overview
+
+    dataset_overview = get_local_dataset_overview(app)
+
+    for dataset_id in dataset_overview:
         print(dataset_id)
 
 
-@click.command()
-@click.option("--campaign_id", required=True, type=str)
-@click.option("--dataset_id", required=True, type=str)
-@click.option("--split", required=True, type=str)
-@click.option("--setup_id", type=str)
-@click.option("--mode", required=True, type=click.Choice([CampaignMode.LLM_EVAL, CampaignMode.LLM_GEN]))
-@click.option(
-    "--llm_metric_config", required=True, type=str, help="Path to the metric config file or just the metric name."
-)
-@click.option("--overwrite", is_flag=True, default=False, help="Remove existing campaign if it exists.")
-def run_llm_campaign(
-    campaign_id: str, dataset_id: str, split: str, setup_id: str, mode: str, llm_metric_config: str, overwrite: bool
-):
-    """Runs the LLM campaign from CLI with no web server."""
-    from slugify import slugify
-    from factgenie import workflows, llm_campaign
-    from factgenie.models import ModelFactory
+def list_outputs(app):
+    """List all available outputs."""
+    from factgenie.workflows import get_model_outputs_overview
 
-    campaign_id = slugify(campaign_id)
-    campaign_data = [{"dataset": dataset_id, "split": split, "setup_id": setup_id}]
+    model_outputs = get_model_outputs_overview(app, datasets=None)
 
-    config = load_dataset_config()
-    dataset_config = config[dataset_id]
-    datasets = {dataset_id: workflows.instantiate_dataset(dataset_id, dataset_config)}
+    max_dataset_len = max(len(combination["dataset"]) for combination in model_outputs) + 2
+    max_split_len = max(len(combination["split"]) for combination in model_outputs) + 2
+    max_setup_id_len = max(len(combination["setup_id"]) for combination in model_outputs) + 2
+    max_output_ids_len = max(len(str(len(combination["output_ids"]))) for combination in model_outputs) + 2
 
-    if mode == CampaignMode.LLM_EVAL and not setup_id:
-        raise ValueError("The `setup_id` argument is required for llm_eval mode.")
+    # Print the header with computed lengths
+    print(
+        f"{'Dataset':>{max_dataset_len}} {'Split':>{max_split_len}} {'Setup ID':>{max_setup_id_len}} {'# Outputs':>{max_output_ids_len}}"
+    )
+    print("-" * (max_dataset_len + max_split_len + max_setup_id_len + max_output_ids_len + 3))
 
-    configs = workflows.load_configs(mode)
-    metric_config = configs[llm_metric_config]
-    campaign = llm_campaign.create_llm_campaign(
-        mode, campaign_id, metric_config, campaign_data, datasets, overwrite=overwrite
+    # Print each combination with computed lengths
+    for combination in model_outputs:
+        print(
+            f"{combination['dataset']:>{max_dataset_len}} {combination['split']:>{max_split_len}} {combination['setup_id']:>{max_setup_id_len}}"
+            f" {len(combination['output_ids']):>{max_output_ids_len}}"
+        )
+
+
+def list_campaigns(app):
+    """List all available campaigns."""
+    from factgenie.workflows import get_sorted_campaign_list
+    from pprint import pprint as pp
+
+    campaigns = get_sorted_campaign_list(
+        app, modes=[CampaignMode.CROWDSOURCING, CampaignMode.LLM_EVAL, CampaignMode.LLM_GEN, CampaignMode.EXTERNAL]
     )
 
-    # mockup objects
+    for campaign_id in campaigns.keys():
+        print(campaign_id)
+
+
+def show_dataset_info(app, dataset_id: str):
+    """Show information about a dataset."""
+
+    from factgenie.workflows import get_local_dataset_overview
+
+    dataset_overview = get_local_dataset_overview(app)
+    dataset_info = dataset_overview.get(dataset_id)
+
+    if dataset_info is None:
+        print(f"Dataset {dataset_id} not found.")
+
+    print(f"{'id:':>15} {dataset_id}")
+
+    for key, value in dataset_info.items():
+        print(f"{key:>15}: {value}")
+
+
+def show_campaign_info(app, campaign_id: str):
+    """Show information about a campaign."""
+    from factgenie.workflows import load_campaign
+    from pprint import pprint as pp
+
+    campaign = load_campaign(app, campaign_id)
+
+    if campaign is None:
+        print(f"Campaign {campaign_id} not found.")
+
+    pp({"metadata": campaign.metadata, "stats": campaign.get_stats()})
+
+
+@app.cli.command("list")
+@click.argument("output", type=click.Choice(["datasets", "outputs", "campaigns"]))
+def list_data(output: str):
+    """List available data."""
+    if output == "datasets":
+        list_datasets(app)
+    elif output == "outputs":
+        list_outputs(app)
+    elif output == "campaigns":
+        list_campaigns(app)
+
+
+@app.cli.command("info")
+@click.option("-d", "--dataset", type=str, help="Show information about a dataset.")
+@click.option("-c", "--campaign", type=str, help="Show information about a campaign.")
+def info(dataset: str, campaign: str):
+    """Show information about a dataset or campaign."""
+    if dataset:
+        show_dataset_info(app, dataset)
+    elif campaign:
+        show_campaign_info(app, campaign)
+
+
+@app.cli.command("create_llm_campaign")
+@click.argument(
+    "campaign_id",
+    type=str,
+)
+@click.option("-d", "--dataset_ids", required=True, type=str, help="Comma separated dataset identifiers.")
+@click.option("-s", "--splits", required=True, type=str, help="Comma separated setups.")
+@click.option("-o", "--setup_ids", type=str, help="Comma separated setup ids.")
+@click.option("-m", "--mode", required=True, type=click.Choice([CampaignMode.LLM_EVAL, CampaignMode.LLM_GEN]))
+@click.option(
+    "-c",
+    "--config_file",
+    required=True,
+    type=str,
+    help="Path to the YAML configuration file  / name of an existing config (without file suffix).",
+)
+@click.option("-f", "--overwrite", is_flag=True, default=False, help="Overwrite existing campaign if it exists.")
+def create_llm_campaign(
+    campaign_id: str, dataset_ids: str, splits: str, setup_ids: str, mode: str, config_file: str, overwrite: bool
+):
+    """Create a new LLM campaign."""
+    from slugify import slugify
+    from factgenie.workflows import load_campaign, get_sorted_campaign_list
+    from factgenie import workflows, llm_campaign
+    from pathlib import Path
+    from pprint import pprint as pp
+
+    if mode == CampaignMode.LLM_EVAL and not setup_ids:
+        raise ValueError("The `setup_id` argument is required for llm_eval mode.")
+
+    campaigns = get_sorted_campaign_list(
+        app, modes=[CampaignMode.CROWDSOURCING, CampaignMode.LLM_EVAL, CampaignMode.LLM_GEN, CampaignMode.EXTERNAL]
+    )
+    if campaign_id in campaigns and not overwrite:
+        raise ValueError(f"Campaign {campaign_id} already exists. Use --overwrite to overwrite.")
+
+    campaign_id = slugify(campaign_id)
+    datasets = app.db["datasets_obj"]
+    dataset_ids = dataset_ids.split(",")
+    splits = splits.split(",")
+    setup_ids = setup_ids.split(",")
+
+    combinations = [
+        (dataset_id, split, setup_id) for dataset_id in dataset_ids for split in splits for setup_id in setup_ids
+    ]
+    dataset_overview = workflows.get_local_dataset_overview(app)
+    if mode == CampaignMode.LLM_EVAL:
+        available_data = workflows.get_model_outputs_overview(app, dataset_overview)
+    elif mode == CampaignMode.LLM_GEN:
+        available_data = workflows.get_available_data(app, dataset_overview)
+
+    # drop the `output_ids` key from the available_data
+    campaign_data = []
+
+    for c in combinations:
+        for data in available_data:
+            if (
+                c[0] == data["dataset"]
+                and c[1] == data["split"]
+                and (mode == CampaignMode.LLM_GEN or c[2] == data["setup_id"])
+            ):
+                data.pop("output_ids")
+                campaign_data.append(data)
+
+    if not campaign_data:
+        raise ValueError("No valid data combinations found.")
+
+    print(f"Available data combinations:")
+    pp(campaign_data)
+    print("-" * 80)
+    print()
+
+    # if config_file is a path, load the config from the path
+    if Path(config_file).exists():
+        config_file = workflows.load_config_from_path(config_file)
+    else:
+        if not config_file.endswith(".yaml"):
+            config_file = f"{config_file}.yaml"
+
+    configs = workflows.load_configs(mode)
+    config = configs.get(config_file)
+
+    if not config:
+        config_names = [Path(x).stem for x in configs.keys()]
+        raise ValueError(f"Config {config_file} not found. Available configs: {config_names}")
+
+    llm_campaign.create_llm_campaign(app, mode, campaign_id, config, campaign_data, datasets, overwrite=overwrite)
+
+    print(f"Created campaign {campaign_id}")
+
+
+@app.cli.command("run_llm_campaign")
+@click.argument(
+    "campaign_id",
+    type=str,
+)
+def run_llm_campaign(campaign_id: str):
+    from factgenie.models import ModelFactory
+    from factgenie import llm_campaign
+    from factgenie.campaigns import CampaignStatus
+    from factgenie.workflows import load_campaign
+
+    # mockup object
     announcer = None
-    running_campaigns = {campaign_id}
 
-    model = ModelFactory.from_config(metric_config, mode=mode)
+    datasets = app.db["datasets_obj"]
+    campaign = load_campaign(app, campaign_id)
 
-    return llm_campaign.run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, running_campaigns)
+    if campaign is None:
+        raise ValueError(f"Campaign {campaign_id} not found.")
+
+    if campaign.metadata["status"] == CampaignStatus.FINISHED:
+        raise ValueError(f"Campaign {campaign_id} is already finished.")
+
+    if campaign.metadata["status"] == CampaignStatus.RUNNING:
+        raise ValueError(f"Campaign {campaign_id} is already running.")
+
+    config = campaign.metadata["config"]
+    mode = campaign.metadata["mode"]
+    model = ModelFactory.from_config(config, mode=mode)
+    running_campaigns = app.db["running_campaigns"]
+
+    app.db["running_campaigns"].add(campaign_id)
+
+    return llm_campaign.run_llm_campaign(
+        app, mode, campaign_id, announcer, campaign, datasets, model, running_campaigns
+    )
 
 
 def create_app(**kwargs):
@@ -65,8 +247,9 @@ def create_app(**kwargs):
     import logging
     import coloredlogs
     import os
-    from factgenie.main import app
+    import factgenie.workflows as workflows
     from apscheduler.schedulers.background import BackgroundScheduler
+    from factgenie.utils import check_login
 
     logger = logging.getLogger(__name__)
 
@@ -85,19 +268,14 @@ def create_app(**kwargs):
         fmt="%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s",
     )
 
-    from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, CAMPAIGN_DIR, INPUT_DIR, OUTPUT_DIR
-    import factgenie.workflows as workflows
-    from factgenie.utils import check_login
-
-    if not MAIN_CONFIG_PATH.exists():
-        raise ValueError(
-            f"Invalid path to config.yml {MAIN_CONFIG_PATH=}. "
-            "Please copy config_TEMPLATE.yml to config.yml "
-            "and change the password, update the host prefix, etc."
-        )
-
     with open(MAIN_CONFIG_PATH) as f:
         config = yaml.safe_load(f)
+
+    # Override with environment variables
+    config["host_prefix"] = os.getenv("FACTGENIE_HOST_PREFIX", config["host_prefix"])
+    config["login"]["active"] = os.getenv("FACTGENIE_LOGIN_ACTIVE", config["login"]["active"])
+    config["login"]["username"] = os.getenv("FACTGENIE_LOGIN_USERNAME", config["login"]["username"])
+    config["login"]["password"] = os.getenv("FACTGENIE_LOGIN_PASSWORD", config["login"]["password"])
 
     os.makedirs(CAMPAIGN_DIR, exist_ok=True)
     os.makedirs(INPUT_DIR, exist_ok=True)
@@ -124,12 +302,7 @@ def create_app(**kwargs):
         logging.getLogger("werkzeug").disabled = True
 
     logger.info("Application ready")
-
     app.config.update(SECRET_KEY=os.urandom(24))
-
-    # register CLI commands
-    app.cli.add_command(run_llm_campaign)
-    app.cli.add_command(list_datasets)
 
     return app
 

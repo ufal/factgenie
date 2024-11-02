@@ -538,7 +538,7 @@ def llm_campaign_create():
     datasets = app.db["datasets_obj"]
 
     try:
-        llm_campaign.create_llm_campaign(mode, campaign_id, config, campaign_data, datasets)
+        llm_campaign.create_llm_campaign(app, mode, campaign_id, config, campaign_data, datasets)
         workflows.load_campaign(app, campaign_id=campaign_id)
     except Exception as e:
         traceback.print_exc()
@@ -628,8 +628,8 @@ def llm_campaign_run():
         model = ModelFactory.from_config(config, mode=mode)
         running_campaigns = app.db["running_campaigns"]
 
-        ret = llm_campaign.run_llm_campaign(
-            mode, campaign_id, announcer, campaign, datasets, model, running_campaigns, app=app
+        ret = llm_campaign.run_llm_campaign(app,
+            mode, campaign_id, announcer, campaign, datasets, model, running_campaigns
         )
 
         if hasattr(ret, "error"):

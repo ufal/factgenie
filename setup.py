@@ -1,6 +1,7 @@
 from pathlib import Path
 from setuptools import find_packages, setup
-
+from setuptools.command.install import install
+import shutil
 
 project_root = Path(__file__).parent
 install_requires = [
@@ -20,6 +21,19 @@ install_requires = [
     "scipy>=1.14.1",
     "tinyhtml>=1.2.0",
 ]
+
+
+class PostInstallCommand(install):
+    """Post-installation for installation mode."""
+
+    def run(self):
+        install.run(self)
+        template_path = project_root / "factgenie/config/config_TEMPLATE.yml"
+        config_path = project_root / "factgenie/config/config.yml"
+        if not config_path.exists():
+            print("Activating the default configuration.")
+            shutil.copy(template_path, config_path)
+
 
 setup(
     name="factgenie",
@@ -59,14 +73,17 @@ setup(
     },
     classifiers=[
         "Development Status :: 3 - Alpha",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Intended Audience :: Science/Research",
         "Operating System :: POSIX :: Linux",
-        "License :: OSI Approved :: Apache Software License",
+        "License :: OSI Approved :: MIT License",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Typing :: Typed",
     ],
+    cmdclass={
+        "install": PostInstallCommand,
+    },
 )

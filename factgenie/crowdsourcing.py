@@ -183,7 +183,7 @@ def generate_crowdsourcing_campaign_db(app, campaign_data, config):
     sort_order = config["sort_order"]
 
     for c in campaign_data:
-        for i in workflows.get_output_ids(c["dataset"], c["split"], c["setup_id"]):
+        for i in workflows.get_output_ids(app, c["dataset"], c["split"], c["setup_id"]):
             all_examples.append(
                 {
                     "dataset": c["dataset"],

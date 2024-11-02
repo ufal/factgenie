@@ -21,7 +21,7 @@ from factgenie import CAMPAIGN_DIR, OUTPUT_DIR, TEMPLATES_DIR
 logger = logging.getLogger(__name__)
 
 
-def create_llm_campaign(mode, campaign_id, config, campaign_data, datasets, overwrite=False):
+def create_llm_campaign(app, mode, campaign_id, config, campaign_data, datasets, overwrite=False):
     campaign_id = slugify(campaign_id)
 
     # create a new directory
@@ -35,7 +35,7 @@ def create_llm_campaign(mode, campaign_id, config, campaign_data, datasets, over
         os.makedirs(os.path.join(CAMPAIGN_DIR, campaign_id, "files"), exist_ok=True)
 
         # create the annotation CSV
-        db = generate_llm_campaign_db(mode, datasets, campaign_id, campaign_data)
+        db = generate_llm_campaign_db(app, mode, datasets, campaign_id, campaign_data)
         db_path = os.path.join(CAMPAIGN_DIR, campaign_id, "db.csv")
         logger.info(f"DB with {len(db)} free examples created for {campaign_id} at {db_path}")
         db.to_csv(db_path, index=False)
@@ -108,7 +108,7 @@ def duplicate_llm_campaign(app, mode, campaign_id, new_campaign_id):
     return utils.success()
 
 
-def generate_llm_campaign_db(mode, datasets, campaign_id, campaign_data):
+def generate_llm_campaign_db(app, mode, datasets, campaign_id, campaign_data):
     # load all outputs
     all_examples = []
 
@@ -118,7 +118,7 @@ def generate_llm_campaign_db(mode, datasets, campaign_id, campaign_data):
         # for llm_gen, setup_id based on the generation model
         if mode == CampaignMode.LLM_EVAL:
             setup_id = c["setup_id"]
-            ids = workflows.get_output_ids(dataset.id, c["split"], setup_id)
+            ids = workflows.get_output_ids(app, dataset.id, c["split"], setup_id)
         elif mode == CampaignMode.LLM_GEN:
             setup_id = campaign_id
             ids = list(range(dataset.get_example_count(c["split"])))
@@ -145,7 +145,7 @@ def generate_llm_campaign_db(mode, datasets, campaign_id, campaign_data):
     return df
 
 
-def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, running_campaigns, app=None):
+def run_llm_campaign(app, mode, campaign_id, announcer, campaign, datasets, model, running_campaigns):
     db = campaign.db
 
     # set campaign status to running
@@ -155,7 +155,7 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, ru
     logger.info(f"Starting LLM campaign {campaign_id}")
 
     # regenerate output index
-    workflows.get_output_index(app=None, force_reload=True)
+    workflows.get_output_index(app, force_reload=True)
 
     # generate outputs / annotations for all free examples in the db
     for i, row in db[db.status == ExampleStatus.FREE].iterrows():
@@ -198,7 +198,6 @@ def run_llm_campaign(mode, campaign_id, announcer, campaign, datasets, model, ru
         # save the record to a JSONL file
         response = workflows.save_record(
             mode=mode,
-            setup_id=setup_id,
             campaign=campaign,
             row=db.loc[i],
             result=res,

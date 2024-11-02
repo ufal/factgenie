@@ -294,8 +294,8 @@ def get_annotations(app, dataset_id, split, example_idx, setup_id):
     return annotations.to_dict(orient="records")
 
 
-def get_output_index(app=None, force_reload=True):
-    if app and app.db["output_index"] is not None and not force_reload:
+def get_output_index(app, force_reload=True):
+    if hasattr(app, "db") and app.db["output_index"] is not None and not force_reload:
         return app.db["output_index"]
 
     logger.info("Reloading output index")
@@ -365,7 +365,6 @@ def get_local_dataset_overview(app):
         name = dataset_config.get("name", dataset_id)
         description = dataset_config.get("description", "")
         splits = dataset_config.get("splits", [])
-        dataset_type = dataset_config.get("type", "default")
 
         if is_enabled:
             dataset = app.db["datasets_obj"].get(dataset_id)
@@ -392,7 +391,6 @@ def get_local_dataset_overview(app):
             "name": name,
             "description": description,
             "example_count": example_count,
-            "type": dataset_type,
         }
 
     return overview
@@ -689,7 +687,9 @@ def get_model_outputs_overview(app, datasets):
 
     # filter the df by datasets
     outputs = output_index.copy()
-    outputs = outputs[outputs["dataset"].isin(datasets)]
+
+    if datasets:
+        outputs = outputs[outputs["dataset"].isin(datasets)]
 
     # aggregate output ids into a list
     outputs = (
@@ -738,8 +738,8 @@ def get_outputs(dataset_id, split, example_idx, app=None, force_reload=True):
     return outputs
 
 
-def get_output_ids(dataset, split, setup_id):
-    output_index = get_output_index()
+def get_output_ids(app, dataset, split, setup_id):
+    output_index = get_output_index(app)
 
     if output_index.empty:
         return []
@@ -846,13 +846,13 @@ def save_record(mode, campaign, row, result):
 
     if mode == CampaignMode.LLM_EVAL:
         record["metadata"]["prompt"] = result["prompt"]
-        last_run = campaign.metadata["last_run"]
+        last_run = campaign.metadata.get("last_run", int(time.time()))
         filename = f"{dataset_id}-{split}-{setup_id}-{last_run}.jsonl"
     elif mode == CampaignMode.CROWDSOURCING:
         filename = f"{dataset_id}-{split}-{setup_id}-{annotator_id}.jsonl"
     elif mode == CampaignMode.LLM_GEN:
+        last_run = campaign.metadata.get("last_run", int(time.time()))
         filename = f"{dataset_id}-{split}-{last_run}.jsonl"
-        last_run = campaign.metadata["last_run"]
         record["metadata"]["prompt"] = result["prompt"]
 
     record["metadata"]["annotator_id"] = str(annotator_id)
