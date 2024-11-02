@@ -271,6 +271,12 @@ def create_app(**kwargs):
     with open(MAIN_CONFIG_PATH) as f:
         config = yaml.safe_load(f)
 
+    # Override with environment variables
+    config["host_prefix"] = os.getenv("FACTGENIE_HOST_PREFIX", config["host_prefix"])
+    config["login"]["active"] = os.getenv("FACTGENIE_LOGIN_ACTIVE", config["login"]["active"])
+    config["login"]["username"] = os.getenv("FACTGENIE_LOGIN_USERNAME", config["login"]["username"])
+    config["login"]["password"] = os.getenv("FACTGENIE_LOGIN_PASSWORD", config["login"]["password"])
+
     os.makedirs(CAMPAIGN_DIR, exist_ok=True)
     os.makedirs(INPUT_DIR, exist_ok=True)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
