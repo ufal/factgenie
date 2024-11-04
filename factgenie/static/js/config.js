@@ -18,7 +18,7 @@ function updateConfig() {
         contentType: 'application/json', // Specify JSON content type
         data: JSON.stringify(config),
         success: function (response) {
-            window.location.reload();
+            alert('Configuration updated successfully');
         },
         error: function (error) {
             alert('Error updating configuration: ' + error.responseText);

@@ -30,9 +30,10 @@
 
       <!-- if login is not enabled in the app config, show red warning -->
       {% if not is_password_protected %}
-      <div class="alert alert-danger" role="alert">
+      <div class="alert alert-danger blue-link" role="alert">
         <i class="fa fa-exclamation-triangle"></i>
-        <span>Warning: The app is unprotected. You should enable authentication in <code>factgenie/config.yml</code>
+        <span>Warning: The app is unprotected. You should enable <a href="{{ host_prefix }}/app_config">password
+            protection</a>
           before sharing
           the URL with the
           public.</span>
