@@ -256,22 +256,21 @@ def create_app(**kwargs):
     file_handler = logging.FileHandler("error.log")
     file_handler.setLevel(logging.ERROR)
 
+    with open(MAIN_CONFIG_PATH) as f:
+        config = yaml.safe_load(f)
+
     logging.basicConfig(
         format="%(levelname)s (%(filename)s:%(lineno)d) - %(message)s",
-        level=app.config.get("logging_level", "INFO"),
+        level=config["logging"].get("level", "INFO"),
         handlers=[file_handler, logging.StreamHandler()],
     )
     logger = logging.getLogger(__name__)
     coloredlogs.install(
-        level=app.config.get("logging_level", "INFO"),
+        level=config["logging"].get("level", "INFO"),
         logger=logger,
         fmt="%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s",
     )
 
-    with open(MAIN_CONFIG_PATH) as f:
-        config = yaml.safe_load(f)
-
-    # Override with environment variables
     config["host_prefix"] = os.getenv("FACTGENIE_HOST_PREFIX", config["host_prefix"])
     config["login"]["active"] = os.getenv("FACTGENIE_LOGIN_ACTIVE", config["login"]["active"])
     config["login"]["username"] = os.getenv("FACTGENIE_LOGIN_USERNAME", config["login"]["username"])
@@ -281,8 +280,8 @@ def create_app(**kwargs):
     os.makedirs(INPUT_DIR, exist_ok=True)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    app.config.update(config)
     app.config["root_dir"] = ROOT_DIR
+    app.config.update(config)
 
     assert check_login(
         app, config["login"]["username"], config["login"]["password"]
@@ -298,7 +297,7 @@ def create_app(**kwargs):
 
     workflows.generate_campaign_index(app)
 
-    if config["debug"] is False:
+    if config["logging"]["flask_debug"] is False:
         logging.getLogger("werkzeug").disabled = True
 
     logger.info("Application ready")
