@@ -37,7 +37,7 @@ class PostInstallCommand(install):
 
 setup(
     name="factgenie",
-    version="0.0.1",
+    version="0.9.1",
     python_requires=">=3.9",
     description="Lightweight self-hosted span annotation tool",
     # contributors as on GitHub
@@ -46,16 +46,29 @@ setup(
     long_description=(project_root / "README.md").read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",
     url="https://github.com/ufal/factgenie",
-    license="Apache-2.0 License",
+    license="MIT",
     packages=find_packages(exclude=["test", "test.*"]),
     package_data={
-        "factgenie": ["static/css/*", "static/img/*", "static/js/*", "templates/*"],
+        "factgenie": [
+            "config/default_prompts.yml",
+            "config/resources.yml",
+            "config/config_TEMPLATE.yml",
+            "config/**/example-*.yaml",
+            "static/**/*",
+            "templates/**/*",
+        ],
     },
-    data_files=[("factgenie", ["factgenie/config.yml"])],
+    # data_files=[("factgenie", ["factgenie/config.yml"])],
     include_package_data=True,
     entry_points={
         "console_scripts": [
             "factgenie=factgenie.cli:run",
+        ],
+        "flask.commands": [
+            "create_llm_campaign=factgenie.cli:create_llm_campaign",
+            "run_llm_campaign=factgenie.cli:run_llm_campaign",
+            "list=factgenie.cli:list_data",
+            "info=factgenie.cli:info",
         ],
     },
     install_requires=install_requires,

@@ -638,8 +638,8 @@ def llm_campaign_run():
         model = ModelFactory.from_config(config, mode=mode)
         running_campaigns = app.db["running_campaigns"]
 
-        ret = llm_campaign.run_llm_campaign(app,
-            mode, campaign_id, announcer, campaign, datasets, model, running_campaigns
+        ret = llm_campaign.run_llm_campaign(
+            app, mode, campaign_id, announcer, campaign, datasets, model, running_campaigns
         )
 
         if hasattr(ret, "error"):
