@@ -4,11 +4,11 @@
 <h1> factgenie </h1>
 
 ![GitHub](https://img.shields.io/github/license/kasnerz/factgenie)
-![GitHub issues](https://img.shields.io/github/issues/kasnerz/factgenie)
-[![arXiv](https://img.shields.io/badge/arXiv-2407.17863-0175ac.svg)](https://arxiv.org/abs/2407.17863)
+![Github downloads](https://img.shields.io/github/downloads/kasnerz/factgenie/total)
+![PyPI](https://img.shields.io/pypi/v/factgenie)
+[![arXiv](https://img.shields.io/badge/arXiv-2407.17863-b31b1b.svg)](https://arxiv.org/abs/2407.17863)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 ![Github stars](https://img.shields.io/github/stars/kasnerz/factgenie?style=social)
-<!-- ![PyPI](https://img.shields.io/pypi/v/factgenie) -->
 <!-- ![PyPI downloads](https://img.shields.io/pypi/dm/factgenie) -->
 
 Annotate LLM outputs with a lightweight, self-hosted web application 🌈
@@ -17,14 +17,8 @@ Annotate LLM outputs with a lightweight, self-hosted web application 🌈
 
 </div>
 
-## 📢  News
-- **25/10/2024** — We are preparing the first official release. Stay tuned!
-- **08/10/2024** — We added  [step-by-step walkthrougs](../../wiki/Tutorials) on using factgenie for generating and annotating outputs for a dataset of basketball reports 🏀
-- **07/10/2024** — We removed the example datasets from the repository. Instead, you can find them in the _External Resources_ section in the _Manage data_ interface.
-- **24/09/2024** — We introduced a brand new factgenie logo!
-- **19/09/2024** — On the Analytics page, you can now see detailed statistics about annotations and compute inter-annotator agreement 📈
-- **16/09/2024** — You can now collect extra inputs from the annotators for each example using sliders and select boxes. 
-- **16/09/2024** — We added an option to generate outputs for the inputs with LLMs directly within factgenie! 🦾
+## 📢  Changelog
+- **[1.0.0] - 2024-11-05**: The first official release 🎉
 
 ## 👉️ How can factgenie help you?
 Outputs from large language models (LLMs) may contain errors: semantic, factual, and lexical. 
@@ -42,13 +36,26 @@ Factgenie can provide you:
 *What does factgenie **not help with** is collecting the data (we assume that you already have these), starting the crowdsourcing campaign (for that, you need to use a service such as [Prolific.com](https://prolific.com)) or running the LLM evaluators (for that, you need a local framework such as [Ollama](https://ollama.com) or a proprietary API).*
 
 ## 🏃 Quickstart
-Make sure you have Python 3 installed (the project is tested with Python 3.10).
+Make sure you have Python >=3.9 installed.
 
-After cloning the repository, the following commands install the package and start the web server:
+If you want to quickly try out factgenie, you can install the package from PyPI:
+```bash
+pip install factgenie
 ```
+
+However, the recommended approach for using factgenie is using an editable package:
+```bash
+git clone https://github.com/ufal/factgenie.git
+cd factgenie
 pip install -e .[dev,deploy]
-factgenie run --host=127.0.0.1 --port 5000
 ```
+This approach will allow you to manually modify configuration files, write your own data classes and access generated files.
+
+After installing factgenie, use the following command to run the server on your local computer:
+```bash
+factgenie run --host=127.0.0.1 --port 8890
+```
+More information on how to set up factgenie is on [Github wiki](../../wiki/Setup).
 
 ## 💡 Usage guide
 
