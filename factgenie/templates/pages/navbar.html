@@ -6,13 +6,20 @@
 </nav>
 
 
-<img src="{{ host_prefix }}/static/img/info.png" data-bs-toggle="modal" data-bs-target="#aboutModal"
-    style="cursor: pointer; position: absolute; top: 0; right: 0; margin-right: 15px; margin-top:16px; height: 30px;">
+
+<a href="{{ host_prefix }}/app_config"
+    style="cursor: pointer; position: absolute; top: 0; right: 0; margin-right: 100px; margin-top:16px; height: 32px;">
+    <img src="{{ host_prefix }}/static/img/config.png" height="30px">
+</a>
 
 
 <a href="https://github.com/ufal/factgenie/" target="_blank"
-    style="position: absolute; top: 0; right: 0; margin-right: 60px; margin-top:15px;">
+    style="position: absolute; top: 0; right: 0; margin-right: 57px; margin-top:15px;">
     <img src="{{ host_prefix }}/static/img/github.png" height="30px">
 </a>
+
+<img src="{{ host_prefix }}/static/img/info.png" data-bs-toggle="modal" data-bs-target="#aboutModal"
+    style="cursor: pointer; position: absolute; top: 0; right: 0; margin-right: 15px; margin-top:15px; height: 32px;">
+
 
 {% include 'include/about_modal.html' %}

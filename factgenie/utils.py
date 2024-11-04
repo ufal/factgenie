@@ -17,6 +17,7 @@ from factgenie import (
     LLM_EVAL_CONFIG_DIR,
     LLM_GEN_CONFIG_DIR,
     CROWDSOURCING_CONFIG_DIR,
+    MAIN_CONFIG_PATH,
 )
 
 logger = logging.getLogger(__name__)
@@ -108,6 +109,11 @@ def load_default_prompts():
 
 def save_dataset_config(config):
     with open(DATASET_CONFIG_PATH, "w") as f:
+        yaml.dump(config, f, indent=2, allow_unicode=True)
+
+
+def save_app_config(config):
+    with open(MAIN_CONFIG_PATH, "w") as f:
         yaml.dump(config, f, indent=2, allow_unicode=True)
 
 

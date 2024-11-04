@@ -182,6 +182,16 @@ def annotate(campaign_id):
     )
 
 
+@app.route("/app_config", methods=["GET"])
+@login_required
+def app_config():
+    return render_template(
+        "pages/app_config.html",
+        app_config=app.config,
+        host_prefix=app.config["host_prefix"],
+    )
+
+
 @app.route("/browse", methods=["GET", "POST"])
 @login_required
 def browse():
@@ -769,6 +779,19 @@ def set_dataset_enabled():
     workflows.set_dataset_enabled(app, dataset_id, enabled)
 
     return utils.success()
+
+
+@app.route("/update_config", methods=["POST"])
+@login_required
+def update_config():
+    try:
+        data = request.get_json()
+        app.config.update(data)
+        utils.save_app_config(data)
+        return utils.success()
+    except Exception as e:
+        traceback.print_exc()
+        return utils.error(f"Error while updating config: {e.__class__.__name__}: {e}")
 
 
 @app.route("/upload_dataset", methods=["POST"])
