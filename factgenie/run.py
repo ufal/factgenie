@@ -8,7 +8,7 @@ import argparse
 import yaml
 from flask.cli import FlaskGroup
 from factgenie.campaigns import CampaignMode
-from factgenie.main import app
+from factgenie.app import app
 from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, CAMPAIGN_DIR, INPUT_DIR, OUTPUT_DIR
 
 
@@ -310,3 +310,8 @@ def create_app(**kwargs):
 @click.group(cls=FlaskGroup, create_app=create_app)
 def run():
     pass
+
+
+if __name__ == "__main__":
+    app = create_app()
+    app.run(debug=True)
