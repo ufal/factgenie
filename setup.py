@@ -62,13 +62,13 @@ setup(
     include_package_data=True,
     entry_points={
         "console_scripts": [
-            "factgenie=factgenie.run:run",
+            "factgenie=factgenie.bin.run:run",
         ],
         "flask.commands": [
-            "create_llm_campaign=factgenie.run:create_llm_campaign",
-            "run_llm_campaign=factgenie.run:run_llm_campaign",
-            "list=factgenie.run:list_data",
-            "info=factgenie.run:info",
+            "create_llm_campaign=factgenie.bin.run:create_llm_campaign",
+            "run_llm_campaign=factgenie.bin.run:run_llm_campaign",
+            "list=factgenie.bin.run:list_data",
+            "info=factgenie.bin.run:info",
         ],
     },
     install_requires=install_requires,
