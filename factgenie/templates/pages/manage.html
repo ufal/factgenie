@@ -183,8 +183,17 @@
         </table>
       </div>
       <div class="tab-pane fade mt-3" id="pills-annotations" role="tabpanel" aria-labelledby="pills-annotations-tab">
+        {% if not campaigns %}
+        <div class="alert alert-info mt-5  w-50 text-center  mx-auto" role="alert">
+          <p>No campaigns available.
+          </p>
+          <p>Create your first <a href="/llm_eval/new" class="alert-link">LLM annotation campaign</a> or <a
+              href="/crowdsourcing/new" class="alert-link">crowdsourcing campaign</a>.</p>
+        </div>
+        {% endif %}
         <table id="table-ann" data-toggle="table" data-pagination="true" data-page-size="10" data-search-align="left"
-          data-pagination-parts="['pageList']" data-classes="table table-hover">
+          data-pagination-parts="['pageList']" data-classes="table table-hover" {% if not campaigns %}
+          style="display: none;" {% endif %}>
           <thead>
             <tr>
               <th scope="col" data-sortable="true">Campaign</th>
