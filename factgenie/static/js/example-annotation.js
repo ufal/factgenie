@@ -68,7 +68,7 @@ function pasteExampleIntoPrompt() {
     const exampleData = $('#example-data').val();
     const exampleText = $('#example-text').val();
     const output = $('#outputarea').text();
-    const prompt = `*Example:*\ninput:\n\`\`\`\n${exampleData}\n\`\`\`\ntext:\n\`\`\`\n${exampleText}\n\`\`\`\noutput:\n\`\`\`\n${output}\n`;
+    const prompt = `\n\n*Example:*\ninput:\n\`\`\`\n${exampleData}\n\`\`\`\ntext:\n\`\`\`\n${exampleText}\n\`\`\`\noutput:\n\`\`\`\n${output}\n`;
     $('#prompt-template').val($('#prompt-template').val() + prompt);
     $('#exampleAnnotation').modal('hide');
 }
@@ -125,6 +125,9 @@ function createButtons() {
 
 function initAnnotation() {
     $("#nextsteparea").show();
+    $('#errorarea').empty();
+    $('#outputarea').empty();
+
     console.log("Initializing annotation...");
     const annotationSpanCategories = getAnnotationSpanCategories();
 
