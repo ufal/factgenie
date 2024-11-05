@@ -183,8 +183,17 @@
         </table>
       </div>
       <div class="tab-pane fade mt-3" id="pills-annotations" role="tabpanel" aria-labelledby="pills-annotations-tab">
+        {% if not campaigns %}
+        <div class="alert alert-info mt-5  w-50 text-center  mx-auto" role="alert">
+          <p>No campaigns available.
+          </p>
+          <p>Create your first <a href="/llm_eval/new" class="alert-link">LLM annotation campaign</a> or <a
+              href="/crowdsourcing/new" class="alert-link">crowdsourcing campaign</a>.</p>
+        </div>
+        {% endif %}
         <table id="table-ann" data-toggle="table" data-pagination="true" data-page-size="10" data-search-align="left"
-          data-pagination-parts="['pageList']" data-classes="table table-hover">
+          data-pagination-parts="['pageList']" data-classes="table table-hover" {% if not campaigns %}
+          style="display: none;" {% endif %}>
           <thead>
             <tr>
               <th scope="col" data-sortable="true">Campaign</th>
@@ -246,7 +255,8 @@
             dataset</a>
         </div>
         <h5 class="mt-5">Add model outputs</h5>
-        <p>Here you can upload model outputs to factgenie. Learn more at <a
+        <p class="blue-link">Here you can upload model outputs to factgenie. Note that you need to add a dataset with
+          input data first. Learn more at <a
             href="https://github.com/ufal/factgenie/wiki/Data-Management#%EF%B8%8F-adding-model-outputs">factgenie
             wiki</a>.</p>
         <div class="mb-5">
