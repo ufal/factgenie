@@ -259,14 +259,15 @@ def create_app(**kwargs):
     with open(MAIN_CONFIG_PATH) as f:
         config = yaml.safe_load(f)
 
+    logging_level = config.get("logging", {}).get("level", "INFO")
     logging.basicConfig(
         format="%(levelname)s (%(filename)s:%(lineno)d) - %(message)s",
-        level=config["logging"].get("level", "INFO"),
+        level=logging_level,
         handlers=[file_handler, logging.StreamHandler()],
     )
     logger = logging.getLogger(__name__)
     coloredlogs.install(
-        level=config["logging"].get("level", "INFO"),
+        level=logging_level,
         logger=logger,
         fmt="%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s",
     )
@@ -297,7 +298,7 @@ def create_app(**kwargs):
 
     workflows.generate_campaign_index(app)
 
-    if config["logging"]["flask_debug"] is False:
+    if config.get("logging", {}).get("flask_debug", False) is False:
         logging.getLogger("werkzeug").disabled = True
 
     logger.info("Application ready")
