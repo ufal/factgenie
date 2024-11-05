@@ -53,10 +53,20 @@
     <div class="tab-content" id="pills-tabContent">
       <div class="tab-pane fade mt-3  show active" id="pills-datasets" role="tabpanel"
         aria-labelledby="pills-datasets-tab">
+
+        {% if not datasets %}
+        <div class="alert alert-info mt-5  w-50 text-center  mx-auto" role="alert">
+          <p>No datasets available.
+          </p>
+          <p>Add your first a dataset on the <a href="#external" class="alert-link">Add
+              resources</a> tab!</p>
+        </div>
+        {% endif %}
         <table id="table-local" data-toggle="table" data-search="false" data-pagination="true" data-page-size="10"
           data-detail-view-icon="false" data-search-align="left" data-detail-view="true"
           data-detail-formatter="detailFormatter" data-detail-view-by-click="true" data-show-search-button="true"
-          data-pagination-parts="['pageList']" data-classes="table table-hover table-datasets">
+          data-pagination-parts="['pageList']" data-classes="table table-hover table-datasets" {% if not datasets %}
+          style="display: none;" {% endif %}>
           <thead>
             <tr>
               <th scope="col">Enabled</th>
@@ -126,8 +136,17 @@
         </table>
       </div>
       <div class="tab-pane fade mt-3" id="pills-outputs" role="tabpanel" aria-labelledby="pills-outputs-tab">
+        {% if not model_outputs %}
+        <div class="alert alert-info mt-5  w-50 text-center  mx-auto" role="alert">
+          <p>No model outputs available.
+          </p>
+          <p>Add your model outputs on the <a href="#external" class="alert-link">Add
+              resources</a> tab!</p>
+        </div>
+        {% endif %}
         <table id="model-out-table" data-toggle="table" data-search="false" data-pagination="true" data-page-size="10"
-          data-detail-view-icon="false" data-pagination-parts="['pageList']" data-classes="table table-hover">
+          data-detail-view-icon="false" data-pagination-parts="['pageList']" data-classes="table table-hover" {% if not
+          datasets %} style="display: none;" {% endif %}>
           <thead>
             <tr>
               <th scope="col" data-sortable="true">Dataset</th>
