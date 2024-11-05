@@ -77,8 +77,11 @@ setup(
             "wheel>=0.44.0",
             # Set exact version of black formatter to avoid merge conflicts due to different setup.
             # See also pyproject.toml and setup of line length (to 120 characters)
-            "black==24.10.0",
             "ipdb",
+            "black==24.10.0",
+        ],
+        "test": [
+            "pytest>=8.3.3",
         ],
         "deploy": [
             "gunicorn>=23.0.0",
