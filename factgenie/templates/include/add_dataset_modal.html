@@ -10,78 +10,23 @@
                 <div id='add-dataset-modal-main' class="tab-pane sidepanel-panel" role="tabpanel" tabindex="0">
                     <ul class="nav nav-pills">
                         <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="#tab-hf-dataset"
-                                data-bs-toggle="pill">Basic loaders</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#tab-download-dataset" data-bs-toggle="pill">Example
+                            <a class="nav-link active" href="#tab-download-dataset" data-bs-toggle="pill">Example
                                 datasets</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#tab-custom-dataset" data-bs-toggle="pill">Custom dataset</a>
+                            <a class="nav-link" aria-current="page" href="#tab-hf-dataset" data-bs-toggle="pill">Direct
+                                upload</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#tab-custom-dataset" data-bs-toggle="pill">Register custom
+                                loader</a>
                         </li>
 
                     </ul>
                 </div>
 
                 <div class="tab-content">
-                    <div id="tab-hf-dataset" role="tabpanel" class="tab-pane active p-3" tabindex="0">
-                        <!-- upload form -->
-                        <form id="upload-form" enctype="multipart/form-data">
-
-                            <div class="alert alert-info" role="alert">
-                                <p>Here you can upload dataset in one of the basic formats with pre-defined loaders.</p>
-
-                                <b>Supported formats</b>
-                                <ul>
-                                    <li><code>text</code>: a plain text file, one input example per line.</li>
-                                    <li><code>jsonl</code>: a JSON Lines file, one JSON object per line.</li>
-                                    <li><code>csv</code>: a CSV file, one input example per row.</li>
-                                    <li><code>html</code>: a ZIP file containing HTML files, one input example per file
-                                        (the files will be sorted numerically by filename).</li>
-                                </ul>
-                            </div>
-                            <div class="mb-3">
-                                <label for="dataset-format" class="form-label">Dataset format</label>
-                                <select class="form-select" id="dataset-format">
-                                    <option value="text">Text</option>
-                                    <option value="jsonl">JSONL</option>
-                                    <option value="csv">CSV</option>
-                                    <option value="html">HTML</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="dataset-id" class="form-label
-                                    ">Dataset name</label>
-                                <input class="form-control" type="text" id="dataset-id" name="dataset-id" required>
-                            </div>
-                            <!-- textarea for description -->
-                            <div class="mb-3">
-                                <label for="dataset-description" class="form-label">Dataset description</label>
-                                <textarea class="form-control" id="dataset-description" name="dataset-description"
-                                    rows="3"></textarea>
-                            </div>
-
-                            <div class="row g-3 mb-3 align-items-center">
-                                <div class="col-auto">
-                                    <span style="margin-left: 10px; margin-right: 10px;">Dataset files</span>
-                                </div>
-                                <div id="dataset-files">
-                                </div>
-                                <div class="col-auto mt-1">
-                                    <button type="button" class="btn btn-outline-secondary btn-sm"
-                                        onclick="addDatasetSplit();">+</button>
-                                </div>
-                            </div>
-                        </form>
-                        <div class="modal-footer">
-                            <button type="submit" id="upload-dataset-btn" class="btn btn-primary mt-3"
-                                onclick="uploadDataset();">Upload
-                                dataset</button>
-                        </div>
-
-                    </div>
-                    <div id="tab-download-dataset" role="tabpanel" class="tab-pane p-3" tabindex="1">
+                    <div id="tab-download-dataset" role="tabpanel" class="tab-pane p-3 active" tabindex="1">
                         <div class="alert alert-info blue-link" role="alert">
                             <p>You can download example datasets (optionally also along with model outputs and
                                 annotations)
@@ -171,6 +116,62 @@
                                 {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                    <div id="tab-hf-dataset" role="tabpanel" class="tab-pane p-3" tabindex="0">
+                        <!-- upload form -->
+                        <form id="upload-form" enctype="multipart/form-data">
+
+                            <div class="alert alert-info" role="alert">
+                                <p>Here you can upload dataset in one of the basic formats with pre-defined loaders.</p>
+
+                                <b>Supported formats</b>
+                                <ul>
+                                    <li><code>text</code>: a plain text file, one input example per line.</li>
+                                    <li><code>jsonl</code>: a JSON Lines file, one JSON object per line.</li>
+                                    <li><code>csv</code>: a CSV file, one input example per row.</li>
+                                    <li><code>html</code>: a ZIP file containing HTML files, one input example per file
+                                        (the files will be sorted numerically by filename).</li>
+                                </ul>
+                            </div>
+                            <div class="mb-3">
+                                <label for="dataset-format" class="form-label">Dataset format</label>
+                                <select class="form-select" id="dataset-format">
+                                    <option value="text">Text</option>
+                                    <option value="jsonl">JSONL</option>
+                                    <option value="csv">CSV</option>
+                                    <option value="html">HTML</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="dataset-id" class="form-label
+                                    ">Dataset name</label>
+                                <input class="form-control" type="text" id="dataset-id" name="dataset-id" required>
+                            </div>
+                            <!-- textarea for description -->
+                            <div class="mb-3">
+                                <label for="dataset-description" class="form-label">Dataset description</label>
+                                <textarea class="form-control" id="dataset-description" name="dataset-description"
+                                    rows="3"></textarea>
+                            </div>
+
+                            <div class="row g-3 mb-3 align-items-center">
+                                <div class="col-auto">
+                                    <span style="margin-left: 10px; margin-right: 10px;">Dataset files</span>
+                                </div>
+                                <div id="dataset-files">
+                                </div>
+                                <div class="col-auto mt-1">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                                        onclick="addDatasetSplit();">+</button>
+                                </div>
+                            </div>
+                        </form>
+                        <div class="modal-footer">
+                            <button type="submit" id="upload-dataset-btn" class="btn btn-primary mt-3"
+                                onclick="uploadDataset();">Upload
+                                dataset</button>
+                        </div>
+
                     </div>
                     <div id="tab-custom-dataset" role="tabpanel" class="tab-pane p-3" tabindex="2">
                         <div class="alert alert-info" role="alert">
