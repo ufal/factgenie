@@ -256,7 +256,7 @@ def get_annotation_index(app, force_reload=True):
     if app and app.db["annotation_index"] is not None and not force_reload:
         return app.db["annotation_index"]
 
-    logger.info("Reloading annotation index")
+    logger.debug("Reloading annotation index")
 
     # contains annotations for each generated output
     annotations = []
@@ -298,7 +298,7 @@ def get_output_index(app, force_reload=True):
     if hasattr(app, "db") and app.db["output_index"] is not None and not force_reload:
         return app.db["output_index"]
 
-    logger.info("Reloading output index")
+    logger.debug("Reloading output index")
 
     outputs = []
     cols = ["dataset", "split", "setup_id", "example_idx", "output"]

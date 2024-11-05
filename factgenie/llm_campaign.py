@@ -180,7 +180,7 @@ def run_llm_campaign(app, mode, campaign_id, announcer, campaign, datasets, mode
                     dataset_id, split, example_idx, setup_id, app=app, force_reload=False
                 )
                 res = model.annotate_example(data=example, text=generated_output["output"])
-                res["output"] = generated_output
+                res["output"] = generated_output["output"]
             elif mode == CampaignMode.LLM_GEN:
                 res = model.generate_output(data=example)
         except Exception as e:
