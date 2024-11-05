@@ -130,7 +130,9 @@ def info(dataset: str, campaign: str):
     help="Path to the YAML configuration file  / name of an existing config (without file suffix).",
 )
 @click.option("-f", "--overwrite", is_flag=True, default=False, help="Overwrite existing campaign if it exists.")
-def create_llm_campaign(campaign_id: str, dataset_ids: str, splits: str, setup_ids: str, mode: str, config_file: str, overwrite: bool):
+def create_llm_campaign(
+    campaign_id: str, dataset_ids: str, splits: str, setup_ids: str, mode: str, config_file: str, overwrite: bool
+):
     """Create a new LLM campaign."""
     from slugify import slugify
     from factgenie.workflows import load_campaign, get_sorted_campaign_list
@@ -153,7 +155,9 @@ def create_llm_campaign(campaign_id: str, dataset_ids: str, splits: str, setup_i
     splits = splits.split(",")
     setup_ids = setup_ids.split(",")
 
-    combinations = [(dataset_id, split, setup_id) for dataset_id in dataset_ids for split in splits for setup_id in setup_ids]
+    combinations = [
+        (dataset_id, split, setup_id) for dataset_id in dataset_ids for split in splits for setup_id in setup_ids
+    ]
     dataset_overview = workflows.get_local_dataset_overview(app)
     if mode == CampaignMode.LLM_EVAL:
         available_data = workflows.get_model_outputs_overview(app, dataset_overview)
@@ -165,7 +169,11 @@ def create_llm_campaign(campaign_id: str, dataset_ids: str, splits: str, setup_i
 
     for c in combinations:
         for data in available_data:
-            if c[0] == data["dataset"] and c[1] == data["split"] and (mode == CampaignMode.LLM_GEN or c[2] == data["setup_id"]):
+            if (
+                c[0] == data["dataset"]
+                and c[1] == data["split"]
+                and (mode == CampaignMode.LLM_GEN or c[2] == data["setup_id"])
+            ):
                 data.pop("output_ids")
                 campaign_data.append(data)
 
@@ -229,7 +237,9 @@ def run_llm_campaign(campaign_id: str):
 
     app.db["running_campaigns"].add(campaign_id)
 
-    return llm_campaign.run_llm_campaign(app, mode, campaign_id, announcer, campaign, datasets, model, running_campaigns)
+    return llm_campaign.run_llm_campaign(
+        app, mode, campaign_id, announcer, campaign, datasets, model, running_campaigns
+    )
 
 
 def create_app(**kwargs):
@@ -274,7 +284,9 @@ def create_app(**kwargs):
     app.config["root_dir"] = ROOT_DIR
     app.config.update(config)
 
-    assert check_login(app, config["login"]["username"], config["login"]["password"]), "Login should pass for valid user"
+    assert check_login(
+        app, config["login"]["username"], config["login"]["password"]
+    ), "Login should pass for valid user"
     assert not check_login(app, "dummy_non_user_name", "dummy_bad_password"), "Login should fail for dummy user"
 
     app.db["datasets_obj"] = workflows.instantiate_datasets()
