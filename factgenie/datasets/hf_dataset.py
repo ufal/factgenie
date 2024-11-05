@@ -2,7 +2,6 @@
 import logging
 import os
 
-from datasets import load_dataset
 from factgenie.datasets.dataset import Dataset
 
 logger = logging.getLogger(__name__)
@@ -11,6 +10,8 @@ logger = logging.getLogger(__name__)
 class HFDataset(Dataset):
     @classmethod
     def download(cls, dataset_id, data_download_dir, out_download_dir, splits, outputs, dataset_config, **kwargs):
+        from datasets import load_dataset
+
         hf_id = kwargs.get("hf_id", dataset_id)
         out_column = kwargs.get("out_column", None)
 
