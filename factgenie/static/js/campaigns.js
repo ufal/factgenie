@@ -415,11 +415,12 @@ function showResult(payload, campaignId) {
     $(`#metadata-example-cnt-${campaignId}`).html(`${finished_examples} / ${total_examples}`);
     console.log(`Progress: ${progress}%`);
 
+
     // update the annotation button
     const example = payload.response;
     const dataset = example.dataset;
     const split = example.split;
-    const setup_id = example.setup_id;
+    const setup_id = example.setup_id || campaignId;
     const example_idx = example.example_idx;
     const rowId = `${dataset}-${split}-${setup_id}-${example_idx}`;
     const annotation_button = $(`#annotBtn${rowId}`);
