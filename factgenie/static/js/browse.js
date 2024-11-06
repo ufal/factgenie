@@ -1,5 +1,6 @@
 var current_example_idx = 0;
 var selected_campaigns = [];
+var collapsed_boxes = [];
 var splitInstance = Split(['#centerpanel', '#rightpanel'], {
     sizes: [66, 33],
     gutterSize: 1,
@@ -334,6 +335,8 @@ function showSelectedCampaigns() {
             $(this).removeClass("active");
         }
     });
+
+
 }
 
 function toggleRaw() {
@@ -359,6 +362,8 @@ function updateDisplayedAnnotations() {
         // show the selected annotator
         $(`.box-${campaign_id}`).show();
     }
+
+    restoreCollapsedStates();
     enableTooltips();
 }
 
@@ -414,3 +419,28 @@ $(document).ready(function () {
     enableTooltips();
 });
 
+// Restore collapsed states after page change/content load
+function restoreCollapsedStates() {
+    collapsed_boxes.forEach(targetId => {
+        const element = document.getElementById(targetId);
+        if (element) {
+            const bsCollapse = new bootstrap.Collapse(element, {
+                toggle: false
+            });
+            bsCollapse.hide();
+        }
+    });
+}
+
+// Store collapsed state when boxes are toggled
+document.addEventListener('shown.bs.collapse', function (e) {
+    const targetId = e.target.id;
+    collapsed_boxes = collapsed_boxes.filter(id => id !== targetId);
+});
+
+document.addEventListener('hidden.bs.collapse', function (e) {
+    const targetId = e.target.id;
+    if (!collapsed_boxes.includes(targetId)) {
+        collapsed_boxes.push(targetId);
+    }
+});
