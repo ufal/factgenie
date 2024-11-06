@@ -3,10 +3,7 @@
 import traceback
 from openai import OpenAI
 from textwrap import dedent
-import argparse
-import yaml
 import json
-import sys
 
 from pathlib import Path
 import os
@@ -20,7 +17,6 @@ from ast import literal_eval
 from factgenie.campaigns import CampaignMode
 
 # logging.basicConfig(format="%(message)s", level=logging.INFO, datefmt="%H:%M:%S")
-# coloredlogs.install(level="INFO", fmt="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 DIR_PATH = os.path.dirname(__file__)
@@ -65,6 +61,10 @@ class Model:
         if "extra_args" in config:
             # the key in the model output that contains the annotations
             self.annotation_key = config["extra_args"].get("annotation_key", "annotations")
+
+    @property
+    def new_connection_error_advice_docstring(self):
+        return """Please check the LLM engine documentation. The call to the LLM API server failed."""
 
     def get_annotator_id(self):
         return "llm-" + self.config["type"] + "-" + self.config["model"]
@@ -232,6 +232,13 @@ class OllamaMetric(LLMMetric):
         super().__init__(config)
 
         self.set_api_endpoint()
+
+    @property
+    def new_connection_error_advice_docstring(self):
+        return """\
+Please check the Ollama documentation:
+    https://github.com/ollama/ollama?tab=readme-ov-file#generate-a-response
+"""
 
     def set_api_endpoint(self):
         # make sure the API URL ends with the `generate` endpoint
@@ -456,6 +463,13 @@ class OllamaGen(LLMGen):
         super().__init__(config)
 
         self.set_api_endpoint()
+
+    @property
+    def new_connection_error_advice_docstring(self):
+        return """\
+Please check the Ollama documentation:
+    https://github.com/ollama/ollama?tab=readme-ov-file#generate-a-response
+"""
 
     def set_api_endpoint(self):
         # make sure the API URL ends with the `chat` endpoint

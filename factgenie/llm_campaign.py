@@ -9,8 +9,11 @@ import os
 import ast
 import logging
 import traceback
+import requests
+import urllib3
 
 from slugify import slugify
+
 from factgenie.campaigns import CampaignMode, CampaignStatus, ExampleStatus
 from flask import jsonify
 import factgenie.utils as utils
@@ -183,6 +186,12 @@ def run_llm_campaign(app, mode, campaign_id, announcer, campaign, datasets, mode
                 res["output"] = generated_output["output"]
             elif mode == CampaignMode.LLM_GEN:
                 res = model.generate_output(data=example)
+        except requests.exceptions.ConnectionError as e:
+            traceback.print_exc()
+            return utils.error(
+                f"Error processing example {dataset_id}-{split}-{example_idx}: {e.__class__.__name__}: {str(e)}\n\n{model.new_connection_error_advice_docstring}\n"
+            )
+
         except Exception as e:
             traceback.print_exc()
             return utils.error(
