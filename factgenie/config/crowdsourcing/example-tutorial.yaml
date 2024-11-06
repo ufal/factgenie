@@ -1,0 +1,46 @@
+annotation_granularity: words
+annotation_span_categories:
+- color: '#d6d0f7'
+  name: NUMBER
+  description: "Incorrect number: It does not matter whether the number is spelled out or is in digits."
+- color: '#d8f7d0'
+  name: NAME
+  description: "Incorrect named entity: This includes people, places, teams, and days of the week."
+- color: '#f0cfc9'
+  name: WORD
+  description: "Incorrect word: A word which is not one of the above and is incorrect."
+- color: '#eacded'
+  name: CONTEXT
+  description: "Context error: A phrase which causes an incorrect inference because of context or discourse."
+- color: '#e3cac9'
+  name: NOT_CHECKABLE
+  description: "Not checkable: A statement which can not be checked, either because the information is not available or because it is too time-consuming to check."
+- color: '#cef3f7'
+  name: OTHER
+  description: "Other: Any other type of mistake."
+annotator_instructions: |-
+  In this task, you will annotate outputs of an automatic text generation system. For each example, you will see **data** from a basketball game on the left side and the corresponding generated **text** on the right side. Your task is to **annotate errors** in the text with respect to the data.
+
+  There are six types of errors that you can mark in the generated text:
+
+  1. <b><span style="background-color: #d6d0f7">NAME</span></b> (Incorrect named entity): This includes people, places, teams, and days of the week.
+  2. <b><span style="background-color: #d8f7d0">NUMBER</span></b> (Incorrect number): It does not matter whether the number is spelled out or is in digits.
+  3. <b><span style="background-color: #f0cfc9">WORD</span></b> (Incorrect word): A word which is not one of the above and is incorrect.
+  4. <b><span style="background-color: #eacded">NOT_CHECKABLE</span></b> (Not checkable): A statement which can not be checked, either because the information is not available or because it is too time-consuming to check.
+  5. <b><span style="background-color: #e3cac9">CONTEXT</span></b> (Context error): A phrase which causes an incorrect inference because of context or discourse.
+  6. <b><span style="background-color: #cef3f7">OTHER</span></b> (Other): Any other type of mistake.
+
+  You can annotate the errors by selecting the appropriate error category and dragging your mouse over the text, highlighting the error span.
+
+  Once you think you have marked all the errors present in the text, click the **✅ Mark example as complete** button (you can still update the annotation later).
+
+  You will be able to submit the annotations once they are all are marked as complete.
+service: local
+examples_per_batch: 5
+annotators_per_example: 1
+final_message: Your annotations have been submitted.
+flags: []
+has_display_overlay: true
+idle_time: 60
+options: []
+sort_order: shuffle-all
