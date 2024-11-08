@@ -252,12 +252,19 @@ def get_service_ids(service, args):
 
 
 def parse_crowdsourcing_config(config):
+    # parse Nones or empty strings
+    examples_per_batch = config.get("examplesPerBatch")
+    examples_per_batch = int(examples_per_batch) if examples_per_batch else 10
+    annotators_per_example = config.get("annotatorsPerExample")
+    annotators_per_example = int(annotators_per_example) if annotators_per_example else 1
+    idle_time = config.get("idleTime")
+    idle_time = int(idle_time) if idle_time else 120
     config = {
-        "annotator_instructions": config.get("annotatorInstructions"),
+        "annotator_instructions": config.get("annotatorInstructions", "No instructions needed :)"),
         "final_message": config.get("finalMessage"),
-        "examples_per_batch": int(config.get("examplesPerBatch")),
-        "annotators_per_example": int(config.get("annotatorsPerExample")),
-        "idle_time": int(config.get("idleTime")),
+        "examples_per_batch": int(examples_per_batch),
+        "annotators_per_example": int(annotators_per_example),
+        "idle_time": int(idle_time),
         "annotation_granularity": config.get("annotationGranularity"),
         "service": config.get("service"),
         "sort_order": config.get("sortOrder"),
