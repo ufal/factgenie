@@ -2,25 +2,16 @@
 
 import traceback
 from openai import OpenAI
-from textwrap import dedent
-import argparse
-import yaml
 import json
-import sys
 
-from pathlib import Path
 import os
-import coloredlogs
 import logging
-import time
 import requests
 import copy
 
 from ast import literal_eval
 from factgenie.campaigns import CampaignMode
 
-# logging.basicConfig(format="%(message)s", level=logging.INFO, datefmt="%H:%M:%S")
-# coloredlogs.install(level="INFO", fmt="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 DIR_PATH = os.path.dirname(__file__)
