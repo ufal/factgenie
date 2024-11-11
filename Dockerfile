@@ -9,4 +9,4 @@ RUN cp /usr/src/factgenie/factgenie/config/config_TEMPLATE.yml /usr/src/factgeni
 RUN pip install -e .[deploy]
 
 EXPOSE 80
-ENTRYPOINT ["gunicorn", "--env", "SCRIPT_NAME=", "-b", ":80", "-w", "1", "--threads", "8", "factgenie.cli:create_app()"]
+ENTRYPOINT ["gunicorn", "--env", "SCRIPT_NAME=", "-b", ":80", "-w", "1", "--threads", "8", "factgenie.bin.run:create_app()"]
