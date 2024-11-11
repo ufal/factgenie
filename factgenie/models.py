@@ -152,7 +152,7 @@ class LLMMetric(Model):
             annotation_d["start"] = start_pos
             annotation_list.append(annotation_d)
 
-            current_pos = start_pos + len(annotation.text)
+            current_pos = start_pos + len(annotation.text)  # does not allow for overlapping annotations
 
         return annotation_list
 
@@ -212,6 +212,8 @@ class OpenAIClientMetric(LLMMetric):
         self._schema["$defs"]["Annotation"]["additionalProperties"] = False
 
         logger.warning(f"The schema is set to\n{self._schema}.\n\tCheck that your prompt is compatible!!! ")
+        # access the later used config keys early to log them once and test if they are present
+        logger.info(f"Using {config['model']=} with {config['system_msg']=}")
 
     @property
     def schema(self):
