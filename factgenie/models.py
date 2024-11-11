@@ -324,13 +324,19 @@ class OllamaMetric(LLMMetric):
         output = output.strip()
         j = json.loads(output)
 
+        ANNOTATION_STR = "annotations"
+        assert (
+            ANNOTATION_STR in OutputAnnotations.model_json_schema()["properties"]
+        ), f"Has the {OutputAnnotations=} schema changed?"
+
         # Required for OllamaMetric. You may want to switch to VLLMMetric which uses constrained decoding.
         # It is especially useful for weaker models which have problems decoding valid JSON on output.
         if self.config["model"].startswith("llama3"):
             # the model often tends to produce a nested list
-            annotations = j[self.annotations_schema]
+
+            annotations = j[ANNOTATION_STR]
             if isinstance(annotations, list) and len(annotations) >= 1 and isinstance(annotations[0], list):
-                j[self.annotations_schema] = j[self.annotations_schema][0]
+                j[ANNOTATION_STR] = j[ANNOTATION_STR][0]
 
         return json.dumps(j)
 

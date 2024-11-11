@@ -1,5 +1,5 @@
 type: ollama_metric
-model: llama3
+model: llama3.1:8b
 # You can run ollama alson on other machine than factgenie 
 #  e.g. we run it on a machine tdll-3gpu3 and access it from any machine which is withing the same firewall
 #  in that case we use api_url: http://tdll-3gpu3.ufal.hide.ms.mff.cuni.cz:11434/api/
