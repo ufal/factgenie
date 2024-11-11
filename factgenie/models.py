@@ -4,6 +4,7 @@ from abc import abstractmethod
 import traceback
 from typing import Optional
 from openai import OpenAI
+from textwrap import dedent
 import json
 
 import os
@@ -67,6 +68,10 @@ class Model:
         self.validate_config(config)
         self.config = config
         self.parse_model_args()
+
+    @property
+    def new_connection_error_advice_docstring(self):
+        return """Please check the LLM engine documentation. The call to the LLM API server failed."""
 
     def get_annotator_id(self):
         return "llm-" + self.config["type"] + "-" + self.config["model"]
@@ -314,6 +319,13 @@ class OllamaMetric(LLMMetric):
 
         self.set_api_endpoint()
 
+    @property
+    def new_connection_error_advice_docstring(self):
+        return """\
+Please check the Ollama documentation:
+    https://github.com/ollama/ollama?tab=readme-ov-file#generate-a-response
+"""
+
     def set_api_endpoint(self):
         # make sure the API URL ends with the `generate` endpoint
         self.config["api_url"] = self.config["api_url"].rstrip("/")
@@ -544,6 +556,13 @@ class OllamaGen(LLMGen):
         super().__init__(config)
 
         self.set_api_endpoint()
+
+    @property
+    def new_connection_error_advice_docstring(self):
+        return """\
+Please check the Ollama documentation:
+    https://github.com/ollama/ollama?tab=readme-ov-file#generate-a-response
+"""
 
     def set_api_endpoint(self):
         # make sure the API URL ends with the `chat` endpoint

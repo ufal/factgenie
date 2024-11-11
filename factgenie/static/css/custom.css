@@ -273,6 +273,11 @@ pre {
     box-shadow: 0 0 0 0.2rem rgba(1, 117, 172, 0.5);
 }
 
+.btn-primary:focus-visible,
+.btn-primary.focus-visible {
+    background-color: #005c88;
+}
+
 .btn-primary.disabled,
 .btn-primary:disabled {
     color: #fff;
