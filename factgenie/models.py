@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
+from abc import abstractmethod
 import traceback
+from typing import Optional
 from openai import OpenAI
 import json
 
 import os
 import logging
+from pydantic import BaseModel, Field
 import requests
 import copy
 
@@ -28,6 +31,7 @@ class ModelFactory:
             CampaignMode.LLM_EVAL: {
                 "openai_metric": OpenAIMetric,
                 "ollama_metric": OllamaMetric,
+                "vllm_metric": VLLMMetric
             },
             CampaignMode.LLM_GEN: {
                 "openai_gen": OpenAIGen,
@@ -47,6 +51,16 @@ class ModelFactory:
         return classes[metric_type](config)
 
 
+class Annotation(BaseModel):
+    text: str = Field(description="The text which is annotated.")
+    type: int = Field(description="Index to the list of categories defined for the annotation campaign.")
+    reason: str = Field(description="The reason for the annotation.")
+
+
+class OutputAnnotations(BaseModel):
+    annotations: list[Annotation] = Field(description="The list of annotations.")
+
+
 class Model:
     def __init__(self, config):
         self.validate_config(config)
@@ -55,7 +69,7 @@ class Model:
 
         if "extra_args" in config:
             # the key in the model output that contains the annotations
-            self.annotation_key = config["extra_args"].get("annotation_key", "annotations")
+            self.annotations_schema = config["extra_args"].get("annotations_schema", MetricAnnotations.)
 
     def get_annotator_id(self):
         return "llm-" + self.config["type"] + "-" + self.config["model"]
@@ -119,11 +133,11 @@ class LLMMetric(Model):
         annotation_list = []
         current_pos = 0
 
-        if self.annotation_key not in model_json:
-            logger.error(f"Cannot find the key `{self.annotation_key}` in {model_json=}")
+        if self.annotations_schema not in model_json:
+            logger.error(f"Cannot find the key `{self.annotations_schema}` in {model_json=}")
             return annotation_list
 
-        for annotation in model_json[self.annotation_key]:
+        for annotation in model_json[self.annotations_schema]:
             # find the `start` index of the error in the text
             start_pos = text.lower().find(annotation["text"].lower(), current_pos)
 
@@ -172,10 +186,23 @@ class LLMMetric(Model):
         raise NotImplementedError("Override this method in the subclass to call the LLM API")
 
 
-class OpenAIMetric(LLMMetric):
-    def __init__(self, config):
+class OpenAIClientMetric(LLMMetric):
+    def __init__(self, config, **kwargs):
         super().__init__(config)
-        self.client = OpenAI()
+        self.client = OpenAI(**kwargs)
+
+        config_schema = config.get("extra_args", {}).get("schema", {})
+        pydantic_schema = OutputAnnotations.schema()
+        if config_schema:
+            self._schema = config_schema
+        else:
+            self._schema = pydantic_schema
+        logger.warning(f"We expect parsing according to \n{pydantic_schema=}\n but got anoter schema from config\n{config_schema=}\nAdapt parsing accordingly!")
+        logger.warning(f"The schema is set to\n{self._schema}.\n\tCheck that your prompt is compatible!!! ")
+
+    @property
+    def schema(self):
+        return self._schema
 
     def get_required_fields(self):
         return {
@@ -193,19 +220,25 @@ class OpenAIMetric(LLMMetric):
             "extra_args": dict,  # TODO we receive it from the UI, but can be removed
         }
 
+    @abstractmethod
+    def _prepare_chat_completions_create_args(self):
+        raise NotImplementedError("Override this method in the subclass to prepare the arguments for the OpenAI API")
+
     def annotate_example(self, data, text):
         try:
             prompt = self.prompt(data, text)
 
             logger.debug(f"Calling OpenAI API with prompt: {prompt}")
+
+            model = self.config["model"]
+
             response = self.client.chat.completions.create(
-                model=self.config["model"],
-                response_format={"type": "json_object"},
+                model=model,
                 messages=[
                     {"role": "system", "content": self.config["system_msg"]},
                     {"role": "user", "content": prompt},
                 ],
-                **self.config.get("model_args", {}),
+                **self._prepare_chat_completions_create_args()
             )
             annotation_str = response.choices[0].message.content
             j = json.loads(annotation_str)
@@ -216,6 +249,46 @@ class OpenAIMetric(LLMMetric):
             traceback.print_exc()
             logger.error(e)
             raise e
+
+
+
+class VLLMMetric(OpenAIClientMetric):
+    def __init__(self, config, base_url, api_key: Optional[str] = None, **kwargs):
+        super().__init__(config, base_url=base_url, api_key=api_key, **kwargs)
+
+    def _prepare_chat_completions_create_args(self):
+        guided_json = self.schema
+            # # works well with vllm https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html#extra-parameters
+        config_args = {"extra_body": {"guided_json": guided_json}}
+        return config_args
+
+
+
+class OpenAIMetric(OpenAIClientMetric):
+    def _prepare_chat_completions_create_args(self):
+        model = self.config["model"]
+
+        model_supported = any(model.startswith(prefix) for prefix in ["gpt-4o", "gpt-4o-mini"])
+        if not model_supported:
+            logger.warning(f"Model {model} does not support structured output. It is probablye there will be LOT OF PARSING ERRORS")
+            response_format = {"type": "json_object"}
+        else:
+            # Details at https://platform.openai.com/docs/guides/structured-outputs?context=without_parse 
+            response_format = {
+                "type": "json_schema", "json_schema": 
+                "json_schema": { 
+                    "name": "List of Annotations for NLG output",
+                    "strict": True,
+                    "schema": self.schema
+                }
+            }
+
+        config_args = self.config.get("model_args", {}),
+        if "response_format" in config_args and config_args["response_format"] != response_format:
+            logger.warning(f"Not using the default {response_format=} but using {config_args['response_format']=}")
+        else:
+            config_args["response_format"] = response_format
+        return config_args
 
 
 class OllamaMetric(LLMMetric):
@@ -234,11 +307,13 @@ class OllamaMetric(LLMMetric):
         output = output.strip()
         j = json.loads(output)
 
+        # Required for OllamaMetric. You may want to switch to VLLMMetric which uses constrained decoding.
+        # It is especially useful for weaker models which have problems decoding valid JSON on output.
         if self.config["model"].startswith("llama3"):
             # the model often tends to produce a nested list
-            annotations = j[self.annotation_key]
+            annotations = j[self.annotations_schema]
             if isinstance(annotations, list) and len(annotations) >= 1 and isinstance(annotations[0], list):
-                j[self.annotation_key] = j[self.annotation_key][0]
+                j[self.annotations_schema] = j[self.annotations_schema][0]
 
         return j
 
