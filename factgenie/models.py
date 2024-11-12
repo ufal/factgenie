@@ -52,15 +52,17 @@ class ModelFactory:
         return classes[metric_type](config)
 
 
-class Annotation(BaseModel):
+class SpanAnnotation(BaseModel):
     text: str = Field(description="The text which is annotated.")
     # Do not name it type since it is a reserved keyword in JSON schema
-    error_type: int = Field(description="Index to the list of categories defined for the annotation campaign.")
+    annotation_type: int = Field(
+        description="Index to the list of span annotation types defined for the annotation campaign."
+    )
     reason: str = Field(description="The reason for the annotation.")
 
 
 class OutputAnnotations(BaseModel):
-    annotations: list[Annotation] = Field(description="The list of annotations.")
+    annotations: list[SpanAnnotation] = Field(description="The list of annotations.")
 
 
 class Model:
@@ -151,8 +153,8 @@ class LLMMetric(Model):
             annotation_d = annotation.dict()
             # For backward compatibility let's use shorter "type"
             # We do not use the name "type" in JSON schema for error types because it has much broader sense in the schema (e.g. string or integer)
-            annotation_d["type"] = annotation.error_type
-            del annotation_d["error_type"]
+            annotation_d["type"] = annotation.annotation_type
+            del annotation_d["annotation_type"]
             # logging where the annotion starts to disambiguate errors on the same string in different places
             annotation_d["start"] = start_pos
             annotation_list.append(annotation_d)
