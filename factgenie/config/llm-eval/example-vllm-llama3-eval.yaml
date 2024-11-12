@@ -1,10 +1,10 @@
-type: ollama_metric
-model: llama3.1:8b
-# You can run ollama alson on other machine than factgenie 
+type: vllm_metric
+model: meta-llama/Meta-Llama-3-8B-Instruct
+# You can run vllm also on other machine than factgenie 
 #  e.g. we run it on a machine tdll-3gpu3 and access it from any machine which is withing the same firewall
-#  in that case we use api_url: http://tdll-3gpu3.ufal.hide.ms.mff.cuni.cz:11434/api/
-# If you run ollama at the same machine as factgenie let's use just localhost.
-api_url: http://localhost:11434/api/
+#  in that case we use api_url: http://tdll-3gpu3.ufal.hide.ms.mff.cuni.cz:8000/v1/
+# If you run vllm at the same machine as factgenie let's use just localhost.
+api_url: http://localhost:8000/v1/
 model_args:
   num_predict: 1024
   temperature: 0.0
