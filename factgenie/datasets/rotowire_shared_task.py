@@ -3,6 +3,7 @@ import json
 import markdown
 import textwrap
 
+
 class RotowireSharedTask(Dataset):
     def load_examples(self, split, data_path):
         examples = []
@@ -15,7 +16,7 @@ class RotowireSharedTask(Dataset):
                 examples.append(summary)
 
         return examples
-    
+
     def render(self, example):
         html = markdown.markdown(example, extensions=["markdown.extensions.tables"])
         html = html.replace("<table>", '<table class="table table-hover table-sm">')
@@ -94,7 +95,7 @@ class RotowireSharedTask(Dataset):
         markdown += "\n"
         markdown += self.create_player_stats_tables(data)
         return markdown
-    
+
     def add_explanations(self, html):
         abbr_mappings = {
             "Minutes": "The number of minutes played",
