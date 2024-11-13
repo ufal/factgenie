@@ -21,7 +21,7 @@ from slugify import slugify
 from flask import make_response
 from collections import defaultdict
 from pathlib import Path
-from factgenie.campaigns import (
+from factgenie.campaign import (
     HumanCampaign,
     LLMCampaignEval,
     ExternalCampaign,

@@ -9,7 +9,7 @@ from slugify import slugify
 from tqdm import tqdm
 from pathlib import Path
 from flask import jsonify
-from factgenie.campaigns import CampaignMode
+from factgenie.campaign import CampaignMode
 from factgenie import (
     RESOURCES_CONFIG_PATH,
     DATASET_CONFIG_PATH,

@@ -28,7 +28,7 @@ import factgenie.analysis as analysis
 import factgenie.utils as utils
 
 from factgenie import CAMPAIGN_DIR, TEMPLATES_DIR, STATIC_DIR, INPUT_DIR
-from factgenie.campaigns import CampaignMode, CampaignStatus, ExampleStatus
+from factgenie.campaign import CampaignMode, CampaignStatus, ExampleStatus
 from factgenie.models import ModelFactory
 
 from werkzeug.middleware.proxy_fix import ProxyFix

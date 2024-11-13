@@ -6,7 +6,7 @@
 import click
 from flask.cli import FlaskGroup
 from factgenie.app import app
-from factgenie.campaigns import CampaignMode  # required because of the click args choices
+from factgenie.campaign import CampaignMode  # required because of the click args choices
 
 
 def list_datasets(app):
@@ -248,7 +248,7 @@ def create_llm_campaign(
 def run_llm_campaign(campaign_id: str):
     from factgenie.models import ModelFactory
     from factgenie import llm_campaign
-    from factgenie.campaigns import CampaignStatus
+    from factgenie.campaign import CampaignStatus
     from factgenie.workflows import load_campaign
 
     # mockup object

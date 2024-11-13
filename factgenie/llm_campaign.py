@@ -14,7 +14,7 @@ import urllib3
 
 from slugify import slugify
 
-from factgenie.campaigns import CampaignMode, CampaignStatus, ExampleStatus
+from factgenie.campaign import CampaignMode, CampaignStatus, ExampleStatus
 from flask import jsonify
 import factgenie.utils as utils
 import factgenie.workflows as workflows

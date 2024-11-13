@@ -15,7 +15,7 @@ from jinja2 import Template
 import factgenie.utils as utils
 import factgenie.workflows as workflows
 from factgenie import CAMPAIGN_DIR, PREVIEW_STUDY_ID, TEMPLATES_DIR
-from factgenie.campaigns import CampaignMode, ExampleStatus
+from factgenie.campaign import CampaignMode, ExampleStatus
 
 logger = logging.getLogger(__name__)
 

@@ -14,7 +14,7 @@ import requests
 import copy
 
 from ast import literal_eval
-from factgenie.campaigns import CampaignMode
+from factgenie.campaign import CampaignMode
 
 logger = logging.getLogger(__name__)
 
