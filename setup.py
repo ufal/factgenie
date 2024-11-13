@@ -86,5 +86,5 @@ setup(
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Typing :: Typed",
-    ]
+    ],
 )
