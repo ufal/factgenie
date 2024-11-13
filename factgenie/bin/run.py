@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 
-# The cli is CLI entry point.
+# The run.py module is CLI entry point.
 # The local imports in individual functions make CLI way faster.
 # Use them as much as possible and minimize imports at the top of the file.
 import click
-import argparse
-import yaml
 from flask.cli import FlaskGroup
-from factgenie.campaigns import CampaignMode
 from factgenie.app import app
-from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, CAMPAIGN_DIR, INPUT_DIR, OUTPUT_DIR
+from factgenie.campaigns import CampaignMode  # required because of the click args choices
 
 
 def list_datasets(app):
@@ -60,6 +57,18 @@ def list_campaigns(app):
         print(campaign_id)
 
 
+@app.cli.command("list")
+@click.argument("output", type=click.Choice(["datasets", "outputs", "campaigns"]))
+def list_data(output: str):
+    """List available data."""
+    if output == "datasets":
+        list_datasets(app)
+    elif output == "outputs":
+        list_outputs(app)
+    elif output == "campaigns":
+        list_campaigns(app)
+
+
 def show_dataset_info(app, dataset_id: str):
     """Show information about a dataset."""
 
@@ -90,18 +99,6 @@ def show_campaign_info(app, campaign_id: str):
     pp({"metadata": campaign.metadata, "stats": campaign.get_stats()})
 
 
-@app.cli.command("list")
-@click.argument("output", type=click.Choice(["datasets", "outputs", "campaigns"]))
-def list_data(output: str):
-    """List available data."""
-    if output == "datasets":
-        list_datasets(app)
-    elif output == "outputs":
-        list_outputs(app)
-    elif output == "campaigns":
-        list_campaigns(app)
-
-
 @app.cli.command("info")
 @click.option("-d", "--dataset", type=str, help="Show information about a dataset.")
 @click.option("-c", "--campaign", type=str, help="Show information about a campaign.")
@@ -111,6 +108,28 @@ def info(dataset: str, campaign: str):
         show_dataset_info(app, dataset)
     elif campaign:
         show_campaign_info(app, campaign)
+    else:
+        click.echo(info.get_help(click.Context(info)))
+
+
+@app.cli.command("download")
+@click.option(
+    "-d",
+    "--dataset_id",
+    type=str,
+    help=(
+        "Download dataset input data. "
+        "Factgenie does not use references so the inputs define the datasets. "
+        "If the dataset class defines model outputs and annotations we download them too."
+    ),
+)
+def download_data(dataset_id: str):
+    import factgenie.workflows as workflows
+
+    if dataset_id:
+        workflows.download_dataset(app, dataset_id)
+    else:
+        click.echo(info.get_help(click.Context(info)))
 
 
 @app.cli.command("create_llm_campaign")
@@ -205,10 +224,7 @@ def create_llm_campaign(
 
 
 @app.cli.command("run_llm_campaign")
-@click.argument(
-    "campaign_id",
-    type=str,
-)
+@click.argument("campaign_id", type=str)
 def run_llm_campaign(campaign_id: str):
     from factgenie.models import ModelFactory
     from factgenie import llm_campaign
@@ -250,6 +266,7 @@ def create_app(**kwargs):
     import factgenie.workflows as workflows
     from apscheduler.schedulers.background import BackgroundScheduler
     from factgenie.utils import check_login
+    from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, CAMPAIGN_DIR, INPUT_DIR, OUTPUT_DIR
 
     logger = logging.getLogger(__name__)
 
