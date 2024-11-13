@@ -86,6 +86,11 @@ We also provide step-by-step walkthroughs showing how to employ factgenie on the
 | [🤖 #4: Annotating outputs with an LLM](../../wiki/Tutorials#-tutorial-4-annotating-outputs-with-an-llm)                     | Using GPT-4o for annotating errors in the basketball reports.                                    |
 | [👨‍💼 #5: Annotating outputs with human annotators](../../wiki/Tutorials#-tutorial-5-annotating-outputs-with-human-annotators) | Using human annotators for annotating errors in the basketball reports.                          |
 
+## 🔊 Join us on Slack
+
+If you want to get a quick feedback or actively participate in development of factgenie, join our public **Slack workspace**:
+
+<img width="150px" alt="Join us on Slack" src="./img/slack.png" href="https://join.slack.com/t/factgenie/shared_invite/zt-2u180yy81-3zCR7mt8EOy55cxA5zhKyQ">
 
 ## 💬 Cite us
 
