@@ -17,5 +17,6 @@ DATASET_CONFIG_PATH = PACKAGE_DIR / "data" / "datasets.yml"
 RESOURCES_CONFIG_PATH = PACKAGE_DIR / "config" / "resources.yml"
 
 MAIN_CONFIG_PATH = PACKAGE_DIR / "config" / "config.yml"
+MAIN_CONFIG_TEMPLATE_PATH = PACKAGE_DIR / "config" / "config_TEMPLATE.yml"
 DEFAULT_PROMPTS_CONFIG_PATH = PACKAGE_DIR / "config" / "default_prompts.yml"
 PREVIEW_STUDY_ID = "factgenie_preview"

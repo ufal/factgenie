@@ -283,15 +283,20 @@ def create_app(**kwargs):
     import logging
     import coloredlogs
     import os
+    import shutil
     import factgenie.workflows as workflows
     from apscheduler.schedulers.background import BackgroundScheduler
     from factgenie.utils import check_login
-    from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, CAMPAIGN_DIR, INPUT_DIR, OUTPUT_DIR
+    from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, MAIN_CONFIG_TEMPLATE_PATH, CAMPAIGN_DIR, INPUT_DIR, OUTPUT_DIR
 
     logger = logging.getLogger(__name__)
 
     file_handler = logging.FileHandler("error.log")
     file_handler.setLevel(logging.ERROR)
+
+    if not MAIN_CONFIG_PATH.exists():
+        print("Activating the default configuration.")
+        shutil.copy(MAIN_CONFIG_TEMPLATE_PATH, MAIN_CONFIG_PATH)
 
     with open(MAIN_CONFIG_PATH) as f:
         config = yaml.safe_load(f)

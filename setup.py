@@ -22,19 +22,6 @@ install_requires = [
     "tinyhtml>=1.2.0",
 ]
 
-
-class PostInstallCommand(install):
-    """Post-installation for installation mode."""
-
-    def run(self):
-        install.run(self)
-        template_path = project_root / "factgenie/config/config_TEMPLATE.yml"
-        config_path = project_root / "factgenie/config/config.yml"
-        if not config_path.exists():
-            print("Activating the default configuration.")
-            shutil.copy(template_path, config_path)
-
-
 setup(
     name="factgenie",
     version="1.0.0",
@@ -99,8 +86,5 @@ setup(
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Typing :: Typed",
-    ],
-    cmdclass={
-        "install": PostInstallCommand,
-    },
+    ]
 )
