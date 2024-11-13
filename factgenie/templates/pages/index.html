@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>factgenie</title>
+  <link rel="stylesheet" media="screen" href="{{ host_prefix }}/static/css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="{{ host_prefix }}/static/css/custom.css">
+  <link rel="shortcut icon" href="{{ host_prefix }}/static/img/favicon.ico">
+  <meta name="viewport" content="width=1024">
+  <script src="{{ host_prefix }}/static/js/lib/jquery.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/popper.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/bootstrap.min.js"></script>
+</head>
+
+<body>
+  {% include 'pages/navbar.html' %}
+
+  <div class="container">
+    <div class="row mt-5">
+      <!-- <b>Actions</b> -->
+      <div class="col-md-4">
+        <div class="card text-center mt-3" style="min-width: 100%;">
+          <div class="card-body">
+            <a href="{{ host_prefix }}/browse">
+              <img src="{{ host_prefix }}/static/img/book.png" class="intro-img">
+              <h5 class="card-title">Browse</h5>
+            </a>
+            <p class="card-text">View data and annotated outputs.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card text-center mt-3">
+          <div class="card-body">
+            <a href="{{ host_prefix }}/llm_eval">
+              <img src="{{ host_prefix }}/static/img/llm_eval.png" class="intro-img">
+              <h5 class="card-title">Annotate with LLMs</h5>
+            </a>
+            <p class="card-text">Collect model annotations.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card text-center mt-3">
+          <div class="card-body">
+            <a href="{{ host_prefix }}/crowdsourcing">
+              <img src="{{ host_prefix }}/static/img/crowdsourcing.png" class="intro-img">
+              <h5 class="card-title">Annotate with human annotators</h5>
+            </a>
+            <p class="card-text">Collect human annotations.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card text-center mt-3">
+          <div class="card-body">
+            <a href="{{ host_prefix }}/llm_gen">
+              <img src="{{ host_prefix }}/static/img/llm_gen.png" class="intro-img">
+              <h5 class="card-title">Generate with LLMs</h5>
+            </a>
+            <p class="card-text">Generate model outputs.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card text-center mt-3">
+          <div class="card-body">
+            <a href="{{ host_prefix }}/analyze">
+              <img src="{{ host_prefix }}/static/img/analysis.png" class="intro-img">
+              <h5 class="card-title">Analyze</h5>
+            </a>
+            <p class="card-text">Compute annotation statistics.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card text-center mt-3">
+          <div class="card-body">
+            <a href="{{ host_prefix }}/manage">
+              <img src="{{ host_prefix }}/static/img/manage.png" class="intro-img">
+              <h5 class="card-title">Manage</h5>
+            </a>
+            <p class="card-text">Manage resources.</p>
+          </div>
+        </div>
+      </div>
+
+
+    </div>
+</body>
+
+<script>
+  window.url_prefix = "{{ host_prefix }}";
+</script>

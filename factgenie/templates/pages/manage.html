@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>factgenie</title>
+  <link rel="stylesheet" media="screen" href="{{ host_prefix }}/static/css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="{{ host_prefix }}/static/css/custom.css">
+  <link rel="shortcut icon" href="{{ host_prefix }}/static/img/favicon.ico">
+  <link href="{{ host_prefix }}/static/css/font-awesome.css" rel="stylesheet">
+  <meta name="viewport" content="width=1024">
+  <script src="{{ host_prefix }}/static/js/lib/jquery.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/popper.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/bootstrap.min.js"></script>
+
+  <link rel="stylesheet" href="{{ host_prefix }}/static/css/bootstrap-table.min.css">
+  <link rel="stylesheet" href="{{ host_prefix }}/static/css/bootstrap-icons.css">
+  <script src="{{ host_prefix }}/static/js/lib/bootstrap-table.min.js"></script>
+</head>
+
+<body>
+  {% include 'pages/navbar.html' %}
+
+  <div class="container">
+    <div class="mb-5">
+      <a href="{{ host_prefix }}/" class="btn btn-outline-secondary mt-5">← Main page</a>
+    </div>
+
+    <h3><img src="{{ host_prefix }}/static/img/manage.png" class="heading-img-inline">
+      <b>Data management</b>
+    </h3>
+    <ul class="nav nav-tabs nav-fill mt-4" id="pills-tab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <a class="nav-link active" id="pills-datasets-tab" data-bs-toggle="pill" href="#pills-datasets" role="tab"
+          aria-controls="pills-datasets" data-anchor="local"><img src="{{ host_prefix }}/static/img/datasets.png"
+            height="30px" class="heading-img-inline">Datasets</a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a class="nav-link" id="pills-outputs-tab" data-bs-toggle="pill" href="#pills-outputs" role="tab"
+          aria-controls="pills-outputs" data-anchor="outputs"><img src="{{ host_prefix }}/static/img/output.png"
+            height="30px" class="heading-img-inline">Model outputs</a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a class="nav-link" id="pills-annotations-tab" data-bs-toggle="pill" href="#pills-annotations" role="tab"
+          aria-controls="pills-annotations" data-anchor="annotations"><img
+            src="{{ host_prefix }}/static/img/checkmark.png" height="30px" class="heading-img-inline">Campaigns</a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a class="nav-link" id="pills-datasets-tab" data-bs-toggle="pill" href="#pills-download" role="tab"
+          aria-controls="pills-download" data-anchor="external"><img src="{{ host_prefix }}/static/img/download.png"
+            height="30px" class="heading-img-inline">Add resources</a>
+      </li>
+    </ul>
+    <div class="tab-content" id="pills-tabContent">
+      <div class="tab-pane fade mt-3  show active" id="pills-datasets" role="tabpanel"
+        aria-labelledby="pills-datasets-tab">
+
+        {% if not datasets %}
+        <div class="alert alert-info mt-5  w-50 text-center  mx-auto" role="alert">
+          <p>No datasets available.
+          </p>
+          <p>Add your first a dataset on the <a href="#external" class="alert-link">Add
+              resources</a> tab!</p>
+        </div>
+        {% endif %}
+        <table id="table-local" data-toggle="table" data-search="false" data-pagination="true" data-page-size="10"
+          data-detail-view-icon="false" data-search-align="left" data-detail-view="true"
+          data-detail-formatter="detailFormatter" data-detail-view-by-click="true" data-show-search-button="true"
+          data-pagination-parts="['pageList']" data-classes="table table-hover table-datasets" {% if not datasets %}
+          style="display: none;" {% endif %}>
+          <thead>
+            <tr>
+              <th scope="col">Enabled</th>
+              <th scope="col">Dataset</th>
+              <th scope="col">Class</th>
+              <th scope="col">Splits</th>
+              <th scope="col">Examples</th>
+              <th scope="col">Actions</th>
+              <th scope="col" data-visible="false">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for dataset_id, dataset in datasets.items() %}
+            <tr>
+              <td>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="{{ dataset_id }}-switch" {% if dataset.enabled %}
+                    checked {% endif %} onclick="setDatasetEnabled('{{ dataset_id }}', this.checked)">
+                </div>
+              </td>
+              <td>
+                {% if dataset.enabled %}
+                <a href="{{ host_prefix }}/browse?dataset={{ dataset_id }}&split={{ dataset.splits[0] }}&example_idx=0"
+                  class="blue-link">
+                  {{ dataset_id
+                  }}</a>
+                {% else %}
+                <span class="text-muted"><i>{{ dataset_id }}</i></span>
+                {% endif %}
+              </td>
+              <td>{{ dataset.class }}</td>
+              <!-- <td class="underline-link">{{ dataset.description | safe }}</td> -->
+              <td>
+                {% for split in dataset.splits %}
+                <a class="badge bg-secondary"
+                  href="{{ host_prefix }}/browse?dataset={{ dataset_id }}&split={{ split }}&example_idx=0">{{ split
+                  }}</a>
+                {% endfor %}
+              </td>
+              <td>
+                {% for split in dataset.splits %}
+                {{ dataset.example_count[split] }}{% if not loop.last %} /{% endif %}
+                {% endfor %}
+              </td>
+              <td>
+                <a href="{{ host_prefix }}/export_dataset?dataset_id={{ dataset_id }}" class="btn btn-outline-secondary"
+                  data-bs-toggle="tooltip" title="Export the dataset">
+                  <i class="fa fa-download"></i>
+                </a>
+                <a onclick="deleteDataset('{{ dataset_id }}')" class="btn btn-outline-danger" data-bs-toggle="tooltip"
+                  title="Delete the dataset">
+                  <i class="fa fa-trash"></i>
+                </a>
+              </td>
+              <td class="dataset-description" style="display: none;">
+                <div class="blue-link">
+                  {% if dataset.description %}
+                  {{ dataset.description|safe }}
+                  {% else %}
+                  <i>No description</i>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="tab-pane fade mt-3" id="pills-outputs" role="tabpanel" aria-labelledby="pills-outputs-tab">
+        {% if not model_outputs %}
+        <div class="alert alert-info mt-5  w-50 text-center  mx-auto" role="alert">
+          <p>No model outputs available.
+          </p>
+          <p>Add your model outputs on the <a href="#external" class="alert-link">Add
+              resources</a> tab!</p>
+        </div>
+        {% endif %}
+        <table id="model-out-table" data-toggle="table" data-search="false" data-pagination="true" data-page-size="10"
+          data-detail-view-icon="false" data-pagination-parts="['pageList']" data-classes="table table-hover" {% if not
+          model_outputs %} style="display: none;" {% endif %}>
+          <thead>
+            <tr>
+              <th scope="col" data-sortable="true">Dataset</th>
+              <th scope="col" data-sortable="true">Split</th>
+              <th scope="col" data-sortable="true">Source</th>
+              <th scope="col" data-sortable="true">Examples</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for record in model_outputs %}
+            <tr>
+              <td>{{ record.dataset }}</td>
+              <td>{{ record.split }}</td>
+              <td>{{ record.setup_id }}</td>
+              <td>{{ record.output_ids | length }}</td>
+              <td>
+                <a href="{{ host_prefix }}/browse?dataset={{ record.dataset }}&split={{ record.split }}&example_idx=0&setup_id={{ record.setup_id }}"
+                  class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Show the outputs">
+                  <i class="fa fa-external-link"></i>
+                </a>
+                <a href="{{ host_prefix }}/export_outputs?dataset={{ record.dataset }}&split={{ record.split }}&setup_id={{ record.setup_id }}"
+                  class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Export model outputs">
+                  <i class="fa fa-download"></i>
+                </a>
+                <a onclick="deleteOutput('{{ dataset }}', '{{ split }}', '{{ setup_id }}')"
+                  class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Delete the output">
+                  <i class="fa fa-trash"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="tab-pane fade mt-3" id="pills-annotations" role="tabpanel" aria-labelledby="pills-annotations-tab">
+        {% if not campaigns %}
+        <div class="alert alert-info mt-5  w-50 text-center  mx-auto" role="alert">
+          <p>No campaigns available.
+          </p>
+          <p>Create your first <a href="/llm_eval/new" class="alert-link">LLM annotation campaign</a> or <a
+              href="/crowdsourcing/new" class="alert-link">crowdsourcing campaign</a>.</p>
+        </div>
+        {% endif %}
+        <table id="table-ann" data-toggle="table" data-pagination="true" data-page-size="10" data-search-align="left"
+          data-pagination-parts="['pageList']" data-classes="table table-hover" {% if not campaigns %}
+          style="display: none;" {% endif %}>
+          <thead>
+            <tr>
+              <th scope="col" data-sortable="true">Campaign</th>
+              <!-- <th scope="col" data-sortable="true">Source</th> -->
+              <th scope="col" data-sortable="true">Created</th>
+              <th scope="col" data-width="400">Labels</th>
+              <th scope="col" data-width="200">Status</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for campaign_id, campaign in campaigns.items() %}
+            <tr>
+              <td><img src="{{ host_prefix }}/static/img/{{ campaign.metadata.mode }}.png" style="max-width: 18px;"
+                  class="heading-img-inline"> {% if campaign.metadata.mode == 'external' %}{{
+                campaign.metadata.id }}{% else %}<a
+                  href="{{ host_prefix }}/{{ campaign.metadata.mode }}/detail/{{ campaign.metadata.id }}"
+                  class="blue-link">{{
+                  campaign.metadata.id }}</a>{% endif %}</td>
+              <!-- <td>{{ campaign.metadata.mode }}</td> -->
+              <td>{{ campaign.metadata.created }}</td>
+              <td style="padding-right:30px;">{% for category in campaign.metadata.config.annotation_span_categories
+                %}
+                <span class="badge" style="background-color: {{ category.color }}; color: rgb(60, 65, 73); ">{{
+                  category.name
+                  }}</span>
+                {% endfor %}
+              </td>
+              <td style="padding-right:30px;">
+                {% if campaign.metadata.mode == 'llm_eval' or campaign.metadata.mode == 'llm_gen' %}
+                {% include 'include/progress_bar_llm.html' %}
+                {% elif campaign.metadata.mode == 'crowdsourcing' %}
+                {% include 'include/progress_bar_crowdsourcing.html' %}
+                {% else %}
+                external
+                {% endif %}
+              </td>
+              <td>
+                <a onclick="deleteCampaign('{{ campaign.metadata.id }}', '{{ campaign.metadata.mode }}')"
+                  class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Delete the campaign">
+                  <i class="fa fa-trash"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="tab-pane fade mt-3 mb-5 text-center" id="pills-download" role="tabpanel"
+        aria-labelledby="pills-download-tab">
+
+        <h5 class="mt-5">Add dataset</h5>
+        <p class="blue-link">Here you can add a custom dataset to factgenie. Learn more at <a
+            href="https://github.com/ufal/factgenie/wiki/Data-Management#%EF%B8%8F-adding-datasets">factgenie
+            wiki</a>.</p>
+        <div class="mb-5">
+          <a type="button" class="btn btn-primary mt-2 mb-4" data-bs-toggle="modal"
+            data-bs-target="#add-dataset-modal">Add
+            dataset</a>
+        </div>
+        <h5 class="mt-5">Add model outputs</h5>
+        <p class="blue-link">Here you can upload model outputs to factgenie. Note that you need to add a dataset with
+          input data first. Learn more at <a
+            href="https://github.com/ufal/factgenie/wiki/Data-Management#%EF%B8%8F-adding-model-outputs">factgenie
+            wiki</a>.</p>
+        <div class="mb-5">
+          <a type="button" class="btn btn-primary mb-5 mt-2" data-bs-toggle="modal" data-bs-target="#uploadModal">Add
+            model
+            outputs</a>
+        </div>
+
+      </div>
+    </div>
+
+    {% include 'include/add_dataset_modal.html' %}
+    {% include 'include/add_model_output_modal.html' %}
+</body>
+<script>
+  window.url_prefix = "{{ host_prefix }}";
+  window.mode = "manage";
+  window.datasets = {{ datasets | tojson | safe }};
+  window.model_outputs = {{ model_outputs | tojson | safe }};
+</script>
+<script src="{{ host_prefix }}/static/js/utils.js"></script>
+<script src="{{ host_prefix }}/static/js/manage.js"></script>

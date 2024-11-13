@@ -1,8 +1,29 @@
+# YOU NEED run once `curl http://localhost:11434/api/pull -d '{"name": "llama3.1:8b"}'`
+# after running `docker-compose up -d` from the repo root directory
+# in order to download the llama3.1:8b model which is the default model 
+# we use in the example configurations for factgenie
 services:
   factgenie:
     container_name: factgenie
     image: factgenie
     restart: on-failure
     ports:
-      - 8080:80
-    build: ./factgenie
+      - 8890:80
+    build: ./
+  
+  # Factgenie connects to LLM inference servers either OpenAI client or Ollama
+  # Demonstrates running ollama on CPU 
+  #   For GPU run ollama without Docker
+  # or look at https://hub.docker.com/r/ollama/ollama and follow the GPU instructions
+  ollama:
+    container_name: ollama
+    image: ollama/ollama
+    restart: on-failure
+    # We need to expose the port to your machine because you need to pull models for ollama
+    # before factgenie queries the ollama server to run inference for the model.
+    # E.g. curl http://localhost:11434/api/pull -d '{"name": "llama3.1:8b"}' to download the factgenie default LLM.
+    ports:
+      - 11434:11434
+
+
+

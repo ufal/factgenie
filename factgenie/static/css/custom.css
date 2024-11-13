@@ -273,6 +273,11 @@ pre {
     box-shadow: 0 0 0 0.2rem rgba(1, 117, 172, 0.5);
 }
 
+.btn-primary:focus-visible,
+.btn-primary.focus-visible {
+    background-color: #005c88;
+}
+
 .btn-primary.disabled,
 .btn-primary:disabled {
     color: #fff;
@@ -961,4 +966,34 @@ a:hover {
 #outputarea {
     max-height: 90vh;
     overflow-y: auto;
+}
+
+
+.detail-out {
+    padding: 7px;
+    /* overflow-y: auto; */
+    margin: 0px !important;
+    height: 30px;
+}
+
+.detail-out-card {
+    margin: 5px 20px 5px 5px;
+}
+
+@keyframes jump-out {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.panel-50 {
+    min-width: 900px;
 }

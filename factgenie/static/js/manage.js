@@ -1,6 +1,4 @@
-const url_prefix = window.url_prefix;
 const modelOutputs = window.model_outputs;
-const datasets = window.datasets;
 
 function createUploadDatasetSplitElem() {
     const newSplit = $(`
@@ -29,14 +27,31 @@ function addDatasetSplit() {
     datasetSplits.append(newSplit);
 }
 
-function updateSplits() {
-    const dataset = $('#dataset-select').val();
-
-    // set available splits in #split-select
-    $('#split-select').empty();
-    for (const split of datasets[dataset].splits) {
-        $('#split-select').append(`<option value="${split}">${split}</option>`);
+function deleteCampaign(campaignId, mode) {
+    // ask for confirmation
+    if (!confirm(`Are you sure you want to delete the campaign ${campaignId}? All the data will be lost!`)) {
+        return;
     }
+
+    $.post({
+        url: `${url_prefix}/delete_campaign`,
+        contentType: 'application/json', // Specify JSON content type
+        data: JSON.stringify({
+            campaignId: campaignId,
+            mode: mode,
+        }),
+        success: function (response) {
+            console.log(response);
+
+            if (response.success !== true) {
+                alert(response.error);
+            } else {
+                window.location.hash = "#annotations";
+                // reload the page
+                location.reload();
+            }
+        }
+    });
 }
 
 function deleteOutput(dataset, split, setup_id) {
@@ -59,75 +74,22 @@ function deleteOutput(dataset, split, setup_id) {
                 alert(response.error);
             } else {
                 // reload
+                window.location.hash = "#local";
                 location.reload();
             }
         }
     });
 }
 
+function changeDataset() {
+    const dataset = $('#dataset-select').val();
 
-function uploadDataset() {
-    const dataset_id = $("#dataset-id").val();
-    const description = $("#dataset-description").val();
-    const format = $("#dataset-format").val();
-    const dataset = {};
-    var filesToRead = $("#dataset-files").children().length;
+    // set available splits in #split-select
+    $('#split-select').empty();
 
-    $("#upload-dataset-btn").text("Uploading...").prop("disabled", true);
-
-    // Function to send the POST request
-    function sendRequest() {
-        $.post({
-            url: `${url_prefix}/upload_dataset`,
-            contentType: 'application/json', // Specify JSON content type
-            data: JSON.stringify({
-                id: dataset_id,
-                description: description,
-                format: format,
-                dataset: dataset,
-            }),
-            success: function (response) {
-                console.log(response);
-
-                if (response.success !== true) {
-                    alert(response.error);
-                    $("#upload-dataset-btn").text("Upload dataset").prop("disabled", false);
-                } else {
-                    // reload
-                    location.reload();
-                }
-            }
-        });
+    for (const split of datasets[dataset].splits) {
+        $('#split-select').append(`<option value="${split}">${split}</option>`);
     }
-
-    // Read each file
-    $("#dataset-files").children().each(function () {
-        const splitName = $(this).find("input[name='split-name']").val();
-        const splitFile = $(this).find("input[name='split-file']")[0].files[0];
-        const reader = new FileReader();
-
-        reader.onload = function (e) {
-            // Check if the file is a ZIP file
-            if (splitFile.type === "application/zip") {
-                dataset[splitName] = Array.from(new Uint8Array(e.target.result));
-            } else {
-                dataset[splitName] = e.target.result;
-            }
-            filesToRead--;
-
-            // If all files are read, send the request
-            if (filesToRead === 0) {
-                sendRequest();
-            }
-        };
-
-        // Read as ArrayBuffer for binary files (e.g., ZIP)
-        if (splitFile.type === "application/zip") {
-            reader.readAsArrayBuffer(splitFile);
-        } else {
-            reader.readAsText(splitFile);
-        }
-    });
 }
 
 
@@ -157,6 +119,8 @@ function downloadDataset(datasetId) {
                 // remove the spinner
                 // $(`#spinner-download-${datasetId}`).remove();
                 // $(`#check-downloaded-${datasetId}`).show();
+
+                window.location.hash = "#local";
                 location.reload();
             }
         }
@@ -219,11 +183,8 @@ function uploadModelOutputs() {
                 if (response.success !== true) {
                     alert(response.error);
                 } else {
-                    // reload
+                    window.location.hash = "#outputs";
                     location.reload();
-                    // set the selectbox to the corresponding dataset and split
-                    $("#dataset-select").val(dataset).trigger("change");
-                    $("#split-select").val(split).trigger("change");
                 }
             }
         });
@@ -253,19 +214,78 @@ function setDatasetEnabled(name, enabled) {
 }
 
 
-function enableTooltips() {
-    // enable tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
-    })
+
+function uploadDataset() {
+    const dataset_id = $("#dataset-id").val();
+    const description = $("#dataset-description").val();
+    const format = $("#dataset-format").val();
+    const dataset = {};
+    var filesToRead = $("#dataset-files").children().length;
+
+    $("#upload-dataset-btn").text("Uploading...").prop("disabled", true);
+
+    // Function to send the POST request
+    function sendRequest() {
+        $.post({
+            url: `${url_prefix}/upload_dataset`,
+            contentType: 'application/json', // Specify JSON content type
+            data: JSON.stringify({
+                name: dataset_id,
+                description: description,
+                format: format,
+                dataset: dataset,
+            }),
+            success: function (response) {
+                console.log(response);
+
+                if (response.success !== true) {
+                    alert(response.error);
+                    $("#upload-dataset-btn").text("Upload dataset").prop("disabled", false);
+                } else {
+                    // reload
+                    window.location.hash = "#local";
+                    location.reload();
+                }
+            }
+        });
+    }
+
+    // Read each file
+    $("#dataset-files").children().each(function () {
+        const splitName = $(this).find("input[name='split-name']").val();
+        const splitFile = $(this).find("input[name='split-file']")[0].files[0];
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+            // Check if the file is a ZIP file
+            if (splitFile.type === "application/zip") {
+                dataset[splitName] = Array.from(new Uint8Array(e.target.result));
+            } else {
+                dataset[splitName] = e.target.result;
+            }
+            filesToRead--;
+
+            // If all files are read, send the request
+            if (filesToRead === 0) {
+                sendRequest();
+            }
+        };
+
+        // Read as ArrayBuffer for binary files (e.g., ZIP)
+        if (splitFile.type === "application/zip") {
+            reader.readAsArrayBuffer(splitFile);
+        } else {
+            reader.readAsText(splitFile);
+        }
+    });
 }
 
 
-$(document).ready(function () {
-    $("#dataset-select-overview").val(Object.keys(datasets)[0]).trigger("change");
-    updateSplits();
 
+$(document).ready(function () {
+    if (Object.keys(datasets).length > 0) {
+        $("#dataset-select").val(Object.keys(datasets)[0]).trigger("change");
+    }
     // Function to activate the tab based on the anchor
     function activateTabFromAnchor() {
         var anchor = window.location.hash.substring(1);
@@ -297,3 +317,4 @@ $(document).ready(function () {
     enableTooltips();
 });
 
+$("#dataset-select").on("change", changeDataset);

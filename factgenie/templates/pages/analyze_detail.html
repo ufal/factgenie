@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>factgenie</title>
+  <meta name="viewport" content="width=1024">
+  <link rel="stylesheet" media="screen" href="{{ host_prefix }}/static/css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="{{ host_prefix }}/static/css/custom.css">
+  <link rel="shortcut icon" href="{{ host_prefix }}/static/img/favicon.ico">
+  <link href="{{ host_prefix }}/static/css/font-awesome.css" rel="stylesheet">
+  <script src="{{ host_prefix }}/static/js/lib/jquery.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/popper.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/bootstrap.min.js"></script>
+
+  <link rel="stylesheet" href="{{ host_prefix }}/static/css/bootstrap-table.min.css">
+  <link rel="stylesheet" href="{{ host_prefix }}/static/css/bootstrap-icons.css">
+
+  <script src="{{ host_prefix }}/static/js/lib/tableExport.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/jspdf.umd.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/bootstrap-table.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/bootstrap-table-export.min.js"></script>
+</head>
+
+
+<body>
+  {% include 'pages/navbar.html' %}
+
+  <div class="container w-75 mt-5">
+
+    <a href="{{ host_prefix }}/analyze" class="btn btn-outline-secondary">← Statistics</a>
+    <div class="mt-5">
+      <!-- <a href="{{ host_prefix }}/analyze" class="btn btn-outline-secondary mb-5">← List of
+        campaigns</a> -->
+      <h3><img src="{{ host_prefix }}/static/img/analysis.png" class="inline-icon"> <a
+          href="{{ host_prefix }}/{{ campaign.metadata.mode }}/detail/{{ campaign.metadata.id }}"><b>Statistics:
+            {{
+            campaign.metadata.id }}</b></a></h3>
+
+      <div id="metadata-block" class="mt-3">
+        <hr>
+        <dl class="row">
+          <dt class="col-sm-3"> Created </dt>
+          <dd class="col-sm-9" id="metadata-created"> {{ campaign.metadata.created }} </dd>
+          <dt class="col-sm-3"> Source </dt>
+          <dd class="col-sm-9" id="metadata-source"> {{ campaign.metadata.mode }} </dd>
+          <dt class="col-sm-3"> Span categories </dt>
+          <dd class="col-sm-9" id="metadata-categories">
+            {% for category in campaign.metadata.config.annotation_span_categories %}
+            <span class="badge" style="background-color: {{ category.color }}; color: rgb(60, 65, 73); ">{{
+              category.name
+              }}</span>
+            {% endfor %}
+          </dd>
+        </dl>
+      </div>
+
+
+      {% if not statistics.ann_counts %}
+      <div class="alert alert-info mt-3" role="alert">
+        <i class="fa fa-info"></i>
+        <span>No annotations were yet collected in this campaign.</span>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <ul class="nav nav-tabs nav-fill mt-5" id="pills-tab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <a class="nav-link active" id="pills-span-stats-tab" data-bs-toggle="pill" href="#pills-stats-full" role="tab"
+          aria-controls="pills-stats-full"><img src="{{ host_prefix }}/static/img/stats/stats-full.png" height="30px"
+            class="heading-img-inline">Full results</a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a class="nav-link" id="pills-span-stats-tab" data-bs-toggle="pill" href="#pills-stats-span" role="tab"
+          aria-controls="pills-stats-span"><img src="{{ host_prefix }}/static/img/stats/stats-span.png" height="30px"
+            class="heading-img-inline">By span categories</a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a class="nav-link" id="pills-span-stats-tab" data-bs-toggle="pill" href="#pills-stats-setup" role="tab"
+          aria-controls="pills-stats-setup"><img src="{{ host_prefix }}/static/img/stats/stats-setup.png" height="30px"
+            class="heading-img-inline">By setups</a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a class="nav-link" id="pills-span-stats-tab" data-bs-toggle="pill" href="#pills-stats-dataset" role="tab"
+          aria-controls="pills-stats-dataset"><img src="{{ host_prefix }}/static/img/stats/stats-dataset.png"
+            height="30px" class="heading-img-inline">By datasets</a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a class="nav-link" id="pills-charts-tab" data-bs-toggle="pill" href="#pills-charts" role="tab"
+          aria-controls="pills-charts"><img src="{{ host_prefix }}/static/img/stats/stats-charts.png" height="30px"
+            class="heading-img-inline">Extra fields</a>
+      </li>
+    </ul>
+    <div class="tab-content" id="pills-tabContent">
+      <div class="tab-pane mb-5 fade show active" id="pills-stats-full" role="tabpanel"
+        aria-labelledby="pills-stats-full-tab">
+        <table id="full-table" class="table table-bordered table-hover" data-show-export="true" data-sortable="true"
+          data-toolbar="#toolbar">
+          <thead>
+            <tr>
+              <th data-sortable="true" data-field="dataset">Dataset</th>
+              <th data-sortable="true" data-field="split">Split</th>
+              <th data-sortable="true" data-field="setup_id">Setup</th>
+              <th data-sortable="true" data-field="example_count">Ex. annotated</th>
+              <th data-sortable="true" data-field="annotation_type">Category</th>
+              <th data-sortable="true" data-field="ann_count" data-align="right">Count</th>
+              <th data-sortable="true" data-field="avg_count" data-align="right">Avg. per ex.</th>
+              <th data-sortable="true" data-field="prevalence" data-align="right">Prevalence</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="tab-content" id="pills-tabContent">
+      <div class="tab-pane mb-5 fade show" id="pills-stats-span" role="tabpanel" aria-labelledby="pills-stats-span-tab">
+        <table id="span-table" class="table table-bordered table-hover" data-show-export="true" data-sortable="true"
+          data-toolbar="#toolbar">
+          <thead>
+            <tr>
+              <th data-sortable="true" data-field="example_count">Ex. annotated</th>
+              <th data-sortable="true" data-field="annotation_type">Category</th>
+              <th data-sortable="true" data-field="ann_count" data-align="right">Count</th>
+              <th data-sortable="true" data-field="avg_count" data-align="right">Avg. per ex.</th>
+              <th data-sortable="true" data-field="prevalence" data-align="right">Prevalence</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="tab-content" id="pills-tabContent">
+      <div class="tab-pane mb-5 fade show" id="pills-stats-setup" role="tabpanel"
+        aria-labelledby="pills-stats-setup-tab">
+        <table id="setup-table" class="table table-bordered table-hover" data-show-export="true" data-sortable="true"
+          data-toolbar="#toolbar">
+          <thead>
+            <tr>
+              <th data-sortable="true" data-field="setup_id">Setup</th>
+              <th data-sortable="true" data-field="example_count">Ex. annotated</th>
+              <th data-sortable="true" data-field="annotation_type">Category</th>
+              <th data-sortable="true" data-field="ann_count" data-align="right">Count</th>
+              <th data-sortable="true" data-field="avg_count" data-align="right">Avg. per ex.</th>
+              <th data-sortable="true" data-field="prevalence" data-align="right">Prevalence</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="tab-content" id="pills-tabContent">
+      <div class="tab-pane mb-5 fade show" id="pills-stats-dataset" role="tabpanel"
+        aria-labelledby="pills-stats-dataset-tab">
+        <table id="dataset-table" class="table table-bordered table-hover" data-show-export="true" data-sortable="true"
+          data-toolbar="#toolbar">
+          <thead>
+            <tr>
+              <th data-sortable="true" data-field="dataset">Dataset</th>
+              <th data-sortable="true" data-field="split">Split</th>
+              <th data-sortable="true" data-field="example_count">Ex. annotated</th>
+              <th data-sortable="true" data-field="annotation_type">Category</th>
+              <th data-sortable="true" data-field="ann_count" data-align="right">Count</th>
+              <th data-sortable="true" data-field="avg_count" data-align="right">Avg. per ex.</th>
+              <th data-sortable="true" data-field="prevalence" data-align="right">Prevalence</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="tab-content" id="pills-tabContent">
+      <div class="tab-pane mb-5 fade" id="pills-charts" role="tabpanel" aria-labelledby="pills-charts-tab">
+        {% if statistics.extra_fields %}
+        <table id="extra-fields-table" class="table table-bordered table-hover" data-show-export="true"
+          data-toggle="table" data-sortable="true" data-toolbar="#toolbar">
+          <thead>
+            <tr>
+              <th data-sortable="true" data-field="label">Label</th>
+              <th data-sortable="true" data-field="value">Value</th>
+              <th data-sortable="true" data-field="count">Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for label, value_counts in statistics.extra_fields.items() %}
+            {% for value, count in value_counts.items() %}
+            <tr>
+              <td>{{ label }}</td>
+              <td>{{ value }}</td>
+              <td>{{ count }}</td>
+            </tr>
+            {% endfor %}
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</body>
+<script>
+  window.url_prefix = "{{ host_prefix }}";
+  window.mode = "analyze";
+  window.metadata = {{ campaign.metadata | tojson | safe }};
+  window.statistics = {{ statistics | tojson | safe }};
+</script>
+<script src="{{ host_prefix }}/static/js/utils.js"></script>
+<script src="{{ host_prefix }}/static/js/analyze.js"></script>

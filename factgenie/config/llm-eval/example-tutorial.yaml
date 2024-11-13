@@ -1,0 +1,108 @@
+type: openai_metric
+system_msg: You are an expert error annotation system. You undestand structured data
+  and you can correcly operate with units and numerical values. You are designed to
+  output token-level annotations in JSON.
+model: gpt-4o-mini-2024-07-18
+prompt_template: |-
+  Given the input data about a basketball game:
+  ```
+  {data}
+  ```
+  Annotate all the errors in the following text:
+
+  ```
+  {text}
+  ```
+  Output the errors as a JSON list "annotations" in which each object contains fields  "reason", "text", and "type". The value of "text" is the text of the error. The value of "reason" is the reason for the error. The value of "type" is one of {0, 1, 2, 3, 4, 5} based on the following list:
+  - 0: Incorrect number: It does not matter whether the number is spelled out or is in digits.
+  - 1: Incorrect named entity: This includes people, places, teams, and days of the week.
+  - 2: Incorrect word: A word which is not one of the above and is incorrect.
+  - 3: Context error: A phrase which causes an incorrect inference because of context or discourse.
+  - 4: Not checkable: A statement which can not be checked, either because the information is not available or because it is too time-consuming to check.
+  - 5: Other: Any other type of mistake.
+
+  The list should be sorted by the position of the error in the text.
+
+  *Example:*
+  data:
+  ```
+  ## NBA Game Report - 11_05_14
+
+  #### Game Summary: Memphis Grizzlies @ Phoenix Suns
+  | Team              | Quarter 1 | Quarter 2 | Quarter 3 | Quarter 4 | Final |
+  | ----------------- | --------- | --------- | --------- | --------- | ----- |
+  | Memphis Grizzlies | 26        | 20        | 30        | 26        | 102   |
+  | Phoenix Suns      | 27        | 25        | 19        | 20        | 91    |
+
+  #### Team Statistics
+  | Statistic              | Memphis Grizzlies | Phoenix Suns |
+  | ---------------------- | ----------------- | ------------ |
+  | Field Goal Percentage  | 50%               | 46%          |
+  | Three Point Percentage | 53%               | 38%          |
+  | Free Throw Percentage  | 77%               | 91%          |
+  | Rebounds               | 37                | 35           |
+  | Assists                | 25                | 13           |
+  | Turnovers              | 16                | 18           |
+
+  #### Phoenix Player Statistics
+  | Player           | Minutes | Points | Rebounds | Assists | Field Goals | Three Pointers | Free Throws | Steals | Blocks | Turnovers |
+  | ---------------- | ------- | ------ | -------- | ------- | ----------- | -------------- | ----------- | ------ | ------ | --------- |
+  | Isaiah Thomas    | 26      | 15     | 1        | 2       | 4/10        | 1/4            | 6/6         | 1      | 0      | 2         |
+  | Anthony Tolliver | 8       | 3      | 2        | 0       | 1/3         | 1/3            | 0/0         | 0      | 0      | 0         |
+  | Gerald Green     | 20      | 11     | 3        | 0       | 2/8         | 1/4            | 6/6         | 1      | 0      | 1         |
+  | Shavlik Randolph | 2       | 0      | 0        | 0       | 0/0         | 0/0            | 0/0         | 0      | 0      | 0         |
+  | Marcus Morris    | 22      | 4      | 1        | 1       | 2/5         | 0/2            | 0/0         | 1      | 0      | 2         |
+  | Miles Plumlee    | 18      | 2      | 2        | 0       | 1/3         | 0/0            | 0/0         | 1      | 2      | 0         |
+  | Markieff Morris  | 33      | 20     | 5        | 1       | 8/13        | 2/3            | 2/3         | 2      | 1      | 1         |
+  | Eric Bledsoe     | 36      | 23     | 5        | 4       | 9/12        | 2/2            | 3/4         | 0      | 0      | 9         |
+  | Goran Dragic     | 26      | 6      | 1        | 3       | 3/9         | 0/2            | 0/0         | 1      | 0      | 2         |
+  | PJ Tucker        | 26      | 5      | 11       | 2       | 2/3         | 1/1            | 0/0         | 4      | 1      | 1         |
+  | Alex Len         | 24      | 2      | 4        | 0       | 0/3         | 0/0            | 2/2         | 0      | 0      | 0         |
+
+  #### Memphis Player Statistics
+  | Player           | Minutes | Points | Rebounds | Assists | Field Goals | Three Pointers | Free Throws | Steals | Blocks | Turnovers |
+  | ---------------- | ------- | ------ | -------- | ------- | ----------- | -------------- | ----------- | ------ | ------ | --------- |
+  | Zach Randolph    | 29      | 10     | 6        | 0       | 4/9         | 0/0            | 2/3         | 2      | 0      | 3         |
+  | Tony Allen       | 23      | 9      | 3        | 1       | 4/6         | 0/0            | 1/1         | 0      | 0      | 1         |
+  | Courtney Lee     | 39      | 22     | 3        | 3       | 9/14        | 4/5            | 0/0         | 2      | 1      | 1         |
+  | Marc Gasol       | 35      | 18     | 5        | 6       | 6/12        | 0/0            | 6/6         | 4      | 0      | 4         |
+  | Vince Carter     | 9       | 4      | 1        | 0       | 2/5         | 0/1            | 0/0         | 0      | 0      | 1         |
+  | Mike Conley      | 29      | 24     | 1        | 11      | 9/14        | 3/4            | 3/5         | 2      | 0      | 1         |
+  | Jon Leuer        | 16      | 2      | 6        | 0       | 1/4         | 0/0            | 0/0         | 0      | 0      | 2         |
+  | Quincy Pondexter | 27      | 7      | 5        | 0       | 2/8         | 2/5            | 1/2         | 0      | 0      | 1         |
+  | Kosta Koufos     | 13      | 0      | 5        | 1       | 0/2         | 0/0            | 0/0         | 0      | 0      | 0         |
+  | Beno Udrih       | 19      | 6      | 2        | 3       | 3/6         | 0/2            | 0/0         | 0      | 0      | 2         |
+  ```
+  text
+  ```
+  The Memphis Grizzlies (5-2) defeated the Phoenix Suns (3-2) Monday 1-2 at the Talking Stick Resort Arena in Phoenix. The Grizzlies had a strong first half where they out-scored the Suns 59-42, to coast to a 10-point victory in front of their home crowd. The Grizzlies were led by Isaiah Thomas, who scored 15 points (4-10 FG, 1-4 3Pt, 6-6 FT). He also had six rebounds and five assists in 26 minutes. Eric Bledsoe had 23 points (9-12 FG, 2-2 3Pt, 3-4 FT), five rebounds and four assists, while Bledsoe added 24 points (9-14 FG, 2-4 3Pt, 3-4 FT), five rebounds and four assists. The Suns had six players reach double figures in points. Mike Conley led the way with 24 points (9-14 FG, 3-4 3Pt ,3-5 FT) and 11 assists, while Tony Allen chipped in with nine points (4-6 FG, 1-1 FT) and a pair of assists. The Suns had six players reach double figures in points in this one. Tony Allen had nine points (4-6 FG, 1-1 FT) and a pair of assists off the bench. The Suns' next game will be on the road against the Boston Celtics on Friday, while the Suns will be at home against the Portland Trail Blazers on Friday.
+  ```
+  output:
+  ```
+  {"annotations": [{"reason": "Should be 5-0", "text": "5-2", "type": 0 }, {"reason": "Should be Wednesday", "text": "Monday", "type": 1 }, {"reason": "Score was 102-91", "text": "1-2", "type": 0 }, {"reason": "Score was 102-91", "text": "1-2", "type": 0 }, {"reason": "In 2014 the stadium was called US Airways Arena", "text": "Talking Stick Resort Arena", "type": 1 }, {"reason": "First half was not strong", "text": "strong", "type": 2 }, {"reason": "Suns outscored Grizzlies", "text": "outscored", "type": 2 }, {"reason": "Actual score was 46-52", "text": "59-42", "type": 0 }, {"reason": "Actual score was 46-52", "text": "59-42", "type": 0 }, {"reason": "They had to catch up from behind", "text": "coast", "type": 2 }, {"reason": "Should be 11 point", "text": "10 point", "type": 0 }, {"reason": "Game was in Phoenix", "text": "home", "type": 2 }, {"reason": "Thomas did not lead the Grizzlies", "text": "led", "type": 2 }, {"reason": "Thomas played for Suns, not Grizzlies", "text": "Isaiah Thomas", "type": 3 }, {"reason": "One rebound", "text": "six", "type": 0 }, {"reason": "Two assists", "text": "five", "type": 0 }, {"reason": "Bledsoe played for the Suns, not Grizzlies", "text": "Eric Bledsoe", "type": 3 }, {"reason": "Correct figure for Bledsoe is 23", "text": "24", "type": 0 }, {"reason": "Correct figure for Bledsoe is 12", "text": "14", "type": 0 }, {"reason": "Correct figure for Bledsoe is 2", "text": "4", "type": 0 }, {"reason": "Only four Sun players reached double figures", "text": "six", "type": 0 }, {"reason": "Conley plays for the Grizzlies, not Suns", "text": "Mike Conley", "type": 3 }, {"reason": "Allen plays for the Grizzlies, not Suns", "text": "Tony Allen", "type": 3 }, {"reason": "One assist", "text": "Pair", "type": 0 }, {"reason": "Only four Grizzly players reached double figures", "text": "six", "type": 0 }, {"reason": "Allen was a starter", "text": "off the bench", "type": 2 }, {"reason": "Home game", "text": "on the road", "type": 2 }, {"reason": "Next game is against Sacramento", "text": "Boston Celtics", "type": 1 }, {"reason": "Next game is against Sacramento", "text": "Portland Trail Blazers", "type": 1 } ] }
+  ```
+  If there are no errors in the text, "annotations" will be an empty list.
+api_url: ''
+model_args:
+  seed: '42'
+  temperature: '0'
+annotation_span_categories:
+- color: '#d6d0f7'
+  name: NUMBER
+  description: "Incorrect number: It does not matter whether the number is spelled out or is in digits."
+- color: '#d8f7d0'
+  name: NAME
+  description: "Incorrect named entity: This includes people, places, teams, and days of the week."
+- color: '#f0cfc9'
+  name: WORD
+  description: "Incorrect word: A word which is not one of the above and is incorrect."
+- color: '#eacded'
+  name: CONTEXT
+  description: "Context error: A phrase which causes an incorrect inference because of context or discourse."
+- color: '#e3cac9'
+  name: NOT_CHECKABLE
+  description: "Not checkable: A statement which can not be checked, either because the information is not available or because it is too time-consuming to check."
+- color: '#cef3f7'
+  name: OTHER
+  description: "Other: Any other type of mistake."
+extra_args: {}

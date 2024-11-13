@@ -1,0 +1,51 @@
+type: openai_metric
+model: gpt-4o-mini-2024-07-18
+# model: gpt-3.5-turbo-1106
+# model: "gpt-4-1106-preview"
+system_msg: "You are an expert data-to-text error annotation system. You undestand structured data and you can correcly operate with units and numerical values. You are designed to output token-level annotations in JSON."
+annotation_span_categories:
+  - name: "Incorrect"
+    color: "#ffbcbc"
+    description: "The fact in the text contradicts the data."
+  - name: "Not checkable"
+    color: "#e9d2ff"
+    description: "The fact in the text cannot be checked given the data."
+  - name: "Misleading"
+    color: "#fff79f"
+    description: "The fact in the text is misleading in the given context."
+  - name: "Other"
+    color: "#bbbbbb"
+    description: "The text is problematic for another reason, e.g. grammatically or stylistically incorrect, irrelevant, or repetitive."
+prompt_template: |
+  Given the data:
+  ```
+  {data}
+  ```
+  Annotate all the errors in the following text:
+  ```
+  {text}
+  ```
+  Output the errors as a JSON list "annotations" in which each object contains fields  "reason", "text", and "annotation_type". The value of "text" is the text of the error. The value of "reason" is the reason for the error. The value of "annotation_type" is one of {0, 1, 2, 3} based on the following list:
+  - 0: Incorrect fact: The fact in the text contradicts the data.
+  - 1: Not checkable: The fact in the text cannot be checked in the data.
+  - 2: Misleading: The fact in the text is misleading in the given context.
+  - 3: Other: The text is problematic for another reason, e.g. grammatically or stylistically incorrect, irrelevant, or repetitive.
+
+  The list should be sorted by the position of the error in the text. Make sure that the annotations are not overlapping.
+
+  *Example:*
+  data:
+  ```
+  Nokia 3310
+  -----
+  - **color**: black, blue, grey
+  - **display**: 320x240px
+  ```
+  text (product description):
+  ```
+  Nokia 3310 is produced in Finland and features a 320x320 display. It is available in black color. The data seem to provide only partial information about the phone.
+  ```
+  output:
+  ```{ "annotations": [{"reason": "The country where the phone is produced is not mentioned in the data.", "text": "produced in Finland", "annotation_type": 1}, {"reason": "The data mentions that the display has resolution 320x240px.", "text": "320x320", "annotation_type": 0}, {"reason": "Misleadingly suggests that the phone is not available in other colors.", "text": "available in black color", "annotation_type": 2}, {"reason": "The note is irrelevant for the phone description.", "text": "The data seem to provide only partial information about the phone.", "annotation_type": 3}] }
+  ```
+  Note that some details may not be mentioned in the text: do not count omissions as errors. Also do not be too strict: some facts can be less specific than in the data (rounded values, shortened or abbreviated text, etc.), do not count these as errors. If there are no errors in the text, "annotations" will be an empty list.

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>factgenie</title>
+  <link rel="stylesheet" media="screen" href="{{ host_prefix }}/static/css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="{{ host_prefix }}/static/css/custom.css">
+  <link href="{{ host_prefix }}/static/css/font-awesome.css" rel="stylesheet">
+  <link rel="shortcut icon" href="{{ host_prefix }}/static/img/favicon.ico">
+  <meta name="viewport" content="width=1024">
+  <script src="{{ host_prefix }}/static/js/lib/jquery.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/popper.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/bootstrap.min.js"></script>
+
+  <link rel="stylesheet" href="{{ host_prefix }}/static/css/bootstrap-table.min.css">
+  <link rel="stylesheet" href="{{ host_prefix }}/static/css/bootstrap-icons.css">
+  <script src="{{ host_prefix }}/static/js/lib/bootstrap-table.min.js"></script>
+
+</head>
+
+<body>
+  {% include 'pages/navbar.html' %}
+
+
+  <div class="container w-75 mt-5">
+    <a href="{{ host_prefix }}/" class="btn btn-outline-secondary mb-5">← Main page</a>
+    <a href="{{ host_prefix }}/crowdsourcing/new" class="btn btn-primary mb-5">New campaign</a>
+
+    <div class="mt-1">
+
+      <!-- if login is not enabled in the app config, show red warning -->
+      {% if not is_password_protected %}
+      <div class="alert alert-danger blue-link" role="alert">
+        <i class="fa fa-exclamation-triangle"></i>
+        <span>Warning: The app is unprotected. You should enable <a href="{{ host_prefix }}/app_config">password
+            protection</a>
+          before sharing
+          the URL with the
+          public.</span>
+      </div>
+      {% endif %}
+
+      <h3><img src="{{ host_prefix }}/static/img/crowdsourcing.png" class="heading-img-inline">
+        <b>List of crowdsourcing campaigns</b>
+      </h3>
+      <div id="campaigns">
+        <table data-toggle="table" data-pagination="true" data-page-size="10" data-pagination-parts="['pageList']"
+          data-searchable="false" data-classes="table table-hover table-crowdsourcing-campaigns">
+          <thead>
+            <tr>
+              <th scope="col" data-sortable="true">Id</th>
+              <th scope="col" data-sortable="true">Service</th>
+              <th scope="col" data-sortable="true">Created</th>
+              <th scope="col" data-width="200">Progress</th>
+              <th scope="col" data-align="right" data-width="200">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for name, campaign in campaigns.items() %}
+            <tr>
+              {% set metadata = campaign.metadata %}
+              {% set campaign_id = metadata.id %}
+              <td><a href="{{ host_prefix }}/crowdsourcing/detail/{{ campaign.metadata.id }}" class="blue-link">{{
+                  campaign.metadata.id }}</a></td>
+              <td class="small font-monospace">{{ campaign.metadata.config.service }}</td>
+              <td>{{ campaign.metadata.created }}</td>
+              <!-- <td>{{ campaign.stats }}</td> -->
+              <td>
+                {% include 'include/progress_bar_crowdsourcing.html' %}
+              </td>
+              <td>
+                <a href="{{ host_prefix }}/annotate/{{ campaign.metadata.id }}" class="btn btn-outline-secondary"
+                  data-bs-toggle="tooltip" title="Preview the crowdsourcing page">
+                  <i class="fa fa-eye"></i>
+                </a>
+                <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
+                  data-bs-target="#actions-modal-{{ campaign.metadata.id }}">
+                  <i class="fa fa-tasks"></i>
+                </a>
+                <a onclick="deleteCampaign('{{ campaign.metadata.id }}', '{{ mode }}')" class="btn btn-outline-danger"
+                  data-bs-toggle="tooltip" title="Delete the campaign">
+                  <i class="fa fa-trash"></i>
+                </a>
+              </td>
+            </tr>
+            {% set metadata = campaign.metadata %}
+            {% include 'include/actions_modal.html' %}
+            {% endfor %}
+          </tbody>
+
+      </div>
+    </div>
+
+  </div>
+</body>
+<script>
+  window.url_prefix = "{{ host_prefix }}";
+  window.campaigns = {{ campaigns | tojson | safe }};
+  window.mode = "crowdsourcing";
+</script>
+<script src="{{ host_prefix }}/static/js/utils.js"></script>
+<script src="{{ host_prefix }}/static/js/campaigns.js"></script>

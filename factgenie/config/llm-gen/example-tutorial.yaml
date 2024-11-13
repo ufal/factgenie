@@ -1,0 +1,24 @@
+type: ollama_gen
+model: llama3.1:70b
+prompt_template: |-
+  Given the JSON-structured data about a basketball game:
+  ```
+  {data}
+  ```
+  Generate a one-paragraph basketball summary in natural language.
+
+  Make sure that your report is firmly grounded in the provided data.
+system_msg: You are an expert automatic data reporting system.
+start_with: |-
+  Sure, here is the summary:
+  "
+api_url: http://localhost:11434/api/
+model_args:
+  num_ctx: '16384'
+  num_predict: '1024'
+  seed: '42'
+  temperature: '1.0'
+  top_k: '50'
+  top_p: '0.9'
+extra_args:
+  remove_suffix: '"'

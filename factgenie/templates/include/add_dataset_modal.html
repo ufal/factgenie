@@ -1,0 +1,197 @@
+<div class="modal fade" id="add-dataset-modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="about-modal-label">Add dataset</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <div id='add-dataset-modal-main' class="tab-pane sidepanel-panel" role="tabpanel" tabindex="0">
+                    <ul class="nav nav-pills">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#tab-download-dataset" data-bs-toggle="pill">Example
+                                datasets</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" aria-current="page" href="#tab-hf-dataset" data-bs-toggle="pill">Direct
+                                upload</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#tab-custom-dataset" data-bs-toggle="pill">Register custom
+                                loader</a>
+                        </li>
+
+                    </ul>
+                </div>
+
+                <div class="tab-content">
+                    <div id="tab-download-dataset" role="tabpanel" class="tab-pane p-3 active" tabindex="1">
+                        <div class="alert alert-info blue-link" role="alert">
+                            <p>You can download example datasets (optionally also along with model outputs and
+                                campaigns with annotations)
+                                from the list below.</p>
+
+                            <p>After downloading the dataset, it will appear in the list of local datasets.</p>
+
+                            <p>You can also help other users by adding your (or public) dataset to the list! See the
+                                contribution guidelines on <a href="https://github.com/ufal/factgenie/wiki"><b>
+                                        factgenie
+                                        wiki
+                                    </b></a>.</p>
+                        </div>
+
+                        <table id="table-download" data-toggle="table" data-pagination="true" data-page-size="10"
+                            data-detail-view-icon="false" data-detail-view="true"
+                            data-detail-formatter="detailFormatter" data-detail-view-by-click="true"
+                            data-pagination-parts="['pageList']" data-classes="table table-hover table-datasets">
+                            <thead>
+                                <tr>
+                                    <th data-sortable="true" scope="col">Dataset</th>
+                                    <th scope="col">Splits</th>
+                                    <th scope="col">Outputs</th>
+                                    <th scope="col">Campaigns</th>
+                                    <th scope="col">Source</th>
+                                    <th scope="col">Download</th>
+                                    <th scope="col" data-visible="false">Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for dataset_id, dataset in resources.items() %}
+                                <tr>
+                                    <!-- <td><img src="{{ host_prefix }}/static/img/datatypes/{{ dataset.type }}.png" class="intro-img"></td> -->
+                                    <td>
+                                        {{ dataset_id }}
+                                    </td>
+                                    <!-- <td class="underline-link">{{ dataset.description | safe }}</td> -->
+                                    <td>
+                                        {% for split in dataset.splits %}
+                                        <a class="badge bg-secondary">{{ split }}</a>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        {% if not dataset.outputs %}
+                                        -
+                                        {% endif %}
+                                        {% for output in dataset.outputs %}
+                                        <a class="badge bg-light text-dark">{{ output }}</a>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        {% if not dataset.annotations %}
+                                        -
+                                        {% endif %}
+                                        {% for ann in dataset.annotations %}
+                                        <a class="badge bg-light text-dark">{{ ann }}</a>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        {% if dataset.source %}
+                                        <a href="{{ dataset.source }}" class="blue-link" target="_blank">link</a>
+                                        {% else %}
+                                        <i>-</i>
+                                        {% endif %}
+                                    </td>
+                                    <td id="row-actions-{{ dataset_id }}">
+                                        <a onclick="downloadDataset('{{ dataset_id }}')"
+                                            class="btn btn-outline-secondary" id="btn-download-{{ dataset_id }}"
+                                            data-bs-toggle="tooltip" title="Download the dataset" {% if
+                                            dataset.downloaded %}style="display: none;" {% endif %}>
+                                            <i class="fa fa-cloud-download"></i>
+                                        </a>
+                                        <i class="fa fa-check"
+                                            style="margin: 10px 12px 10px 12px; {% if not dataset.downloaded %}display: none;{% endif %}"
+                                            id="check-downloaded-{{ dataset_id }}"></i>
+                                    </td>
+                                    <td class="dataset-description" style="display: none;">
+                                        <div class="blue-link">
+                                            {% if dataset.description %}
+                                            {{ dataset.description|safe }}
+                                            {% else %}
+                                            <i>No description</i>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="tab-hf-dataset" role="tabpanel" class="tab-pane p-3" tabindex="0">
+                        <!-- upload form -->
+                        <form id="upload-form" enctype="multipart/form-data">
+
+                            <div class="alert alert-info" role="alert">
+                                <p>Here you can upload dataset in one of the basic formats with pre-defined loaders.</p>
+
+                                <b>Supported formats</b>
+                                <ul>
+                                    <li><code>text</code>: a plain text file, one input example per line.</li>
+                                    <li><code>jsonl</code>: a JSON Lines file, one JSON object per line.</li>
+                                    <li><code>csv</code>: a CSV file, one input example per row.</li>
+                                    <li><code>html</code>: a ZIP file containing HTML files, one input example per file
+                                        (the files will be sorted numerically by filename).</li>
+                                </ul>
+                            </div>
+                            <div class="mb-3">
+                                <label for="dataset-format" class="form-label">Dataset format</label>
+                                <select class="form-select" id="dataset-format">
+                                    <option value="text">Text</option>
+                                    <option value="jsonl">JSONL</option>
+                                    <option value="csv">CSV</option>
+                                    <option value="html">HTML</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="dataset-id" class="form-label
+                                    ">Dataset name</label>
+                                <input class="form-control" type="text" id="dataset-id" name="dataset-id" required>
+                            </div>
+                            <!-- textarea for description -->
+                            <div class="mb-3">
+                                <label for="dataset-description" class="form-label">Dataset description</label>
+                                <textarea class="form-control" id="dataset-description" name="dataset-description"
+                                    rows="3"></textarea>
+                            </div>
+
+                            <div class="row g-3 mb-3 align-items-center">
+                                <div class="col-auto">
+                                    <span style="margin-left: 10px; margin-right: 10px;">Dataset files</span>
+                                </div>
+                                <div id="dataset-files">
+                                </div>
+                                <div class="col-auto mt-1">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                                        onclick="addDatasetSplit();">+</button>
+                                </div>
+                            </div>
+                        </form>
+                        <div class="modal-footer">
+                            <button type="submit" id="upload-dataset-btn" class="btn btn-primary mt-3"
+                                onclick="uploadDataset();">Upload
+                                dataset</button>
+                        </div>
+
+                    </div>
+                    <div id="tab-custom-dataset" role="tabpanel" class="tab-pane p-3" tabindex="2">
+                        <div class="alert alert-info" role="alert">
+                            <p>To add a custom dataset locally, register the dataset in
+                                <code>data/datasets.yaml</code>.
+                            </p>
+
+                            <p>You can either select from pre-existing classes (see <code>datasets/basic.py</code>) or
+                                create a loader in
+                                <code>datasets</code>
+                                (subclassing the <code>Dataset</code> class).
+                            </p>
+
+                            <p>See <code>data/datasets_TEMPLATE.yaml</code> for an example.</p>
+
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

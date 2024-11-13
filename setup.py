@@ -1,6 +1,7 @@
 from pathlib import Path
 from setuptools import find_packages, setup
-
+from setuptools.command.install import install
+import shutil
 
 project_root = Path(__file__).parent
 install_requires = [
@@ -23,8 +24,8 @@ install_requires = [
 
 setup(
     name="factgenie",
-    version="0.0.1",
-    python_requires=">=3.8",
+    version="1.0.1",
+    python_requires=">=3.9",
     description="Lightweight self-hosted span annotation tool",
     # contributors as on GitHub
     author="Zdenek Kasner, Ondrej Platek, Patricia Schmidtova, Dave Howcroft, Ondrej Dusek",
@@ -32,16 +33,30 @@ setup(
     long_description=(project_root / "README.md").read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",
     url="https://github.com/ufal/factgenie",
-    license="Apache-2.0 License",
+    license="MIT",
     packages=find_packages(exclude=["test", "test.*"]),
     package_data={
-        "factgenie": ["static/css/*", "static/img/*", "static/js/*", "templates/*"],
+        "factgenie": [
+            "config/default_prompts.yml",
+            "config/resources.yml",
+            "config/config_TEMPLATE.yml",
+            "config/**/example-*.yaml",
+            "data/datasets_TEMPLATE.yml",
+            "static/**/*",
+            "templates/**/*",
+        ],
     },
-    data_files=[("factgenie", ["factgenie/config.yml"])],
-    include_package_data=True,
+    # data_files=[("factgenie", ["factgenie/config.yml"])],
+    # include_package_data=True,
     entry_points={
         "console_scripts": [
-            "factgenie=factgenie.cli:run",
+            "factgenie=factgenie.bin.run:run",
+        ],
+        "flask.commands": [
+            "create_llm_campaign=factgenie.bin.run:create_llm_campaign",
+            "run_llm_campaign=factgenie.bin.run:run_llm_campaign",
+            "list=factgenie.bin.run:list_data",
+            "info=factgenie.bin.run:info",
         ],
     },
     install_requires=install_requires,
@@ -50,8 +65,11 @@ setup(
             "wheel>=0.44.0",
             # Set exact version of black formatter to avoid merge conflicts due to different setup.
             # See also pyproject.toml and setup of line length (to 120 characters)
-            "black==24.10.0",
             "ipdb",
+            "black==24.10.0",
+        ],
+        "test": [
+            "pytest>=8.3.3",
         ],
         "deploy": [
             "gunicorn>=23.0.0",
@@ -59,12 +77,12 @@ setup(
     },
     classifiers=[
         "Development Status :: 3 - Alpha",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Intended Audience :: Science/Research",
         "Operating System :: POSIX :: Linux",
-        "License :: OSI Approved :: Apache Software License",
+        "License :: OSI Approved :: MIT License",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Typing :: Typed",

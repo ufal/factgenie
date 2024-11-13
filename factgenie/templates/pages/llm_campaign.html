@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>factgenie</title>
+  <link rel="stylesheet" media="screen" href="{{ host_prefix }}/static/css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="{{ host_prefix }}/static/css/custom.css">
+  <link href="{{ host_prefix }}/static/css/font-awesome.css" rel="stylesheet">
+  <link rel="shortcut icon" href="{{ host_prefix }}/static/img/favicon.ico">
+  <meta name="viewport" content="width=1024">
+  <script src="{{ host_prefix }}/static/js/lib/jquery.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/popper.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/bootstrap.min.js"></script>
+
+
+  <link rel="stylesheet" href="{{ host_prefix }}/static/css/bootstrap-table.min.css">
+  <link rel="stylesheet" href="{{ host_prefix }}/static/css/bootstrap-icons.css">
+  <script src="{{ host_prefix }}/static/js/lib/bootstrap-table.min.js"></script>
+
+</head>
+
+<body>
+  {% include 'pages/navbar.html' %}
+
+
+  <div class="container w-75 mt-5">
+    <a href="{{ host_prefix }}/" class="btn btn-outline-secondary mb-5">← Main page</a>
+    <a href="{{ host_prefix }}/{{ mode }}/new" class="btn btn-primary mb-5">New LLM
+      campaign</a>
+
+    <div class="mt-1">
+      <h3><img src="{{ host_prefix }}/static/img/{{ mode }}.png" class="heading-img-inline">
+        <b>List of LLM {% if mode == 'llm_eval' %}evaluation{% else %}generation{% endif %} campaigns</b>
+      </h3>
+      <div id="campaigns">
+        <table data-toggle="table" data-pagination="true" data-page-size="10" data-pagination-parts="['pageList']"
+          data-searchable="false" data-classes="table table-hover table-llm-campaigns">
+          <thead>
+            <tr>
+              <th scope="col" data-sortable="true">Id</th>
+              <th scope="col" data-sortable="true">Created</th>
+              <th scope="col" data-sortable="true">Type</th>
+              <th scope="col" data-sortable="true">Model</th>
+              <th scope="col" data-sortable="true">Status</th>
+              <!-- {% if mode == 'llm_eval' %}
+              <th scope="col" data-width="400">Labels</th>
+              {% endif %} -->
+              <th scope="col" data-width="100">Progress</th>
+              <th scope="col" data-align="right" data-width="200">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for name, campaign in campaigns.items() %}
+            <tr>
+              {% set metadata = campaign.metadata %}
+              {% set campaign_id = metadata.id %}
+              <td><a href="{{ host_prefix }}/{{ mode }}/detail/{{ campaign.metadata.id }}" class="blue-link">{{
+                  metadata.id }}</a></td>
+              <td>{{ metadata.created }}</td>
+              <td class="small font-monospace">{{ metadata.config.type }}</td>
+              <td class="small font-monospace">{{ metadata.config.model }}</td>
+              <td><span id="metadata-status-{{ campaign_id }}" class="badge bg-{{ metadata.status }}">{{ metadata.status
+                  }}</span></td>
+              <!-- <td></td> -->
+              <!-- {% if mode == 'llm_eval' %}
+              <td style="padding-right: 1rem !important;">{% for category in metadata.config.annotation_span_categories
+                %}
+                <span class="badge" style="background-color: {{ category.color }}; color: rgb(60, 65, 73); ">{{
+                  category.name
+                  }}</span>
+                {% endfor %}
+              </td>
+              {% endif %} -->
+              <td>
+                {% include 'include/progress_bar_llm.html' %}
+              </td>
+              <td>
+                <a onclick="runLLMCampaign('{{ metadata.id }}')" class="btn btn-outline-secondary"
+                  data-bs-toggle="tooltip" id="run-button-{{ metadata.id }}" title="Run" {% if
+                  metadata.status=='finished' or metadata.status=='running' %} style="display: none;" {% endif %}>
+                  <i class="fa fa-play"></i>
+                </a>
+                <a onclick="pauseLLMCampaign('{{ metadata.id }}')" class="btn btn-outline-secondary"
+                  data-bs-toggle="tooltip" id="stop-button-{{ metadata.id }}" title="Stop evaluation" {% if
+                  metadata.status!='running' %} style="display: none;" {% endif %}>
+                  <i class="fa fa-pause"></i>
+                </a>
+                <a href="{{ host_prefix }}/export_campaign_outputs/{{ campaign_id }}" class="btn btn-outline-secondary"
+                  data-bs-toggle="tooltip" id="download-button-{{ metadata.id }}" title="Export annotations" {% if
+                  metadata.status!='finished' %} style="display: none;" {% endif %}>
+                  <i class="fa fa-download"></i>
+                </a>
+                <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#actions-modal-{{
+                  metadata.id }}">
+                  <i class="fa fa-tasks"></i>
+                </a>
+                <a onclick="deleteCampaign('{{ metadata.id }}', '{{ mode }}')" class="btn btn-outline-danger"
+                  data-bs-toggle="tooltip" title="Delete the campaign">
+                  <i class="fa fa-trash"></i>
+                </a>
+              </td>
+              {% include 'include/actions_modal.html' %}
+            </tr>
+            {% endfor %}
+          </tbody>
+
+      </div>
+
+    </div>
+</body>
+
+
+<script>
+  window.url_prefix = "{{ host_prefix }}";
+  window.mode = "{{ mode }}";
+  $(document).ready(function () {
+    {% for name, campaign in campaigns.items() %}
+    if ("{{ campaign.metadata.status }}" == "running") {
+      startLLMCampaignListener("{{ campaign.metadata.id }}");
+    }
+    {% endfor %}
+  });
+</script>
+<script src="{{ host_prefix }}/static/js/utils.js"></script>
+<script src="{{ host_prefix }}/static/js/campaigns.js"></script>

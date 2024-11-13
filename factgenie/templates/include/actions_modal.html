@@ -1,0 +1,185 @@
+{% set campaign_id = metadata.id %}
+{% if mode == 'llm_gen' %}
+{% set outputs_name = 'outputs' %}
+{% else %}
+{% set outputs_name = 'annotations' %}
+{% endif %}
+
+<div class="modal fade" id="actions-modal-{{
+    campaign_id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="about-modal-label">{{
+                    campaign_id }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <div id='duplicate-main-{{
+                    campaign_id }}' class="tab-pane sidepanel-panel" role="tabpanel" tabindex="0">
+                    <ul class="nav nav-pills">
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" href="#tab-actions-{{
+                                campaign_id }}" data-bs-toggle="pill">Actions</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#tab-crowdsourcing-config-{{
+                                campaign_id }}" data-bs-toggle="pill">Duplicate / export</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#tab-llm-config-{{
+                                campaign_id }}" data-bs-toggle="pill">Configuration</a>
+                        </li>
+
+                    </ul>
+                </div>
+
+                <div class="tab-content">
+                    <div id="tab-actions-{{
+                        campaign_id }}" role="tabpanel" class="tab-pane active p-3" tabindex="0">
+                        <div>
+                            {% if mode != 'llm_gen' %}
+                            <h6>View statistics</h6>
+                            <p>
+                                <small class="text-muted">View the statistics of the annotation
+                                    spans.</small>
+                            </p>
+                            <a href="{{ host_prefix }}/analyze/detail/{{ campaign_id }}" type="button"
+                                class="btn btn-primary"><i class="fa fa-area-chart"></i>
+                                View
+                                statistics</a>
+                            <hr>
+                            {% endif %}
+                            <h6>Export {{ outputs_name }}</h6>
+                            <p>
+                                <small class="text-muted">Download the {{ outputs_name }} collected in the
+                                    campaign in a ZIP file.</small>
+                            </p>
+                            <a href="{{ host_prefix }}/export_campaign_outputs/{{ campaign_id }}"
+                                class="btn btn-primary" data-bs-toggle="tooltip"
+                                id="download-button-modal-{{ campaign_id }}" title="Export {{ outputs_name }}">
+                                <i class="fa fa-download"></i> Download {{ outputs_name }}
+                            </a>
+                            <hr>
+                            <h6>Clear {{ outputs_name }}</h6>
+                            <p>
+                                <small class="text-muted
+                                    ">Clear all {{ outputs_name }} collected in the campaign.</small>
+                            </p>
+                            <a onclick="clearCampaign('{{campaign_id }}', '{{ mode }}')" class="btn btn-primary"
+                                data-bs-toggle=" tooltip" title="Clear the campaign">
+                                <i class="fa fa-recycle"></i> Clear {{ outputs_name }}
+                            </a>
+                            <hr>
+                            <h6>Delete campaign</h6>
+                            <p>
+                                <small class="text-muted">Delete the campaign and all its
+                                    {{ outputs_name }}.</small>
+                            </p>
+                            <a onclick="deleteCampaign('{{ campaign_id }}', '{{ mode }}')" class="btn btn-danger"
+                                data-bs-toggle="tooltip" title="Delete the campaign">
+                                <i class="fa fa-trash"></i> Delete campaign
+                            </a>
+                        </div>
+                    </div>
+                    <div id="tab-crowdsourcing-config-{{
+                        campaign_id }}" role="tabpanel" class="tab-pane p-3" tabindex="0">
+                        <h6>Duplicate eval</h6>
+                        <p>
+                            <small class="text-muted">Create a campaign identical to <code>{{
+    campaign_id }}</code> but without any {{ outputs_name }}.</small>
+                        </p>
+                        <div class="row g-3 mb-3 align-items-center">
+                            {% set input_duplicate_id = 'campaignId-' ~ campaign_id ~ '-copy' %}
+                            <div class="col-auto">
+                                <label for="{{ input_duplicate_id }}">New campaign id</label>
+                            </div>
+                            <div class="col-auto">
+                                <input type="text" class="form-control" id="{{ input_duplicate_id }}"
+                                    name="{{ input_duplicate_id }}" value="{{ campaign_id }}-copy" required>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fa fa-question-circle opacity-25" aria-hidden="true" data-bs-toggle="tooltip"
+                                    title="Unique identifier of the new campaign"></i>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary"
+                            onclick="duplicateEval('{{ input_duplicate_id }}', '{{ campaign_id }}');"><i
+                                class="fa fa-clone"></i> Duplicate
+                            eval</button>
+
+                        {% if mode != 'llm_gen' %}
+                        <hr>
+                        <h6>Copy as
+                            crowdsourcing config</h6>
+                        <p>
+                            <small class="text-muted">Export the settings of the campaign <code>{{
+    campaign_id }}</code> to a <b>YAML file for human crowdsourcing</b>. This enables
+                                to
+                                transfer the equivalent settings for both campaigns (note that currently only
+                                <code>annotation_span_categories</code>
+                                will get transfered.</small>).
+                        </p>
+                        <div class="input-group mb-3">
+                            {% set input_crowdsourcing_id = 'config-save-filename-' ~ campaign_id ~
+                            '-crowdsourcing' %}
+                            <input type="text" class="form-control" id="{{  input_crowdsourcing_id }}"
+                                list="datalistOptionsCrowdsourcing" value="{{ campaign_id }}"
+                                placeholder="Click to see existing configurations..."
+                                aria-label="Click to see existing configurations..." aria-describedby="basic-addon2">
+                            <span class="input-group-text" id="basic-addon2">.yaml</span>
+                        </div>
+                        <datalist id="datalistOptionsCrowdsourcing">
+                            {% for filename in crowdsourcing_configs.keys() %}
+                            <!-- save the name without suffix to variable -->
+                            {% set config_name = filename.replace(".yaml", "") %}
+                            <option value="{{ config_name }}">{{ filename }}</option>
+                            {% endfor %}
+                        </datalist>
+                        <button type="submit" class="btn btn-primary"
+                            onclick="duplicateConfig(this, '{{ input_crowdsourcing_id }}', 'crowdsourcing', '{{ campaign_id }}');"><i
+                                class="fa fa-user"></i> Save
+                            crowdsourcing config</button>
+                        <hr>
+                        <h6>Copy as LLM config</h6>
+                        <p>
+                            <small class="text-muted">Export the settings of the campaign <code>{{
+    campaign_id }}</code> to a YAML file. The settings can be later used (and
+                                modified)
+                                when starting
+                                a new LLM evaluation
+                                campaign.</small>
+                        </p>
+                        <div class="input-group mb-3">
+                            {% set input_llm_id = 'config-save-filename-' ~ campaign_id ~ '-llm' %}
+                            <input type="text" class="form-control" id="{{ input_llm_id }}" list="datalistOptionsLlm"
+                                value="{{ campaign_id }}" placeholder="Click to see existing configurations..."
+                                aria-label="Click to see existing configurations..." aria-describedby="basic-addon2">
+                            <span class="input-group-text" id="basic-addon2">.yaml</span>
+                        </div>
+                        <datalist id="datalistOptionsLlm">
+                            {% for filename in llm_configs.keys() %}
+                            <!-- save the name without suffix to variable -->
+                            {% set config_name = filename.replace(".yaml", "") %}
+                            <option value="{{ config_name }}">{{ filename }}</option>
+                            {% endfor %}
+                        </datalist>
+
+                        <button type="submit" class="btn btn-primary"
+                            onclick="duplicateConfig(this, '{{ input_llm_id }}', 'llm_eval', '{{ campaign_id }}');"><i
+                                class="fa fa-laptop"></i>
+                            Save
+                            LLM
+                            config</button>
+                        {% endif %}
+                    </div>
+                    <div id="tab-llm-config-{{
+                        campaign_id }}" role="tabpanel" class="tab-pane p-3" tabindex="0">
+                        {% include 'include/config_form.html' %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

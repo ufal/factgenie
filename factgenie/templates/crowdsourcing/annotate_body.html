@@ -1,0 +1,134 @@
+<body class="body">
+  <nav class="navbar navbar-light bg-annotate">
+    <div class="container navbar-left">
+      <a class="navbar-brand" href="#">
+      </a>
+
+      <div class="navblock" id="actions-area">
+        <ul class="pagination" id="nav-example-cnt">
+        </ul>
+
+      </div>
+      <div class="navblock">
+
+        <ul class="pagination" style="margin-left: 10px;">
+          <li class="page-item">
+            <button type="button" class="btn btn-sm btn-success" id="submit-annotations-btn"
+              onclick="submitAnnotations();" style="display: none;">👉️ Submit annotations</button>
+          </li>
+      </div>
+    </div>
+  </nav>
+
+
+  <div class="large-container container">
+    <div class="row">
+      <div class="split col-12">
+        <div id="centerpanel" class="collapse show">
+          <div class="tab-content">
+            <div id='tabulararea' class="tab-pane sidepanel-panel active" role="tabpanel">
+              <div class="d-flex align-items-center justify-content-center">
+                <div id="dataset-spinner" class="spinner-border" role="status" style="display: none">
+                  <span class="sr-only"></span>
+                </div>
+              </div>
+              <div id='examplearea'> </div>
+              <div id='rawarea' style="display: none"> </div>
+            </div>
+          </div>
+        </div>
+        <div id="rightpanel" class="collapse show">
+          <div id='sidepanel-content' class="tab-content">
+
+            <div class="accordion instructions-accordion">
+              <div class="accordion-item">
+                <h2 class="accordion-header">
+                  <button class="accordion-button collapsed instructions-accordion-button btn-dark" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#instructions-acc-body">
+                    <b>Instructions</b>
+                  </button>
+                </h2>
+                <div id="instructions-acc-body" class="accordion-collapse collapse">
+                  <div class="accordion-body instructions-accordion-body">
+                    {{ instructions | safe }}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id='output-content'>
+              <div>
+                <div class="mt-3 mb-4" role="group" aria-label="Basic radio toggle button group">
+                  {% for category in annotation_span_categories %}
+                  <input type="radio" class="btn-check btn-outline-secondary btn-err-cat" name="btnradio"
+                    id="btnradio{{ loop.index }}" autocomplete="off" {% if loop.first %}checked{% endif %}
+                    data-cat-idx="{{ loop.index - 1 }}">
+                  <label class="btn btn-err-cat-label {% if loop.first %}active{% endif %}"
+                    for="btnradio{{ loop.index  }}" style="background-color: {{ category.color }};">
+                    {{ category.name }}
+                  </label>
+                  {% endfor %}
+                </div>
+              </div>
+              <div id='text-type-info' class='mt-3'>Drag your mouse over the text to highlight the span:
+              </div>
+              <div id='outputarea'>
+              </div>
+            </div>
+            <div class="" id="checkbox-annotation-box">
+              {{ flags | safe }}
+
+              {{ options | safe }}
+
+              {{ text_fields | safe }}
+              <div class="d-flex align-items-center justify-content-center" id="submit-annotation-box">
+                <div class="btn-group" role="group">
+                  <button type="button" class="btn btn-sm btn-success" onclick="markAnnotationAsComplete();">✅ Mark
+                    example as
+                    complete</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div id="overlay-start" class="overlay">
+    <div id="overlay-start-content" class="overlay-content">
+      <h1>Welcome!</h1>
+      {{ instructions | safe }}
+      <button id="hideOverlayBtn" class="btn btn-primary" disabled>Loading examples...</button>
+    </div>
+  </div>
+
+  <div id="overlay-end" class="overlay" style="display: none">
+    <div id="overlay-end-content" class="overlay-content blue-link">
+      <h1>Thank you!</h1>
+
+      <div id="final-message">
+      </div>
+    </div>
+  </div>
+
+  <div id="overlay-fail" class="overlay" style="display: none">
+    <div id="overlay-fail-content" class="overlay-content blue-link">
+      <h1>Error</h1>
+
+      <p>Sorry, your annotations could not be saved. Error: <span id="error-message" class="font-monospace"></span>.
+      </p>
+
+      <p>Possible reasons:
+      <ul>
+        <li>Your session has expired.</li>
+        <li>There was a problem on the server side.</li>
+      </ul>
+      </p>
+      <p>
+        For more information, please contact the administrators of this project.
+      </p>
+    </div>
+  </div>
+
+</body>

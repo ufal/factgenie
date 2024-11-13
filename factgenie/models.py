@@ -1,25 +1,21 @@
 #!/usr/bin/env python3
 
+from abc import abstractmethod
 import traceback
+from typing import Optional
 from openai import OpenAI
 from textwrap import dedent
-import argparse
-import yaml
 import json
-import sys
 
-from pathlib import Path
 import os
-import coloredlogs
 import logging
-import time
+from pydantic import BaseModel, Field, ValidationError
 import requests
 import copy
 
 from ast import literal_eval
+from factgenie.campaign import CampaignMode
 
-# logging.basicConfig(format="%(message)s", level=logging.INFO, datefmt="%H:%M:%S")
-# coloredlogs.install(level="INFO", fmt="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 DIR_PATH = os.path.dirname(__file__)
@@ -33,11 +29,12 @@ class ModelFactory:
     @staticmethod
     def model_classes():
         return {
-            "llm_eval": {
+            CampaignMode.LLM_EVAL: {
                 "openai_metric": OpenAIMetric,
                 "ollama_metric": OllamaMetric,
+                "vllm_metric": VLLMMetric,
             },
-            "llm_gen": {
+            CampaignMode.LLM_GEN: {
                 "openai_gen": OpenAIGen,
                 "ollama_gen": OllamaGen,
                 "tgwebui_gen": TextGenerationWebuiGen,
@@ -55,15 +52,28 @@ class ModelFactory:
         return classes[metric_type](config)
 
 
+class SpanAnnotation(BaseModel):
+    text: str = Field(description="The text which is annotated.")
+    # Do not name it type since it is a reserved keyword in JSON schema
+    annotation_type: int = Field(
+        description="Index to the list of span annotation types defined for the annotation campaign."
+    )
+    reason: str = Field(description="The reason for the annotation.")
+
+
+class OutputAnnotations(BaseModel):
+    annotations: list[SpanAnnotation] = Field(description="The list of annotations.")
+
+
 class Model:
     def __init__(self, config):
         self.validate_config(config)
         self.config = config
         self.parse_model_args()
 
-        if "extra_args" in config:
-            # the key in the model output that contains the annotations
-            self.annotation_key = config["extra_args"].get("annotation_key", "annotations")
+    @property
+    def new_connection_error_advice_docstring(self):
+        return """Please check the LLM engine documentation. The call to the LLM API server failed."""
 
     def get_annotator_id(self):
         return "llm-" + self.config["type"] + "-" + self.config["model"]
@@ -123,30 +133,33 @@ class LLMMetric(Model):
             "extra_args": dict,
         }
 
-    def postprocess_annotations(self, text, model_json):
+    def parse_annotations(self, text, annotations_json):
+        try:
+            annotations_obj = OutputAnnotations.parse_raw(annotations_json)
+            annotations = annotations_obj.annotations
+        except ValidationError as e:
+            logger.error(f"LLM response in not in the expected format: {e}\n\t{annotations_json=}")
+
         annotation_list = []
         current_pos = 0
-
-        if self.annotation_key not in model_json:
-            logger.error(f"Cannot find the key `{self.annotation_key}` in {model_json=}")
-            return []
-
-        for annotation in model_json[self.annotation_key]:
+        for annotation in annotations:
             # find the `start` index of the error in the text
-            start_pos = text.lower().find(annotation["text"].lower(), current_pos)
-
-            if current_pos != 0 and start_pos == -1:
-                # try from the beginning
-                start_pos = text.find(annotation["text"])
+            start_pos = text.lower().find(annotation.text.lower(), current_pos)
 
             if start_pos == -1:
                 logger.warning(f"Cannot find {annotation=} in text {text}, skipping")
                 continue
 
-            annotation["start"] = start_pos
-            annotation_list.append(copy.deepcopy(annotation))
+            annotation_d = annotation.dict()
+            # For backward compatibility let's use shorter "type"
+            # We do not use the name "type" in JSON schema for error types because it has much broader sense in the schema (e.g. string or integer)
+            annotation_d["type"] = annotation.annotation_type
+            del annotation_d["annotation_type"]
+            # logging where the annotion starts to disambiguate errors on the same string in different places
+            annotation_d["start"] = start_pos
+            annotation_list.append(annotation_d)
 
-            current_pos = start_pos + len(annotation["text"])
+            current_pos = start_pos + len(annotation.text)  # does not allow for overlapping annotations
 
         return annotation_list
 
@@ -168,13 +181,50 @@ class LLMMetric(Model):
         return prompt_template.replace("{data}", str(data_for_prompt)).replace("{text}", text)
 
     def annotate_example(self, data, text):
+        """
+        Annotate the given text with the model.
+
+        Args:
+            data: the data to be used in the prompt
+            text: the text to be annotated
+
+        Returns:
+            A dictionary: {
+                "prompt": the prompt used for the annotation,
+                "annotations": a list of annotations
+            }
+        """
         raise NotImplementedError("Override this method in the subclass to call the LLM API")
 
 
-class OpenAIMetric(LLMMetric):
-    def __init__(self, config):
+class OpenAIClientMetric(LLMMetric):
+    def __init__(self, config, **kwargs):
         super().__init__(config)
-        self.client = OpenAI()
+        self.client = OpenAI(**kwargs)
+
+        config_schema = config.get("extra_args", {}).get("schema", {})
+        pydantic_schema = OutputAnnotations.model_json_schema()
+        if config_schema:
+            self._schema = config_schema
+            logger.warning(
+                f"We expect parsing according to \n{pydantic_schema=}\n but got anoter schema from config\n{config_schema=}"
+                "\nAdapt parsing accordingly!"
+            )
+        else:
+            self._schema = pydantic_schema
+
+        # Required for  OpenAI API but make sense in general too
+        # TODO make it more pydantic / Python friendly
+        self._schema["additionalProperties"] = False
+        self._schema["$defs"]["Annotation"]["additionalProperties"] = False
+
+        logger.warning(f"The schema is set to\n{self._schema}.\n\tCheck that your prompt is compatible!!! ")
+        # access the later used config keys early to log them once and test if they are present
+        logger.info(f"Using {config['model']=} with {config['system_msg']=}")
+
+    @property
+    def schema(self):
+        return self._schema
 
     def get_required_fields(self):
         return {
@@ -192,29 +242,77 @@ class OpenAIMetric(LLMMetric):
             "extra_args": dict,  # TODO we receive it from the UI, but can be removed
         }
 
+    @abstractmethod
+    def _prepare_chat_completions_create_args(self):
+        raise NotImplementedError("Override this method in the subclass to prepare the arguments for the OpenAI API")
+
     def annotate_example(self, data, text):
         try:
             prompt = self.prompt(data, text)
 
             logger.debug(f"Calling OpenAI API with prompt: {prompt}")
+
+            model = self.config["model"]
+
             response = self.client.chat.completions.create(
-                model=self.config["model"],
-                response_format={"type": "json_object"},
+                model=model,
                 messages=[
                     {"role": "system", "content": self.config["system_msg"]},
                     {"role": "user", "content": prompt},
                 ],
-                **self.config.get("model_args", {}),
+                **self._prepare_chat_completions_create_args(),
             )
             annotation_str = response.choices[0].message.content
-            j = json.loads(annotation_str)
-            logger.info(j)
+            logger.info(annotation_str)
 
-            return self.postprocess_annotations(text=text, model_json=j)
+            return {
+                "prompt": prompt,
+                "annotations": self.parse_annotations(text=text, annotations_json=annotation_str),
+            }
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
-            return {"error": str(e)}
+            raise e
+
+
+class VLLMMetric(OpenAIClientMetric):
+    def __init__(self, config, **kwargs):
+        base_url = config["api_url"]  # Mandatory for VLLM
+        api_key = config.get("api_key", None)  # Optional authentication for VLLM
+
+        super().__init__(config, base_url=base_url, api_key=api_key, **kwargs)
+
+    def _prepare_chat_completions_create_args(self):
+        guided_json = self.schema
+        # # works well with vllm https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html#extra-parameters
+        config_args = {"extra_body": {"guided_json": guided_json}}
+        return config_args
+
+
+class OpenAIMetric(OpenAIClientMetric):
+    def _prepare_chat_completions_create_args(self):
+        model = self.config["model"]
+
+        model_supported = any(model.startswith(prefix) for prefix in ["gpt-4o", "gpt-4o-mini"])
+        if not model_supported:
+            logger.warning(
+                f"Model {model} does not support structured output. It is probablye there will be SOME OF PARSING ERRORS"
+            )
+            response_format = {"type": "json_object"}
+        else:
+            # Details at https://platform.openai.com/docs/guides/structured-outputs?context=without_parse
+            json_schema = dict(name="OutputNLGAnnotations", strict=True, schema=self.schema)
+            response_format = {
+                "type": "json_schema",
+                "json_schema": json_schema,
+            }
+
+        config_args = self.config.get("model_args", {})
+        if "response_format" in config_args and config_args["response_format"] != response_format:
+            logger.warning(f"Not using the default {response_format=} but using {config_args['response_format']=}")
+        else:
+            config_args["response_format"] = response_format
+        return config_args
 
 
 class OllamaMetric(LLMMetric):
@@ -222,6 +320,13 @@ class OllamaMetric(LLMMetric):
         super().__init__(config)
 
         self.set_api_endpoint()
+
+    @property
+    def new_connection_error_advice_docstring(self):
+        return """\
+Please check the Ollama documentation:
+    https://github.com/ollama/ollama?tab=readme-ov-file#generate-a-response
+"""
 
     def set_api_endpoint(self):
         # make sure the API URL ends with the `generate` endpoint
@@ -233,13 +338,21 @@ class OllamaMetric(LLMMetric):
         output = output.strip()
         j = json.loads(output)
 
+        ANNOTATION_STR = "annotations"
+        assert (
+            ANNOTATION_STR in OutputAnnotations.model_json_schema()["properties"]
+        ), f"Has the {OutputAnnotations=} schema changed?"
+
+        # Required for OllamaMetric. You may want to switch to VLLMMetric which uses constrained decoding.
+        # It is especially useful for weaker models which have problems decoding valid JSON on output.
         if self.config["model"].startswith("llama3"):
             # the model often tends to produce a nested list
-            annotations = j[self.annotation_key]
-            if isinstance(annotations, list) and len(annotations) >= 1 and isinstance(annotations[0], list):
-                j[self.annotation_key] = j[self.annotation_key][0]
 
-        return j
+            annotations = j[ANNOTATION_STR]
+            if isinstance(annotations, list) and len(annotations) >= 1 and isinstance(annotations[0], list):
+                j[ANNOTATION_STR] = j[ANNOTATION_STR][0]
+
+        return json.dumps(j)
 
     def annotate_example(self, data, text):
         prompt = self.prompt(data=data, text=text)
@@ -255,25 +368,31 @@ class OllamaMetric(LLMMetric):
         try:
             logger.debug(f"Calling {msg}")
             response = requests.post(self.config["api_url"], json=request_d)
-            response_json = response.json()
+            if response.status_code != 200:
+                raise ValueError(f"Received status code {response.status_code} from the API. Response: {response.text}")
 
-            if "error" in response_json:
-                return response_json
+            try:
+                response_json = response.json()
+            except json.JSONDecodeError:
+                logger.warning(f"Received non-JSON response: {response.text}")
+                return []
 
             annotation_str = response_json["response"]
-
-            j = self.postprocess_output(annotation_str)
-            logger.info(j)
-            return self.postprocess_annotations(text=text, model_json=j)
+            annotation_postprocessed = self.postprocess_output(annotation_str)
+            logger.info(annotation_postprocessed)
+            return {
+                "prompt": prompt,
+                "annotations": self.parse_annotations(text=text, annotations_json=annotation_postprocessed),
+            }
         except (ConnectionError, requests.exceptions.ConnectionError) as e:
             # notifiy the user that the API is down
             logger.error(f"Connection error: {e}")
-            return {"error": str(e)}
+            raise e
         except Exception as e:
             # ignore occasional problems not to interrupt the annotation process
             logger.error(f"Received\n\t{response=}\n\t{annotation_str=}\n\t{j=}\nError:{e}")
             traceback.print_exc()
-            return []
+            return {}
 
 
 class LLMGen(Model):
@@ -300,6 +419,7 @@ class LLMGen(Model):
             if output.endswith(suffix):
                 output = output[: -len(suffix)]
 
+        output = output.strip()
         return output
 
     def prompt(self, data):
@@ -318,6 +438,18 @@ class LLMGen(Model):
         return data
 
     def generate_output(self, data):
+        """
+        Generate the output with the model.
+
+        Args:
+            data: the data to be used in the prompt
+
+        Returns:
+            A dictionary: {
+                "prompt": the prompt used for the generation,
+                "output": the generated output
+            }
+        """
         raise NotImplementedError("Override this method in the subclass to call the LLM API")
 
 
@@ -361,14 +493,15 @@ class OpenAIGen(LLMGen):
                 **self.config.get("model_args", {}),
             )
             output = response.choices[0].message.content
+            output = self.postprocess_output(output)
             logger.info(output)
 
-            return {"prompt": prompt, "output": self.postprocess_output(output)}
+            return {"prompt": prompt, "output": output}
 
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
-            return {"error": str(e)}
+            raise e
 
 
 class TextGenerationWebuiGen(LLMGen):
@@ -410,13 +543,14 @@ class TextGenerationWebuiGen(LLMGen):
             )
 
             output = response.choices[0].message.content
+            output = self.postprocess_output(output)
             logger.info(output)
 
-            return {"prompt": prompt, "output": self.postprocess_output(output)}
+            return {"prompt": prompt, "output": output}
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
-            return {"error": str(e)}
+            raise e
 
 
 class OllamaGen(LLMGen):
@@ -424,6 +558,13 @@ class OllamaGen(LLMGen):
         super().__init__(config)
 
         self.set_api_endpoint()
+
+    @property
+    def new_connection_error_advice_docstring(self):
+        return """\
+Please check the Ollama documentation:
+    https://github.com/ollama/ollama?tab=readme-ov-file#generate-a-response
+"""
 
     def set_api_endpoint(self):
         # make sure the API URL ends with the `chat` endpoint
@@ -457,17 +598,18 @@ class OllamaGen(LLMGen):
             response_json = response.json()
 
             if "error" in response_json:
-                return response_json
+                raise ValueError(f"Received error from the API: {response_json['error']}")
 
             output = response_json["message"]["content"]
+            output = self.postprocess_output(output)
             logger.info(output)
-            return {"prompt": prompt, "output": self.postprocess_output(output)}
+            return {"prompt": prompt, "output": output}
         except (ConnectionError, requests.exceptions.ConnectionError) as e:
             # notifiy the user that the API is down
             logger.error(f"Connection error: {e}")
-            return {"error": str(e)}
+            raise e
         except Exception as e:
             # ignore occasional problems not to interrupt the annotation process
             logger.error(f"Received\n\t{response=}\n\t{output=}\nError:{e}")
             traceback.print_exc()
-            return []
+            raise e

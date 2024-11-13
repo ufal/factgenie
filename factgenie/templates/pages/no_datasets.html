@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>factgenie</title>
+  <link rel="stylesheet" media="screen" href="{{ host_prefix }}/static/css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="{{ host_prefix }}/static/css/custom.css">
+  <link rel="shortcut icon" href="{{ host_prefix }}/static/img/favicon.ico">
+  <meta name="viewport" content="width=1024">
+  <script src="{{ host_prefix }}/static/js/lib/jquery.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/popper.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/bootstrap.min.js"></script>
+</head>
+
+<body>
+  {% include 'pages/navbar.html' %}
+
+  <div class="container">
+    <!-- infobox centered on the page -->
+
+    <div class="mt-5 w-75 mx-auto">
+      <div class="alert alert-info text-center" role="alert">
+        No datasets are loaded. Go to the <a class="blue-link" href="{{ host_prefix }}/manage#external">
+          <b>data management</b></a> page and add your datasets first!
+      </div>
+    </div>
+  </div>
+</body>
+
+<script>
+  window.url_prefix = " {{ host_prefix }}"; 
+</script>

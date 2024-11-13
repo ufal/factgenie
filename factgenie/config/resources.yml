@@ -1,5 +1,6 @@
 easy-vqa:
   class: basic.HTMLDataset
+  name: easy-vqa
   data-link: https://owncloud.cesnet.cz/index.php/s/3JbbbAxSqX8PSNJ/download
   description: A toy visual question answering dataset. Provided as an example dataset
     loaded by the <code>basic.HTMLDataset</code> class.
@@ -8,6 +9,7 @@ easy-vqa:
   - test
 logicnlg-100:
   class: logicnlg.LogicNLG
+  name: logicnlg-100
   description: Sample of 100 examples from the  <a href="https://github.com/wenhuchen/LogicNLG">LogicNLG</a>
     dataset. Provided as an example dataset loaded from Huggingface, including post-processing
     with custom outputs.
@@ -17,6 +19,7 @@ logicnlg-100:
   splits:
   - test
 quintd1-gsmarena:
+  name: quintd1-gsmarena
   annotations:
   - quintd1-gpt-4
   - quintd1-human
@@ -33,7 +36,8 @@ quintd1-gsmarena:
   splits:
   - dev
   - test
-quintd1-ice_hockey:
+quintd1-ice-hockey:
+  name: quintd1-ice-hockey
   annotations:
   - quintd1-gpt-4
   - quintd1-human
@@ -51,6 +55,7 @@ quintd1-ice_hockey:
   - dev
   - test
 quintd1-openweather:
+  name: quintd1-openweather
   annotations:
   - quintd1-gpt-4
   - quintd1-human
@@ -63,11 +68,12 @@ quintd1-openweather:
   - mistral
   - zephyr
   - gpt-3.5
-  source: https://github.com/kasnerz/quintd/tree/main/data/quintd-1
+  source: https://gitQuintd1-hub.com/kasnerz/quintd/tree/main/data/quintd-1
   splits:
   - dev
   - test
 quintd1-owid:
+  name: quintd1-owid
   annotations:
   - quintd1-gpt-4
   - quintd1-human
@@ -86,6 +92,7 @@ quintd1-owid:
   - dev
   - test
 quintd1-wikidata:
+  name: quintd1-wikidata
   annotations:
   - quintd1-gpt-4
   - quintd1-human
@@ -104,6 +111,7 @@ quintd1-wikidata:
   - dev
   - test
 xsum-debug:
+  name: xsum-debug
   class: basic.PlainTextDataset
   data-link: https://owncloud.cesnet.cz/index.php/s/W3eYWbEfCyKqHEl/download
   description: Sample of 5 examples from the <a href="https://github.com/EdinburghNLP/XSum">XSum</a>

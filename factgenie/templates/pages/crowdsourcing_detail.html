@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>factgenie</title>
+  <link rel="stylesheet" media="screen" href="{{ host_prefix }}/static/css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="{{ host_prefix }}/static/css/custom.css">
+  <link rel="shortcut icon" href="{{ host_prefix }}/static/img/favicon.ico">
+  <link href="{{ host_prefix }}/static/css/font-awesome.css" rel="stylesheet">
+  <meta name="viewport" content="width=1024">
+  <script src="{{ host_prefix }}/static/js/lib/jquery.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/popper.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/bootstrap.min.js"></script>
+
+
+  <link rel="stylesheet" href="{{ host_prefix }}/static/css/bootstrap-table.min.css">
+  <link rel="stylesheet" href="{{ host_prefix }}/static/css/bootstrap-icons.css">
+  <script src="{{ host_prefix }}/static/js/lib/bootstrap-table.min.js"></script>
+</head>
+
+<body>
+  {% include 'pages/navbar.html' %}
+
+  <div class="container w-75 mt-5">
+
+    <div class="mt-5">
+      <a href="{{ host_prefix }}/crowdsourcing" class="btn btn-outline-secondary mb-5">← List of campaigns</a>
+      <h3><img src="{{ host_prefix }}/static/img/crowdsourcing.png" class="inline-icon"> <b>{{ campaign_id }}</b></h3>
+      <div id="metadata-block" class="mt-3">
+        <hr>
+        <dl class="row">
+          <dt class="col-sm-3"> Page link </dt>
+          <dd class="col-sm-9" id="metadata-status-{{ campaign_id }}"> <span class="font-mono">{{ request.url |
+              annotate_url
+              }}/{{
+              campaign_id }}<span {% if metadata.config.service !='local'
+                %}style="display: none;{% endif %}">?annotatorId=FILL_YOUR_NAME_HERE</span></span> </dd>
+          <dt class="col-sm-3"> Service </dt>
+          <dd class="col-sm-9" id="metadata-service"> {{ metadata.config.service }} </dd>
+          <dt class="col-sm-3"> Created </dt>
+          <dd class="col-sm-9" id="metadata-created"> {{ metadata.created }} </dd>
+          <dt class="col-sm-3"> Status </dt>
+          <dd class="col-sm-9" id="metadata-example-cnt-{{ campaign_id }}">
+            <div id="metadata-example-cnt-{{ campaign_id }}">
+              <span id="statusBtn{{ rowId }}" class="badge bg-finished"><i class="fa fa-check"></i> {{ stats.finished
+                }}</span>
+              <span id="statusBtn{{ rowId }}" class="badge bg-assigned"><i class="fa fa-edit"></i> {{ stats.assigned
+                }}</span>
+              <span id="statusBtn{{ rowId }}" class="badge bg-free"><i class="fa fa-clock-o"></i> {{ stats.free
+                }}</span>
+            </div>
+          </dd>
+        </dl>
+        <div>
+          <a href="{{ host_prefix }}/annotate/{{ metadata.id }}" class="btn btn-outline-secondary"
+            data-bs-toggle="tooltip" title="Preview the crowdsourcing page">
+            <i class="fa fa-eye"></i> Preview annotation page
+          </a>
+          <a href="{{ host_prefix }}/export_campaign_outputs/{{ campaign_id }}" class="btn btn-outline-secondary"
+            data-bs-toggle="tooltip" id="download-button-{{ metadata.id }}" title="Export annotations" {% if
+            metadata.status=='idle' %} style="display: none;" {% endif %}>
+            <i class="fa fa-download"></i> Download annotations
+          </a>
+          <a onclick="clearCampaign('{{campaign_id }}', '{{ mode }}')" class="btn btn-outline-secondary"
+            data-bs-toggle=" tooltip" title="Clear the campaign">
+            <i class="fa fa-recycle"></i> Clear annotations
+          </a>
+          <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
+            data-bs-target="#config-modal-{{ campaign_id }}"><i class="fa fa-cog"></i> Show configuration</a>
+          <a href="{{ host_prefix }}/analyze/detail/{{ campaign_id }}" type="button"
+            class="btn btn-outline-secondary"><i class="fa fa-area-chart"></i> View statistics</a>
+          <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
+            data-bs-target="#campaign-help-modal"><i class="fa fa-question-circle">
+            </i> Help</a>
+        </div>
+        <div class="progress mt-3" id="crowdsourcing-progress-{{ metadata.id }}">
+          <div class="progress-bar bg-finished" role="progressbar"
+            id="crowdsourcing-progress-bar-{{ metadata.id }}-finished"
+            style="width: {{ (stats.finished) / (stats.total) * 100 }}%; ">
+          </div>
+          <div class="progress-bar bg-assigned" role="progressbar"
+            id="crowdsourcing-progress-bar-{{ metadata.id }}-assigned"
+            style="width: {{ (stats.assigned) / (stats.total) * 100 }}%; ">
+          </div>
+        </div>
+        <div id="log-area" class="font-monospace mt-3"></div>
+        <hr>
+      </div>
+
+      <div id="campaign-status" class="mb-5">
+        <h4>Batches</h4>
+        <table data-toggle="table" data-pagination="true" data-page-size="100" data-pagination-parts="['pageList']"
+          data-detail-view-icon="true" data-search-align="left" data-detail-view="true"
+          data-detail-formatter="detailFormatter" data-searchable="false"
+          data-icons='{"detailOpen": "bi-chevron-down", "detailClose": "bi-chevron-up"}'
+          data-classes="table table-sm  table-striped table-crowsourcing-detail">
+          <thead>
+            <tr>
+              <th scope="col" data-sortable="true">Batch id</th>
+              <th scope="col" data-sortable="true">Ann. group</th>
+              <th scope="col" data-sortable="true">Examples</th>
+              <th scope="col" data-sortable="true">Status</th>
+              <th scope="col" data-sortable="true">Annotator id</th>
+              <th scope="col" data-sortable="true">Start time</th>
+              <th scope="col" data-sortable="true">Elapsed time</th>
+              <th scope="col">Actions</th>
+              <th scope="col" data-visible="false">Examples</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for batch in overview %}
+            {% set rowId = (batch.batch_idx|string) %}
+            <tr>
+              <td>{{ batch.batch_idx }}</td>
+              <td>{{ batch.annotator_group }}</td>
+              <td>{{ batch.example_cnt }}</td>
+              <td><span id="statusBtn{{ rowId }}" class="badge bg-{{ batch.status }}">{{ batch.status }}</span>
+              </td>
+              <td>{{ batch.annotator_id }}</td>
+              <td>{{ batch.start | ctime }}</td>
+              <td>{{ batch | elapsed }}</td>
+              <td>
+                <a href="{{ host_prefix }}/annotate/{{ metadata.id }}?batch_idx={{ batch.batch_idx }}"
+                  class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip"
+                  title="Preview the crowdsourcing page for the batch">
+                  <i class="fa fa-eye"></i>
+                </a>
+                <a class="btn btn-sm btn-outline-secondary"
+                  onclick="clearOutput('{{ metadata.id }}', '{{ mode }}', '{{ batch.batch_idx }}', {{ batch.annotator_group }})"
+                  data-bs-toggle="tooltip" title="Clear outputs and set free" id="clearOutput{{ rowId }}"
+                  aria-controls="collapseExample" {% if batch.status=='free' %} style="display: none;" {% endif %}>
+                  <i class="fa fa-recycle"></i>
+                </a>
+              </td>
+              <td style="display: none;">
+                <div class="card card-body" style="display: block !important;">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Dataset</th>
+                        <th>Split</th>
+                        <th>Setup id</th>
+                        <th>Example idx</th>
+                        <th>Link</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for e in batch.example_list %}
+                      <tr>
+                        <td>{{ e.dataset }}</td>
+                        <td>{{ e.split }}</td>
+                        <td>{{ e.setup_id }}</td>
+                        <td>{{ e.example_idx }}</td>
+                        <td><a
+                            href="{{ host_prefix }}/browse?dataset={{ e.dataset }}&split={{ e.split }}&example_idx={{ e.example_idx }}&setup_id={{ e.setup_id }}"
+                            class="blue-link" target="_blank">
+                            <i class="fa fa-external-link"></a></td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </td>
+
+      </div>
+      </tr>
+      {% endfor %}
+      </tbody>
+
+    </div>
+  </div>
+  </div>
+  {% include 'include/config_modal.html' %}
+
+  <div class="modal fade" id="campaign-help-modal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="campaign-help-modal-label">How to manage the campaign</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="tab-pane sidepanel-panel" role="tabpanel" tabindex="0">
+            <p>Use the <b>Page link</b> to share the URL with your annotators, e.g. through the crowdsourcing platform.
+            </p>
+            <p>Use the <b>Download annotations</b> button to download the annotations
+              collected so far.</p>
+            <p>See the <a class="blue-link"
+                href="https://github.com/ufal/factgenie/wiki/Crowdsourcing-Annotations">crowsourcing
+                annotation tutorial</a> on the project wiiki for more information.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+<script>
+  window.url_prefix = "{{ host_prefix }}";
+  window.campaigns = "{{ campaigns }}";
+  window.mode = "crowdsourcing";
+</script>
+<script src="{{ host_prefix }}/static/js/utils.js"></script>
+<script src="{{ host_prefix }}/static/js/campaigns.js"></script>

@@ -1,3 +1,5 @@
+const metadata = window.metadata;
+
 function deleteRow(button) {
     $(button).parent().parent().remove();
 }
@@ -10,18 +12,6 @@ function getSelectedCampaigns() {
 }
 
 
-function gatherSelectedCombinations() {
-    // read all the rows the remained in #selectedDatasetsContent
-    var selectedData = [];
-    $("#selectedDatasetsContent tr").each(function () {
-        var dataset = $(this).find("td:eq(0)").text();
-        var split = $(this).find("td:eq(1)").text();
-        var setup_id = $(this).find("td:eq(2)").text();
-        selectedData.push({ dataset: dataset, split: split, setup_id: setup_id });
-    });
-    return selectedData;
-}
-
 function showAgreement(response) {
     // uncover `agreement-modal`, fill the `agreement-area` with the data
 
@@ -30,21 +20,38 @@ function showAgreement(response) {
     var content = '';
     // iterate over the objects in the `response` list
     for (const data of response) {
-        const agreement = `
+        content += `
             <h5><code>${data.first_annotator}</code> vs. <code>${data.second_annotator}</code></h5>
-            <hr>
-            <b>Dataset-level agreement</b>
-            <p><small class="text-muted">Pearson <i>r</i> between the annotators computed over a list of average error counts, one number for each (dataset, split, setup_id) combination.</small></p>
-            <dl class="row">
-            <dt class="col-sm-5">Pearson r (macro)</dt>
-                <dd class="col-sm-7">${data.dataset_level_pearson_r_macro.toFixed(2)} (avg. of [${data.dataset_level_pearson_r_macro_categories}])</dd>
-                <p><small class="text-muted"> An average of coefficients computed separately for each category.</small></p>
-                <dt class="col-sm-5">Pearson r (micro)</dt>
-                <dd class="col-sm-7">${data.dataset_level_pearson_r_micro.toFixed(2)}</dd>
-                <p><small class="text-muted"> Computed over concatenated results from all the categories.</small></p>
-                </dl>
-            <hr>
-            <b>Example-level agreement</b>
+                    <hr>
+        `;
+
+        var dataset_level_agreement = '';
+        if (data.dataset_level_pearson_r_macro !== null) {
+            dataset_level_agreement = `
+                <b>Dataset-level agreement</b>
+                <p><small class="text-muted">Pearson <i>r</i> between the annotators computed over a list of average error counts, one number for each (dataset, split, setup_id) combination.</small></p>
+                <dl class="row">
+                <dt class="col-sm-5">Pearson r (macro)</dt>
+                    <dd class="col-sm-7">${data.dataset_level_pearson_r_macro.toFixed(2)} (avg. of [${data.dataset_level_pearson_r_macro_categories}])</dd>
+                    <p><small class="text-muted"> An average of coefficients computed separately for each category.</small></p>
+                    <dt class="col-sm-5">Pearson r (micro)</dt>
+                    <dd class="col-sm-7">${data.dataset_level_pearson_r_micro.toFixed(2)}</dd>
+                    <p><small class="text-muted"> Computed over concatenated results from all the categories.</small></p>
+                    </dl>
+                    <hr>
+                    `;
+        } else {
+            dataset_level_agreement = `
+                <b>Dataset-level agreement</b>
+                <p class="alert alert-warning">Dataset-level agreement not available for a single split.</p>
+                <hr>
+                `;
+        }
+
+        content += dataset_level_agreement;
+
+        const example_level_agreement = `
+                <b> Example-level agreement</b>
             <p><small class="text-muted">Pearson <i>r</i> between the annotators computed over a list of error counts, one number for each example.</small></p>
             <dl class="row">
                 <dt class="col-sm-5">Pearson r (macro)</dt>
@@ -56,7 +63,7 @@ function showAgreement(response) {
             </dl>
             <hr>
         `;
-        content += agreement;
+        content += example_level_agreement;
     }
 
     $('#agreement-area').html(content);
@@ -90,6 +97,9 @@ function computeAgreement() {
             } else {
                 showAgreement(response);
             }
+        },
+        error: function (response) {
+            alert("An error occurred: " + response.responseText);
         }
     });
 }

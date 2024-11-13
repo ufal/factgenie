@@ -1,0 +1,71 @@
+<p>
+    {% if mode == 'llm_gen' %}
+    <small class="text-muted">Select the combinations of datasets and splits.</small>
+    {% else %}
+    <small class="text-muted">Select the combinations of datasets, splits, and model outputs.</small>
+    {% endif %}
+</p>
+
+<div id="data-select-area" class="row">
+    <div {% if mode!='llm_gen' %} class="col-md-4" {% else %} class="col-md-6" {% endif %}>
+        <div class="card">
+            <div class="card-header bg-light">
+                Datasets
+            </div>
+            <div class="card-body">
+                <div class="form-group mt-1" id="datasets-container">
+                    <!-- Datasets will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <div {% if mode!='llm_gen' %} class="col-md-4" {% else %} class="col-md-6" {% endif %} id="splits-column"
+        style="display: none;">
+        <div class="card">
+            <div class="card-header bg-light">
+                Splits
+            </div>
+            <div class="card-body">
+                <div class="form-group mt-1" id="splits-container">
+                    <!-- Splits will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4" id="outputs-column" style="display: none;">
+        <div class="card">
+            <div class="card-header bg-light">
+                Outputs
+            </div>
+            <div class="card-body">
+                <div class="form-group mt-1" id="outputs-container">
+                    <!-- Outputs will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="card mt-3">
+    <div class="card-header bg-light">
+        Selected combinations
+    </div>
+    <div class="card-body">
+        <table class="table table-hover table-sm">
+            <thead>
+                <tr>
+                    <th scope="col">Dataset</th>
+                    <th scope="col">Split</th>
+                    {% if mode != 'llm_gen' %} <th scope="col">Outputs</th> {% endif %}
+                    <th scope="col">Examples</th>
+                </tr>
+            <tbody id="selectedDatasetsContent">
+                <!-- Selected combinations will be dynamically inserted here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    window.mode = "{{ mode }}";
+</script>
+<script src="{{ host_prefix }}/static/js/datasets.js"></script>

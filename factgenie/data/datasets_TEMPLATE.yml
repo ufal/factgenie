@@ -1,0 +1,14 @@
+# ---
+
+# If you want to start adding local datasets manually, rename this template file to `datasets.yml` and modify the example record.
+
+# A dataset record looks like the following:
+example-dataset-id:
+  class: module.Class # expected to be located in the `factgenie/datasets` folder
+  description: 'Description of the dataset (you can use HTML tags)'
+  enabled: true
+  splits:
+  - list
+  - of
+  - dataset
+  - splits

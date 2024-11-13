@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>factgenie</title>
+  <link rel="stylesheet" media="screen" href="{{ host_prefix }}/static/css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="{{ host_prefix }}/static/css/custom.css">
+  <link rel="shortcut icon" href="{{ host_prefix }}/static/img/favicon.ico">
+  <meta name="viewport" content="width=1024">
+  <script src="{{ host_prefix }}/static/js/lib/jquery.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/popper.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/bootstrap.min.js"></script>
+</head>
+
+<body>
+  {% include 'pages/navbar.html' %}
+
+  <div class="container mt-3 w-50 panel-50">
+    <div class="alert alert-info" role="alert">
+      <i class="fa fa-info-circle"></i>
+      You can also edit these values in
+      <code>factgenie/config/config.yaml</code>.
+    </div>
+    <form id="configForm">
+      <div class="mt-3 p-3 rounded border">
+        <h5>Password protection</h5>
+        <div class="form-group mt-3">
+          <label for="login_active">Enable password protection</label>
+          <div class="mb-2">
+            <small class="form-text text-muted">If enabled, users will have to log in to access most of the app
+              features. Make sure to
+              enable this feature before any public deployment.</small>
+          </div>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="login_active" name="login_active" {% if
+              app_config.login.active %} checked {% endif %}>
+          </div>
+        </div>
+        <div class="form-group mt-3">
+          <label for="login_username">Username</label>
+          <div class="mb-2">
+            <small class="form-text text-muted">The username for logging in the app.</small>
+          </div>
+          <input type="text" class="form-control" id="login_username" name="login_username"
+            value="{{ app_config.login.username }}">
+        </div>
+        <div class="form-group mt-3">
+          <label for="login_password">Password</label>
+          <div class="mb-2">
+            <small class="form-text text-muted">The app password.</small>
+          </div>
+          <input type="password" class="form-control" id="login_password" name="login_password"
+            value="{{ app_config.login.password }}">
+
+        </div>
+      </div>
+      <div class="mt-3 p-3 rounded border">
+        <h5>Deployment</h5>
+        <div class="form-group mt-3">
+          <label for="host_prefix">Host Prefix</label>
+          <div class="mb-2">
+            <small class="form-text text-muted">The prefix of the host URL where factgenie is deployed, e.g.
+              <code>/demo/factgenie</code>. Keep empty for localhost.</small>
+          </div>
+          <input type="text" class="form-control" id="host_prefix" name="host_prefix"
+            value="{{ app_config.host_prefix }}">
+
+          <div class="alert alert-warning mt-3" role="alert">
+            <small> Careful: an invalid value may render the web interface
+              unusable.</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-3 p-3 rounded border">
+        <h5>Logging</h5>
+        <div class="form-group mt-3">
+          <label for="logging_level">Logging Level</label>
+          <div class="mb-2">
+            <small class="form-text text-muted">The logging level for the app.</small>
+          </div>
+          <select class="form-control" id="logging_level" name="logging_level">
+            <option value="DEBUG" {% if app_config.logging.level=='DEBUG' %} selected {% endif %}>DEBUG</option>
+            <option value="INFO" {% if app_config.logging.level=='INFO' %} selected {% endif %}>INFO</option>
+            <option value="WARNING" {% if app_config.logging.level=='WARNING' %} selected {% endif %}>WARNING</option>
+            <option value="ERROR" {% if app_config.logging.level=='ERROR' %} selected {% endif %}>ERROR</option>
+            <option value="CRITICAL" {% if app_config.logging.level=='CRITICAL' %} selected {% endif %}>CRITICAL
+            </option>
+          </select>
+        </div>
+        <div class="form-group mt-3">
+          <label for="debug">Debug logging</label>
+          <div class="mb-2">
+            <small class="form-text text-muted">Enable Flask debug logging.</small>
+          </div>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="debug" name="debug" {% if app_config.logging.flask_debug
+              %} checked {% endif %}>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-primary mt-3 mb-5" onclick="updateConfig()">Save Config</button>
+    </form>
+
+  </div>
+</body>
+
+<script>
+  window.url_prefix = " {{ host_prefix }}"; 
+</script>
+<script src="{{ host_prefix }}/static/js/utils.js"></script>
+<script src="{{ host_prefix }}/static/js/config.js"></script>
