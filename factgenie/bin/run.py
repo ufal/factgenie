@@ -173,6 +173,7 @@ def create_llm_campaign(
     campaign_id: str, dataset_ids: str, splits: str, setup_ids: str, mode: str, config_file: str, overwrite: bool
 ):
     """Create a new LLM campaign."""
+    import yaml
     from slugify import slugify
     from factgenie.workflows import load_campaign, get_sorted_campaign_list
     from factgenie import workflows, llm_campaign
@@ -226,13 +227,14 @@ def create_llm_campaign(
 
     # if config_file is a path, load the config from the path
     if Path(config_file).exists():
-        config_file = workflows.load_config_from_path(config_file)
+        with open(config_file) as f:
+            config = yaml.safe_load(f)
     else:
         if not config_file.endswith(".yaml"):
             config_file = f"{config_file}.yaml"
 
-    configs = workflows.load_configs(mode)
-    config = configs.get(config_file)
+        configs = workflows.load_configs(mode)
+        config = configs.get(config_file)
 
     if not config:
         config_names = [Path(x).stem for x in configs.keys()]
