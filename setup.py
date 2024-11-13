@@ -37,7 +37,7 @@ class PostInstallCommand(install):
 
 setup(
     name="factgenie",
-    version="0.9.1",
+    version="1.0.0",
     python_requires=">=3.9",
     description="Lightweight self-hosted span annotation tool",
     # contributors as on GitHub
