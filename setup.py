@@ -37,7 +37,7 @@ class PostInstallCommand(install):
 
 setup(
     name="factgenie",
-    version="0.9.9",
+    version="1.0.0",
     python_requires=">=3.9",
     description="Lightweight self-hosted span annotation tool",
     # contributors as on GitHub
@@ -60,7 +60,7 @@ setup(
         ],
     },
     # data_files=[("factgenie", ["factgenie/config.yml"])],
-    include_package_data=True,
+    # include_package_data=True,
     entry_points={
         "console_scripts": [
             "factgenie=factgenie.bin.run:run",
