@@ -289,8 +289,6 @@ def create_app(**kwargs):
     from factgenie.utils import check_login
     from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, MAIN_CONFIG_TEMPLATE_PATH, CAMPAIGN_DIR, INPUT_DIR, OUTPUT_DIR
 
-    logger = logging.getLogger(__name__)
-
     file_handler = logging.FileHandler("error.log")
     file_handler.setLevel(logging.ERROR)
 
