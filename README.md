@@ -90,7 +90,7 @@ We also provide step-by-step walkthroughs showing how to employ factgenie on the
 
 If you want to get a quick feedback or actively participate in development of factgenie, join our public **Slack workspace**:
 
-<img width="150px" alt="Join us on Slack" src="./img/slack.png" href="https://join.slack.com/t/factgenie/shared_invite/zt-2u180yy81-3zCR7mt8EOy55cxA5zhKyQ">
+<a href="https://join.slack.com/t/factgenie/shared_invite/zt-2u180yy81-3zCR7mt8EOy55cxA5zhKyQ"><img width="150px" alt="Join us on Slack" src="./img/slack.png"></a>
 
 ## 💬 Cite us
 
