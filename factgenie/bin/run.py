@@ -202,6 +202,8 @@ def create_llm_campaign(
         available_data = workflows.get_model_outputs_overview(app, dataset_overview)
     elif mode == CampaignMode.LLM_GEN:
         available_data = workflows.get_available_data(app, dataset_overview)
+    else:
+        raise ValueError(f"Invalid mode {mode}")
 
     # drop the `output_ids` key from the available_data
     campaign_data = []

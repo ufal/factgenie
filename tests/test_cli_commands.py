@@ -2,11 +2,73 @@
 Run cli commands which wrap high level functionalites as a kind of functional tests.
 """
 
-from pathlib import Path
-import subprocess
 import logging
+import os
+from pathlib import Path
+import pytest
+import shutil
+import subprocess
 
-from factgenie import INPUT_DIR, OUTPUT_DIR, CAMPAIGN_DIR
+from factgenie import INPUT_DIR, OUTPUT_DIR, CAMPAIGN_DIR, LLM_EVAL_CONFIG_DIR
+
+
+def remove_data(inputs=True, outputs=True, campaigns=True):
+    rm_dirs = []
+    if inputs:
+        rm_dirs.append(INPUT_DIR)
+    if outputs:
+        rm_dirs.append(OUTPUT_DIR)
+    if campaigns:
+        rm_dirs.append(CAMPAIGN_DIR)
+    for d in rm_dirs:
+        for p in Path(d).iterdir():
+            if p.name == ".gitignore":
+                continue
+            if p.is_file():
+                p.unlink()
+            else:
+                shutil.rmtree(p, ignore_errors=True)
+
+
+@pytest.fixture
+def remove_data_before_after():
+    remove_data()
+    yield
+    remove_data()
+
+
+@pytest.mark.usefixtures("remove_data_before_after")
+def test_download_logicnlg100():
+    download_logicnlg100()  # using the function as a test
+
+
+def download_logicnlg100():
+    """Utility function with assets to download logicnlg-100 dataset"""
+    cmd = "factgenie download -d logicnlg-100"
+    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    logging.debug(f"RUNNING ${cmd}\n{result.stdout.decode()}")
+    assert result.returncode == 0
+    assert Path(INPUT_DIR).exists(), INPUT_DIR
+    logicnlg100_dir = Path(INPUT_DIR) / "logicnlg-100"
+    logicnlg100_test_dir = logicnlg100_dir / "test"
+    assert logicnlg100_test_dir.exists(), logicnlg100_test_dir
+    dataset_jsonl = logicnlg100_test_dir / "dataset.jsonl"
+
+    assert Path(OUTPUT_DIR).exists(), OUTPUT_DIR
+    logicnlg100_gpt4_direct_2shotcot_dir = OUTPUT_DIR / "gpt4-direct-2shotcot"
+    assert logicnlg100_gpt4_direct_2shotcot_dir.exists(), logicnlg100_gpt4_direct_2shotcot_dir
+    ouputs_jsonl = logicnlg100_gpt4_direct_2shotcot_dir / "gpt4-direct-2shotcot.jsonl"
+    assert ouputs_jsonl.exists(), ouputs_jsonl
+
+    assert dataset_jsonl.exists(), dataset_jsonl
+
+
+@pytest.mark.usefixtures("remove_data_before_after")
+def test_vllm_campaign():
+    download_logicnlg100()
+    vllm_config = LLM_EVAL_CONFIG_DIR / "example-vllm-llama3-eval.yaml"
+    cmd = f"factgenie create_llm_campaign TEST_VLLM_CAMPAIG_{os.pidid()} -m llm_eval -d logicnlg-100 -s test --setup_ids gpt4-direct-2shotcot --config_file {vllm_config}"
+    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 def test_factgenie_help():
