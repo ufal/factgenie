@@ -3,9 +3,11 @@
 
 <h1> factgenie </h1>
 
+
+![Pytest](https://github.com/ufal/factgenie/actions/workflows/py311_tests.yml/badge.svg)
 ![Github downloads](https://img.shields.io/github/downloads/kasnerz/factgenie/total)
 ![PyPI](https://img.shields.io/pypi/v/factgenie)
-[![slack](https://img.shields.io/badge/slack-factgenie-0476ad.svg?logo=slack)](https://join.slack.com/t/factgenie/shared_invite/zt-2u180yy81-3zCR7mt8EOy55cxA5zhKyQ)
+[![slack](https://img.shields.io/badge/slack-factgenie-04AD90.svg?logo=slack)](https://join.slack.com/t/factgenie/shared_invite/zt-2u180yy81-3zCR7mt8EOy55cxA5zhKyQ)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 ![Github stars](https://img.shields.io/github/stars/kasnerz/factgenie?style=social)
 <!-- [![arXiv](https://img.shields.io/badge/arXiv-2407.17863-b31b1b.svg)](https://arxiv.org/abs/2407.17863) -->
