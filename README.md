@@ -19,8 +19,8 @@ Annotate LLM outputs with a lightweight, self-hosted web application 🌈
 
 </div>
 
-## 📢  Changelog
-- **[1.0.1] - 2024-11-13**: The first official release 🎉
+## 📢  News
+- **2024-11-13** - We released version 1.0.1: our first official release! 🎉
 
 ## 👉️ How can factgenie help you?
 Outputs from large language models (LLMs) may contain errors: semantic, factual, and lexical. 
