@@ -34,7 +34,6 @@ def list_downloadable(app):
         print(f"{dataset_id} - downloaded: {dataset_info['downloaded']}")
 
 
-
 def list_outputs(app):
     """List all available outputs."""
     from factgenie.workflows import get_model_outputs_overview
