@@ -10,13 +10,29 @@ from factgenie.campaigns import CampaignMode  # required because of the click ar
 
 
 def list_datasets(app):
-    """List all available datasets."""
+    """List locally available datasets."""
     from factgenie.workflows import get_local_dataset_overview
 
     dataset_overview = get_local_dataset_overview(app)
 
     for dataset_id in dataset_overview:
         print(dataset_id)
+
+
+def list_downloadable(app):
+    from factgenie import workflows, utils
+
+    datasets = workflows.get_local_dataset_overview(app)
+
+    resources = utils.load_resources_config()
+
+    # set as `downloaded` the datasets that are already downloaded
+    for dataset_id in resources.keys():
+        resources[dataset_id]["downloaded"] = dataset_id in datasets
+
+    for dataset_id, dataset_info in resources.items():
+        print(f"{dataset_id} - downloaded: {dataset_info['downloaded']}")
+
 
 
 def list_outputs(app):
@@ -58,7 +74,7 @@ def list_campaigns(app):
 
 
 @app.cli.command("list")
-@click.argument("output", type=click.Choice(["datasets", "outputs", "campaigns"]))
+@click.argument("output", type=click.Choice(["datasets", "outputs", "campaigns", "downloadable"]))
 def list_data(output: str):
     """List available data."""
     if output == "datasets":
@@ -67,6 +83,10 @@ def list_data(output: str):
         list_outputs(app)
     elif output == "campaigns":
         list_campaigns(app)
+    elif output == "downloadable":
+        list_downloadable(app)
+    else:
+        click.echo(list_data.get_help(click.Context(list_data)))
 
 
 def show_dataset_info(app, dataset_id: str):
