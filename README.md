@@ -1,11 +1,11 @@
 <div align="center">
-<img src="factgenie/static/img/factgenie_whitebg.png" width=80px" alt="logo" />
+<img src="factgenie/static/img/favicon.png" width=80px" alt="logo" />
 
 <h1> factgenie </h1>
 
+<!-- ![Github downloads](https://img.shields.io/github/downloads/kasnerz/factgenie/total) -->
 
 ![Pytest](https://github.com/ufal/factgenie/actions/workflows/py311_tests.yml/badge.svg)
-![Github downloads](https://img.shields.io/github/downloads/kasnerz/factgenie/total)
 ![PyPI](https://img.shields.io/pypi/v/factgenie)
 [![slack](https://img.shields.io/badge/slack-factgenie-04AD90.svg?logo=slack)](https://join.slack.com/t/factgenie/shared_invite/zt-2u180yy81-3zCR7mt8EOy55cxA5zhKyQ)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
