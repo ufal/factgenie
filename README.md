@@ -51,7 +51,7 @@ git clone https://github.com/ufal/factgenie.git
 cd factgenie
 pip install -e .[dev,deploy]
 ```
-This approach will allow you to manually modify configuration files, write your own data classes and access generated files.
+This approach will allow you to manually modify configuration files and write your own data classes.
 
 After installing factgenie, use the following command to run the server on your local computer:
 ```bash
