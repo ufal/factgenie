@@ -92,6 +92,14 @@ If you want to get a quick feedback or actively participate in development of fa
 
 <a href="https://join.slack.com/t/factgenie/shared_invite/zt-2u180yy81-3zCR7mt8EOy55cxA5zhKyQ"><img width="150px" alt="Join us on Slack" src="./img/slack.png"></a>
 
+## 📸 Try a public preview
+We used factgenie for [our related research project](https://d2t-llm.github.io/). We host the outputs from the project using a public instance of factgenie.
+
+> [!IMPORTANT]
+> Note that this preview is very limited: it enables only data viewing, not any data collection or management.
+
+**👉️ You can access the preview [here](https://quest.ms.mff.cuni.cz/nlg/d2t-llm/)**.
+
 ## 💬 Cite us
 
 [Our paper](https://aclanthology.org/2024.inlg-demos.5/) was published at INLG 2024 System Demonstrations!
