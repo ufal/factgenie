@@ -94,9 +94,23 @@ def prettify_json(value):
 # Decorators
 # -----------------
 # Very simple decorator to protect routes
+
+def is_view_allowed(path):
+    # if view pages are locked, do not allow any page
+    if app.config["login"].get("lock_view_pages", True):
+        return False
+
+    # otherwise allow to view the main page, browse and analyze pages
+    if path == "/" or path.startswith("/browse") or path.startswith("/analyze"):
+        return True
+
+    # and lock the rest of pages
+    return False
+
 def login_required(f):
     def wrapper(*args, **kwargs):
-        if app.config["login"]["active"]:
+        # the browse/analyze pages are allowed without login
+        if app.config["login"]["active"] and not is_view_allowed(request.path):
             auth = request.cookies.get("auth")
             if not auth:
                 return redirect(app.config["host_prefix"] + "/login")
@@ -117,9 +131,13 @@ def login_required(f):
 @login_required
 def index():
     logger.info(f"Main page loaded")
+
+    dim_unaccessible_pages = app.config["login"]["active"] and app.config["login"].get("lock_view_pages") == False
+
     return render_template(
         "pages/index.html",
         host_prefix=app.config["host_prefix"],
+        dim_unaccessible_pages=dim_unaccessible_pages,
     )
 
 

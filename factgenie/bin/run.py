@@ -312,9 +312,9 @@ def create_app(**kwargs):
         logger=logger,
         fmt="%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s",
     )
-
     config["host_prefix"] = os.getenv("FACTGENIE_HOST_PREFIX", config["host_prefix"])
     config["login"]["active"] = os.getenv("FACTGENIE_LOGIN_ACTIVE", config["login"]["active"])
+    config["login"]["lock_view_pages"] = os.getenv("FACTGENIE_LOCK_VIEW_PAGES", config["login"].get("lock_view_pages", True))
     config["login"]["username"] = os.getenv("FACTGENIE_LOGIN_USERNAME", config["login"]["username"])
     config["login"]["password"] = os.getenv("FACTGENIE_LOGIN_PASSWORD", config["login"]["password"])
 
