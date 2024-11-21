@@ -2,11 +2,11 @@
 Run cli commands which wrap high level functionalites as a kind of functional tests.
 """
 
-from pathlib import Path
-import subprocess
 import logging
+import subprocess
+from pathlib import Path
 
-from factgenie import INPUT_DIR, OUTPUT_DIR, CAMPAIGN_DIR
+from factgenie import CAMPAIGN_DIR, INPUT_DIR, OUTPUT_DIR
 
 
 def test_factgenie_help():
