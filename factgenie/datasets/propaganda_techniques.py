@@ -1,3 +1,10 @@
+"""
+The Propaganda Techniques Corpus (PTC) is a corpus of propagandistic techniques at annotated by 6 pro-annotators in spans.
+    The corpus includes 451 articles (350k tokens) from 48 news outlets. 
+    The corpus accompanied paper [Fine-Grained Analysis of Propaganda in News Article](https://aclanthology.org/D19-1565/).
+    The labels are:
+Loaded Language, Name Calling&Labeling, Repetition, Exaggeration&Minimization, Doubt, Appeal to fear-prejudice, Flag-Waving, Causal Oversimplification, Slogans, Appeal to Authority, Black-and-White Fallacy, Thought-terminating Cliches, Whataboutism, Reductio ad Hitlerum, Red Herring, Bandwagon, Obfuscation&Intentional&Vagueness&Confusion, Straw Men
+"""
 import glob
 import json
 import logging
@@ -222,6 +229,7 @@ class PropagandaTechniques(Dataset):
         html += example.replace("\\n", "<br>")
         html += "</p>"
         html += "</div>"
+        return html
 
     @classmethod
     def download(
@@ -255,7 +263,7 @@ class PropagandaTechniques(Dataset):
         #     annotation_span_categories = r.readlines()
 
         # save annotations
-        annotation_jsonl_parent = annotation_download_dir / PCT_CAMPAING_ID / dataset_id / "files"
+        annotation_jsonl_parent = annotation_download_dir / PCT_CAMPAING_ID / "files"
         annotation_jsonl_parent.mkdir(parents=True, exist_ok=True)
         # save outputs
         outputs_jsonl_parent = out_download_dir / dataset_id
@@ -263,13 +271,13 @@ class PropagandaTechniques(Dataset):
 
         for split in splits:
 
-            article_id_to_example_idx = {}
-            articles_files = glob.glob(f"{data_download_dir}/{split}/article*.txt")
-            for example_idx, f in enumerate(articles_files):
-                article_id = str(Path(f).stem)[len("article") :]
-                article_id_to_example_idx[article_id] = example_idx
+            with open(outputs_jsonl_parent / f"{split}.jsonl", "wt") as outputw:
+                article_id_to_example_idx = {}
+                articles_files = glob.glob(f"{data_download_dir}/{split}/article*.txt")
+                for example_idx, f in enumerate(articles_files):
+                    article_id = str(Path(f).stem)[len("article") :]
+                    article_id_to_example_idx[article_id] = example_idx
 
-                with open(outputs_jsonl_parent / f"{split}.jsonl", "wt") as w:
                     with open(f, "r") as file:
                         article_txt = file.read().strip()
                     article_entry = {
@@ -280,7 +288,7 @@ class PropagandaTechniques(Dataset):
                         "metadata": {},
                         "output": article_txt,
                     }
-                    w.write(json.dumps(article_entry) + "\n")
+                    outputw.write(json.dumps(article_entry) + "\n")
 
             annotation_jsonl = annotation_jsonl_parent / f"{split}.jsonl"
             annotation_records = cls._load_annotation_records(
@@ -320,13 +328,8 @@ class PropagandaTechniques(Dataset):
             with open(f, "r") as file:
                 annotations = file.readlines()
                 article_id = str(Path(f).stem)[len("article") : -len(".labels")]
-                try:
-                    example_idx = article_id_to_example_idx[article_id]
-                except:
-                    __import__("ipdb").set_trace()
+                example_idx = article_id_to_example_idx[article_id]
                 for a in annotations:
-                    annotation_records.append(a.strip())
-
                     annotation_records.append(
                         {
                             "dataset": "PCT_DATASET_ID",

@@ -217,19 +217,24 @@ def load_annotations_for_campaign(subdir):
 
 
 def create_annotation_example_record(j):
-    return {
-        "annotation_span_categories": j["metadata"]["annotation_span_categories"],
-        "annotator_id": j["metadata"]["annotator_id"],
-        "annotator_group": int(j["metadata"].get("annotator_group", 0)),
-        "campaign_id": slugify(j["metadata"]["campaign_id"]),
-        "dataset": slugify(j["dataset"]),
-        "example_idx": int(j["example_idx"]),
-        "setup_id": slugify(j["setup_id"]),
-        "split": slugify(j["split"]),
-        "flags": j.get("flags", []),
-        "options": j.get("options", []),
-        "text_fields": j.get("text_fields", []),
-    }
+    try:
+        d = {
+            "annotation_span_categories": j["metadata"]["annotation_span_categories"],
+            "annotator_id": j["metadata"]["annotator_id"],
+            "annotator_group": int(j["metadata"].get("annotator_group", 0)),
+            "campaign_id": slugify(j["metadata"]["campaign_id"]),
+            "dataset": slugify(j["dataset"]),
+            "example_idx": int(j["example_idx"]),
+            "setup_id": slugify(j["setup_id"]),
+            "split": slugify(j["split"]),
+            "flags": j.get("flags", []),
+            "options": j.get("options", []),
+            "text_fields": j.get("text_fields", []),
+        }
+    except:
+        __import__('ipdb').set_trace()
+
+    return d
 
 
 def load_annotations_from_record(line, split_spans=False):
