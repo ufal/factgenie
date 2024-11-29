@@ -257,6 +257,10 @@ class PropagandaTechniques(Dataset):
         # save annotations
         annotation_jsonl_parent = annotation_download_dir / PCT_CAMPAING_ID / dataset_id / "files"
         annotation_jsonl_parent.mkdir(parents=True, exist_ok=True)
+        # save outputs
+        outputs_jsonl_parent = out_download_dir / dataset_id
+        outputs_jsonl_parent.mkdir(parents=True, exist_ok=True)
+
         for split in splits:
 
             article_id_to_example_idx = {}
@@ -264,6 +268,19 @@ class PropagandaTechniques(Dataset):
             for example_idx, f in enumerate(articles_files):
                 article_id = str(Path(f).stem)[len("article") :]
                 article_id_to_example_idx[article_id] = example_idx
+
+                with open(outputs_jsonl_parent / f"{split}.jsonl", "wt") as w:
+                    with open(f, "r") as file:
+                        article_txt = file.read().strip()
+                    article_entry = {
+                        "dataset": dataset_id,
+                        "split": split,
+                        "setup_id": dataset_id,
+                        "example_idx": example_idx,
+                        "metadata": {},
+                        "output": article_txt,
+                    }
+                    w.write(json.dumps(article_entry) + "\n")
 
             annotation_jsonl = annotation_jsonl_parent / f"{split}.jsonl"
             annotation_records = cls._load_annotation_records(
@@ -274,7 +291,10 @@ class PropagandaTechniques(Dataset):
                     w.write(json.dumps(record) + "\n")
 
         # save metadata
-        metadata_json = annotation_download_dir / PCT_CAMPAING_ID / dataset_id / "metadata.json"
+        metadata_json = annotation_download_dir / PCT_CAMPAING_ID / "metadata.json"
+        db_csv_dummy_csv = annotation_download_dir / PCT_CAMPAING_ID / "db.csv"
+        with open(db_csv_dummy_csv, "wt") as w:
+            w.write("annotator_id,start,end\n")  # write just header - since these are gold data and we don't have the annotator stats
         metadata = {
             "id": PCT_CAMPAING_ID,
             "mode": "external",
