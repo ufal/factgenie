@@ -11,6 +11,7 @@ import json
 import logging
 import os
 from pathlib import Path
+from typing import Any, List, Union, Dict
 import zipfile
 
 from factgenie.utils import resumable_download
@@ -47,7 +48,7 @@ PCT_colors = [
 
 PCT_span_categories = [
     {
-        "name": "Appeal to Authority",
+        "name": "Appeal_to_Authority",
         "description": """
     Stating that a claim is true simply because a valid authority or expert on the issue said it was true, without any other supporting evidence offered. We consider the special case in which the reference is not an authority or an expert in this technique, altough it is referred to as Testimonial in literature.
     Example 1: "Richard Dawkins, an evolutionary biologist and perhaps the foremost expert in the field, says that evolution is true. Therefore, it's true."
@@ -247,7 +248,7 @@ class PropagandaTechniques(Dataset):
         assert dataset_id == PCT_DATASET_ID, f"Dataset ID {dataset_id} does not match {PCT_DATASET_ID}"
         link = dataset_config["data-link"]
         logger.info(f"Downloading dataset {dataset_id} from {link}")
-        resumable_download(url=link, filename=f"{data_download_dir}/{dataset_id}.zip", force_download=True)
+        resumable_download(url=link, filename=f"{data_download_dir}/{dataset_id}.zip", force_download=False)
         logger.info(f"Downloaded {dataset_id}")
 
         with zipfile.ZipFile(f"{data_download_dir}/{dataset_id}.zip", "r") as zip_ref:
@@ -266,6 +267,9 @@ class PropagandaTechniques(Dataset):
         # save annotations
         annotation_jsonl_parent = annotation_download_dir / PCT_CAMPAING_ID / "files"
         annotation_jsonl_parent.mkdir(parents=True, exist_ok=True)
+
+        short_categories = [{"name": c["name"], "color": c["color"], "description": ""} for c in PCT_span_categories]
+        categories_names = [c["name"] for c in short_categories]
         # save outputs
         outputs_jsonl_parent = out_download_dir / dataset_id
         outputs_jsonl_parent.mkdir(parents=True, exist_ok=True)
@@ -275,7 +279,10 @@ class PropagandaTechniques(Dataset):
             dbw.write("dataset,split,example_idx,setup_id,batch_idx,annotator_id,status,start,end\n")
             for split in splits:
 
-                with open(outputs_jsonl_parent / f"{split}.jsonl", "wt") as outputw:
+                with (
+                    open(outputs_jsonl_parent / f"{split}.jsonl", "wt") as outputw,
+                    open(annotation_jsonl_parent / f"{split}.jsonl", "wt") as annotationw,
+                ):
                     article_id_to_example_idx = {}
                     articles_files = glob.glob(f"{data_download_dir}/{split}/article*.txt")
 
@@ -296,13 +303,27 @@ class PropagandaTechniques(Dataset):
                         }
                         outputw.write(json.dumps(article_entry) + "\n")
 
-            annotation_jsonl = annotation_jsonl_parent / f"{split}.jsonl"
-            annotation_records = cls._load_annotation_records(
-                f"{data_download_dir}/protechn_corpus_eval/{split}", split, article_id_to_example_idx
-            )
-            with open(annotation_jsonl, "wt") as w:
-                for record in annotation_records:
-                    w.write(json.dumps(record) + "\n")
+                        annotation_file = f"{data_download_dir}/protechn_corpus_eval/{split}/article{article_id}.labels.tsv"
+                        annotationw.write(
+                            json.dumps(
+                                {
+                                    "dataset": PCT_DATASET_ID,
+                                    "split": split,
+                                    "setup_id": PCT_DATASET_ID,
+                                    "example_idx": example_idx,
+                                    "metadata": {
+                                        "annotation_span_categories": short_categories,
+                                        "annotator_id": "idk",
+                                        "annotator_group": 0,
+                                        "campaign_id": PCT_CAMPAING_ID,
+                                    },
+                                    "annotations": cls._load_example_annotations(
+                                        annotation_file, article_txt, article_id, categories_names
+                                    ),
+                                }
+                            )
+                            + "\n"
+                        )
 
         # save metadata
         metadata_json = annotation_download_dir / PCT_CAMPAING_ID / "metadata.json"
@@ -321,39 +342,31 @@ class PropagandaTechniques(Dataset):
         with open(metadata_json, "wt") as w:
             w.write(json.dumps(metadata, indent=2))
 
-    @staticmethod
-    def _load_annotation_records(split_path, split, article_id_to_example_idx):
-        annotation_records = []
+    @classmethod
+    def _load_example_annotations(cls, annotation_file: Union[str, Path], article: str, article_id: str, categories_names: List[str]):
+        annotations = []
+        with open(annotation_file, "r") as file:
+            for annotation in file.readlines():
+                _article_id, category, start_idx, end_idx = annotation.strip().split("\t")
+                assert _article_id == article_id, f"Article ID mismatch: {_article_id} != {article_id} in {annotation_file}"
+                start_idx, end_idx = int(start_idx), int(end_idx)  # char indices
+                try:
+                    type_idx = categories_names.index(category)
+                except ValueError:
+                    __import__("ipdb").set_trace()
 
-        # drop lengthy descriptions
-        short_categories = [{"name": c["name"], "color": c["color"], "description": ""} for c in PCT_span_categories]
-        # example factgenie/data/inputs/propaganda-techniques/test/article706501640.labels.tsv
-        for f in glob.glob(f"{split_path}/article*.labels.tsv"):
-            with open(f, "r") as file:
-                annotations = file.readlines()
-                article_id = str(Path(f).stem)[len("article") : -len(".labels")]
-                example_idx = article_id_to_example_idx[article_id]
-                for a in annotations:
-                    annotation_records.append(
-                        {
-                            "dataset": PCT_DATASET_ID,
-                            "split": split,
-                            "setup_id": "PCT_DATASET_ID",
-                            "example_idx": example_idx,
-                            "metadata": {
-                                "annotation_span_categories": short_categories,
-                                "annotator_id": "idk",
-                                "annotator_group": 0,
-                                "campaign_id": PCT_CAMPAING_ID,
-                            },
-                            "annotations": annotations,
-                        }
-                    )
-
-        return annotation_records
+                annotation_d = {
+                    "reason": "",
+                    "text": article[start_idx:end_idx],
+                    "type": type_idx,
+                    "start": start_idx,
+                }
+                annotations.append(annotation_d)
+        return annotations
 
 
 if __name__ == "__main__":
+    # testing download
     from factgenie.bin.run import create_app
     import factgenie.workflows as workflows
 

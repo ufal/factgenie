@@ -1,4 +1,4 @@
-name: Black
+name: Isort
 
 on:
   push:
@@ -24,4 +24,4 @@ jobs:
     - name: Isort check
       run: |
         isort --check --diff factgenie || echo "We know it fails ATM"
-        isort --check --diff tests 
+        isort --check --diff tests
