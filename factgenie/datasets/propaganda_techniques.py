@@ -5,6 +5,7 @@ The Propaganda Techniques Corpus (PTC) is a corpus of propagandistic techniques 
     The labels are:
 Loaded Language, Name Calling&Labeling, Repetition, Exaggeration&Minimization, Doubt, Appeal to fear-prejudice, Flag-Waving, Causal Oversimplification, Slogans, Appeal to Authority, Black-and-White Fallacy, Thought-terminating Cliches, Whataboutism, Reductio ad Hitlerum, Red Herring, Bandwagon, Obfuscation&Intentional&Vagueness&Confusion, Straw Men
 """
+
 import glob
 import json
 import logging
@@ -269,26 +270,31 @@ class PropagandaTechniques(Dataset):
         outputs_jsonl_parent = out_download_dir / dataset_id
         outputs_jsonl_parent.mkdir(parents=True, exist_ok=True)
 
-        for split in splits:
+        db_csv_dummy_csv = annotation_download_dir / PCT_CAMPAING_ID / "db.csv"
+        with open(db_csv_dummy_csv, "wt") as dbw:
+            dbw.write("dataset,split,example_idx,setup_id,batch_idx,annotator_id,status,start,end\n")
+            for split in splits:
 
-            with open(outputs_jsonl_parent / f"{split}.jsonl", "wt") as outputw:
-                article_id_to_example_idx = {}
-                articles_files = glob.glob(f"{data_download_dir}/{split}/article*.txt")
-                for example_idx, f in enumerate(articles_files):
-                    article_id = str(Path(f).stem)[len("article") :]
-                    article_id_to_example_idx[article_id] = example_idx
+                with open(outputs_jsonl_parent / f"{split}.jsonl", "wt") as outputw:
+                    article_id_to_example_idx = {}
+                    articles_files = glob.glob(f"{data_download_dir}/{split}/article*.txt")
 
-                    with open(f, "r") as file:
-                        article_txt = file.read().strip()
-                    article_entry = {
-                        "dataset": dataset_id,
-                        "split": split,
-                        "setup_id": dataset_id,
-                        "example_idx": example_idx,
-                        "metadata": {},
-                        "output": article_txt,
-                    }
-                    outputw.write(json.dumps(article_entry) + "\n")
+                    for example_idx, f in enumerate(articles_files):
+                        dbw.write(f"{dataset_id},{split},{example_idx},{PCT_CAMPAING_ID},{example_idx},,finished,,\n")
+                        article_id = str(Path(f).stem)[len("article") :]
+                        article_id_to_example_idx[article_id] = example_idx
+
+                        with open(f, "r") as file:
+                            article_txt = file.read().strip()
+                        article_entry = {
+                            "dataset": dataset_id,
+                            "split": split,
+                            "setup_id": dataset_id,
+                            "example_idx": example_idx,
+                            "metadata": {},
+                            "output": article_txt,
+                        }
+                        outputw.write(json.dumps(article_entry) + "\n")
 
             annotation_jsonl = annotation_jsonl_parent / f"{split}.jsonl"
             annotation_records = cls._load_annotation_records(
@@ -300,9 +306,7 @@ class PropagandaTechniques(Dataset):
 
         # save metadata
         metadata_json = annotation_download_dir / PCT_CAMPAING_ID / "metadata.json"
-        db_csv_dummy_csv = annotation_download_dir / PCT_CAMPAING_ID / "db.csv"
-        with open(db_csv_dummy_csv, "wt") as w:
-            w.write("annotator_id,start,end\n")  # write just header - since these are gold data and we don't have the annotator stats
+
         metadata = {
             "id": PCT_CAMPAING_ID,
             "mode": "external",
@@ -315,7 +319,7 @@ class PropagandaTechniques(Dataset):
             "created": "2024-03-25 00:00:00",
         }
         with open(metadata_json, "wt") as w:
-            w.write(json.dumps(metadata))
+            w.write(json.dumps(metadata, indent=2))
 
     @staticmethod
     def _load_annotation_records(split_path, split, article_id_to_example_idx):
@@ -332,7 +336,7 @@ class PropagandaTechniques(Dataset):
                 for a in annotations:
                     annotation_records.append(
                         {
-                            "dataset": "PCT_DATASET_ID",
+                            "dataset": PCT_DATASET_ID,
                             "split": split,
                             "setup_id": "PCT_DATASET_ID",
                             "example_idx": example_idx,
