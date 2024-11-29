@@ -217,18 +217,19 @@ class PropagandaTechniques(Dataset):
         examples = []
         articles_files = glob.glob(f"{data_path}/{split}/article*.txt")
         for example_idx, f in enumerate(articles_files):
-            article_id = str(Path(f).stem)[len("article") : -len(".txt")]
+            article_id = str(Path(f).stem)[len("article") :]
             self._article_id_to_example_idx[article_id] = example_idx
             with open(f, "r") as file:
                 article = file.read()
-                examples.append(article.strip())
+                examples.append({"text": article.strip(), "id": article_id})
         return examples
 
     def render(self, example):
         """TODO Any other whitespace to handle except newline?"""
         html = "<div>"
+        html += f"<h3>ID: article{example['id']}.txt </h3>"  # render the full file name
         html += "<p>"
-        html += example.replace("\\n", "<br>")
+        html += example["text"].replace("\\n", "<br>")
         html += "</p>"
         html += "</div>"
         return html
@@ -298,7 +299,7 @@ class PropagandaTechniques(Dataset):
                             "split": split,
                             "setup_id": dataset_id,
                             "example_idx": example_idx,
-                            "metadata": {},
+                            "metadata": {"article": article_id},
                             "output": article_txt,
                         }
                         outputw.write(json.dumps(article_entry) + "\n")
@@ -316,6 +317,7 @@ class PropagandaTechniques(Dataset):
                                         "annotator_id": "idk",
                                         "annotator_group": 0,
                                         "campaign_id": PCT_CAMPAING_ID,
+                                        "article": article_id,  # original dataset id
                                     },
                                     "annotations": cls._load_example_annotations(
                                         annotation_file, article_txt, article_id, categories_names
@@ -362,6 +364,8 @@ class PropagandaTechniques(Dataset):
                     "start": start_idx,
                 }
                 annotations.append(annotation_d)
+
+        annotations = sorted(annotations, key=lambda x: x["start"])
         return annotations
 
 
