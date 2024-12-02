@@ -223,7 +223,7 @@ class PropagandaTechniques(Dataset):
         return examples
 
     def render(self, example):
-        # # Repeat the article as an input so the user can scroll to other place 
+        # # Repeat the article as an input so the user can scroll to other place
         # html = "<div>"
         # html += f"<h3>ID: article{example['id']}.txt </h3>"  # render the full file name
         # html += "<p>"
@@ -303,7 +303,9 @@ class PropagandaTechniques(Dataset):
                         }
                         outputw.write(json.dumps(article_entry) + "\n")
 
-                        annotation_file = f"{data_download_dir}/protechn_corpus_eval/{split}/article{article_id}.labels.tsv"
+                        annotation_file = (
+                            f"{data_download_dir}/protechn_corpus_eval/{split}/article{article_id}.labels.tsv"
+                        )
                         annotationw.write(
                             json.dumps(
                                 {
@@ -344,12 +346,16 @@ class PropagandaTechniques(Dataset):
             w.write(json.dumps(metadata, indent=2))
 
     @classmethod
-    def _load_example_annotations(cls, annotation_file: Union[str, Path], article: str, article_id: str, categories_names: List[str]):
+    def _load_example_annotations(
+        cls, annotation_file: Union[str, Path], article: str, article_id: str, categories_names: List[str]
+    ):
         annotations = []
         with open(annotation_file, "r") as file:
             for annotation in file.readlines():
                 _article_id, category, start_idx, end_idx = annotation.strip().split("\t")
-                assert _article_id == article_id, f"Article ID mismatch: {_article_id} != {article_id} in {annotation_file}"
+                assert (
+                    _article_id == article_id
+                ), f"Article ID mismatch: {_article_id} != {article_id} in {annotation_file}"
                 start_idx, end_idx = int(start_idx), int(end_idx)  # char indices
                 try:
                     type_idx = categories_names.index(category)

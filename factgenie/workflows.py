@@ -97,7 +97,9 @@ def get_example_data(app, dataset_id, split, example_idx, setup_id=None):
         raise ValueError("Example cannot be rendered")
 
     if setup_id:
-        generated_outputs = [get_output_for_setup(dataset_id, split, example_idx, setup_id, app=app, force_reload=False)]
+        generated_outputs = [
+            get_output_for_setup(dataset_id, split, example_idx, setup_id, app=app, force_reload=False)
+        ]
     else:
         generated_outputs = get_outputs(dataset_id, split, example_idx, app=app, force_reload=False)
 
@@ -317,7 +319,9 @@ def get_output_index(app, force_reload=True):
 
                     outputs.append(j)
                 except Exception as e:
-                    logger.error(f"Error parsing output file {out} at line {line_num + 1}:\n\t{e.__class__.__name__}: {e}")
+                    logger.error(
+                        f"Error parsing output file {out} at line {line_num + 1}:\n\t{e.__class__.__name__}: {e}"
+                    )
 
     if outputs:
         output_index = pd.DataFrame.from_records(outputs)
@@ -630,7 +634,9 @@ def export_outputs(app, dataset_id, split, setup_id):
         raise ValueError("No outputs found")
 
     outputs = output_index[
-        (output_index["dataset"] == dataset_id) & (output_index["split"] == split) & (output_index["setup_id"] == setup_id)
+        (output_index["dataset"] == dataset_id)
+        & (output_index["split"] == split)
+        & (output_index["setup_id"] == setup_id)
     ]
     # write the outputs to a temporary JSONL file
     tmp_file_path = tempfile.mktemp()
@@ -686,7 +692,9 @@ def get_model_outputs_overview(app, datasets):
 
     # aggregate output ids into a list
     outputs = (
-        outputs.groupby(["dataset", "split", "setup_id"]).agg(example_idx=pd.NamedAgg(column="example_idx", aggfunc=list)).reset_index()
+        outputs.groupby(["dataset", "split", "setup_id"])
+        .agg(example_idx=pd.NamedAgg(column="example_idx", aggfunc=list))
+        .reset_index()
     )
     # rename "example_idx" to "output_ids"
     outputs = outputs.rename(columns={"example_idx": "output_ids"})
@@ -720,7 +728,9 @@ def get_outputs(dataset_id, split, example_idx, app=None, force_reload=True):
     if outputs.empty:
         return []
 
-    outputs = outputs[(outputs["dataset"] == dataset_id) & (outputs["split"] == split) & (outputs["example_idx"] == example_idx)]
+    outputs = outputs[
+        (outputs["dataset"] == dataset_id) & (outputs["split"] == split) & (outputs["example_idx"] == example_idx)
+    ]
 
     outputs = outputs.to_dict(orient="records")
 
@@ -748,7 +758,9 @@ def upload_model_outputs(dataset, split, setup_id, model_outputs):
     setup_id = slugify(setup_id)
 
     if len(generated) != len(dataset.examples[split]):
-        raise ValueError(f"Output count mismatch for {setup_id} in {split}: {len(generated)} vs {len(dataset.examples[split])}")
+        raise ValueError(
+            f"Output count mismatch for {setup_id} in {split}: {len(generated)} vs {len(dataset.examples[split])}"
+        )
 
     with open(f"{path}/{split}-{setup_id}.jsonl", "w") as f:
         for i, out in enumerate(generated):
@@ -779,7 +791,8 @@ def get_sorted_campaign_list(app, modes):
 
     campaigns.sort(key=lambda x: x.metadata["created"], reverse=True)
     campaigns = {
-        c.metadata["id"]: {"metadata": c.metadata, "stats": c.get_stats(), "data": c.db.to_dict(orient="records")} for c in campaigns
+        c.metadata["id"]: {"metadata": c.metadata, "stats": c.get_stats(), "data": c.db.to_dict(orient="records")}
+        for c in campaigns
     }
     return campaigns
 
