@@ -216,7 +216,7 @@ class OpenAIClientMetric(LLMMetric):
         # Required for  OpenAI API but make sense in general too
         # TODO make it more pydantic / Python friendly
         self._schema["additionalProperties"] = False
-        self._schema["$defs"]["Annotation"]["additionalProperties"] = False
+        self._schema["$defs"]["SpanAnnotation"]["additionalProperties"] = False
 
         logger.warning(f"The schema is set to\n{self._schema}.\n\tCheck that your prompt is compatible!!! ")
         # access the later used config keys early to log them once and test if they are present
