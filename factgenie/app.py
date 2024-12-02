@@ -95,6 +95,7 @@ def prettify_json(value):
 # -----------------
 # Very simple decorator to protect routes
 
+
 def is_view_allowed(path):
     # if view pages are locked, do not allow any page
     if app.config["login"].get("lock_view_pages", True):
@@ -106,6 +107,7 @@ def is_view_allowed(path):
 
     # and lock the rest of pages
     return False
+
 
 def login_required(f):
     def wrapper(*args, **kwargs):
