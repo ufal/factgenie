@@ -98,7 +98,9 @@ class PlainTextDataset(BasicDataset):
 class JSONDataset(BasicDataset):
     def load_examples(self, split, data_path):
         examples_path = data_path / f"{split}.json"
+
         if not examples_path.exists():
+            logger.warning("No examples found for the dataset.")
             examples = []
         else:
             with open(examples_path) as f:
