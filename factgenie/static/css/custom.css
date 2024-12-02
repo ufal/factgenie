@@ -1011,3 +1011,17 @@ a:hover {
 .locked-grey h5 {
     filter: opacity(0.5);
 }
+
+.annotation-container {
+    position: relative;
+    display: inline-block;
+}
+
+.annotation-container div[data-bs-toggle="tooltip"] {
+    z-index: 1;
+    pointer-events: auto;
+}
+
+.out-placeholder {
+    line-height: 2;
+}
