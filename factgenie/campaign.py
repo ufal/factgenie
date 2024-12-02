@@ -63,12 +63,8 @@ class Campaign:
         db.to_csv(self.db_path, index=False)
 
     def load_db(self):
-        # no db for external campaigns
-        if self.metadata.get("mode") == CampaignMode.EXTERNAL:
-            self.db = pd.DataFrame()
-            return
-
         dtype_dict = {"annotator_id": str, "start": float, "end": float}
+
         with open(self.db_path) as f:
             self.db = pd.read_csv(f, dtype=dtype_dict)
 
