@@ -43,8 +43,8 @@ class Campaign:
         self.db_path = os.path.join(self.dir, "db.csv")
         self.metadata_path = os.path.join(self.dir, "metadata.json")
 
-        self.load_db()
         self.load_metadata()
+        self.load_db()
 
     def get_finished_examples(self):
         # load all the JSONL files in the "files" subdirectory
