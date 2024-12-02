@@ -88,12 +88,13 @@ def get_example_data(app, dataset_id, split, example_idx, setup_id=None):
 
     try:
         html = dataset.render(example=example)
+
+        if html is not None:
+            # temporary solution for external files
+            # prefix all the "/files" calls with "app.config["host_prefix"]"
+            html = html.replace('src="/files', f'src="{app.config["host_prefix"]}/files')
     except:
         raise ValueError("Example cannot be rendered")
-
-    # temporary solution for external files
-    # prefix all the "/files" calls with "app.config["host_prefix"]"
-    html = html.replace('src="/files', f'src="{app.config["host_prefix"]}/files')
 
     if setup_id:
         generated_outputs = [
