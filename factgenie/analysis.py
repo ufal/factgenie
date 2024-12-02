@@ -14,6 +14,7 @@ from pathlib import Path
 from slugify import slugify
 import logging
 import coloredlogs
+import traceback
 import factgenie.workflows as workflows
 
 from factgenie import CAMPAIGN_DIR
@@ -225,26 +226,30 @@ def compute_extra_fields_stats(example_index):
     # compute aggregate statistics for flags, options and text_fields (aggregates of value counts for each label)
     extra_fields_stats = {}
 
-    for field in ["flags", "options", "text_fields"]:
-        # each of `example_index[field]` is a list of dicts
-        # each dict contains `label` and `value` keys
-        # we want to count the number of occurrences of each `value` for each unique `label`
-        # and then assign the dictionary with these counts to extra_fields_stats[label]
+    try:
+        for field in ["flags", "options", "text_fields"]:
+            # each of `example_index[field]` is a list of dicts
+            # each dict contains `label` and `value` keys
+            # we want to count the number of occurrences of each `value` for each unique `label`
+            # and then assign the dictionary with these counts to extra_fields_stats[label]
 
-        # find unique labels
-        labels = set()
-        for example in example_index[field]:
-            for d in example:
-                labels.add(d["label"])
+            # find unique labels
+            labels = set()
+            for example in example_index[field]:
+                for d in example:
+                    labels.add(d["label"])
 
-        # create a dictionary for each label
-        for label in labels:
-            extra_fields_stats[label] = defaultdict(int)
+            # create a dictionary for each label
+            for label in labels:
+                extra_fields_stats[label] = defaultdict(int)
 
-        # count the occurrences of each value for each label
-        for example in example_index[field]:
-            for d in example:
-                extra_fields_stats[d["label"]][d["value"]] += 1
+            # count the occurrences of each value for each label
+            for example in example_index[field]:
+                for d in example:
+                    extra_fields_stats[d["label"]][d["value"]] += 1
+    except Exception as e:
+        logger.error(f"Error while computing extra fields statistics: {e}")
+        traceback.print_exc()
 
     return extra_fields_stats
 

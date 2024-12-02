@@ -30,7 +30,7 @@
         </div>
       </div>
       <div class="col-md-4">
-        <div class="card text-center mt-3">
+        <div class="card text-center mt-3 {% if dim_unaccessible_pages %}locked-grey{% endif %}">
           <div class="card-body">
             <a href="{{ host_prefix }}/llm_eval">
               <img src="{{ host_prefix }}/static/img/llm_eval.png" class="intro-img">
@@ -41,7 +41,7 @@
         </div>
       </div>
       <div class="col-md-4">
-        <div class="card text-center mt-3">
+        <div class="card text-center mt-3 {% if dim_unaccessible_pages %}locked-grey{% endif %}">
           <div class="card-body">
             <a href="{{ host_prefix }}/crowdsourcing">
               <img src="{{ host_prefix }}/static/img/crowdsourcing.png" class="intro-img">
@@ -52,7 +52,7 @@
         </div>
       </div>
       <div class="col-md-4">
-        <div class="card text-center mt-3">
+        <div class="card text-center mt-3 {% if dim_unaccessible_pages %}locked-grey{% endif %}">
           <div class="card-body">
             <a href="{{ host_prefix }}/llm_gen">
               <img src="{{ host_prefix }}/static/img/llm_gen.png" class="intro-img">
@@ -74,7 +74,7 @@
         </div>
       </div>
       <div class="col-md-4">
-        <div class="card text-center mt-3">
+        <div class="card text-center mt-3 {% if dim_unaccessible_pages %}locked-grey{% endif %}">
           <div class="card-body">
             <a href="{{ host_prefix }}/manage">
               <img src="{{ host_prefix }}/static/img/manage.png" class="intro-img">

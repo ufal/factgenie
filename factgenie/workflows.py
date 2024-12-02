@@ -39,9 +39,6 @@ from factgenie import (
     CROWDSOURCING_CONFIG_DIR,
 )
 
-file_handler = logging.FileHandler("error.log")
-file_handler.setLevel(logging.ERROR)
-
 logger = logging.getLogger(__name__)
 
 
