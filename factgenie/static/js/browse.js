@@ -268,49 +268,80 @@ function goToPage(page) {
     $("#page-input").val(current_example_idx);
 }
 
-// Our custom function to highlight the text spans using the collected annotations
-// Here we do *not* use the YPet library, but directly work with HTML
 function highlightContent(content, annotations, annotation_span_categories) {
-    let offset = 0; // Track cumulative offset
-    const annotationSet = annotations.annotations;
-
-    // sort by start
-    annotationSet.sort(function (a, b) {
-        return a.start - b.start;
+    // Create boundaries array
+    let boundaries = [];
+    annotations.annotations.forEach(ann => {
+        boundaries.push({ pos: ann.start, type: 'start', annotation: ann });
+        boundaries.push({ pos: ann.start + ann.text.length, type: 'end', annotation: ann });
     });
-    var html = content;
 
-    annotationSet.forEach(annotation => {
-        const annotationType = annotation.type;
-
-        if (!(annotationType in annotation_span_categories)) {
-            console.log("Warning: annotation type not found in annotation_span_categories: " + annotationType);
-            return;
+    boundaries.sort((a, b) => {
+        if (a.pos !== b.pos) {
+            return a.pos - b.pos;
         }
-        const color = annotation_span_categories[annotationType].color;
-        const text = annotation.text.trimEnd();
+        // For same position, compare lengths (end - start)
+        const aLength = a.annotation.text.length;
+        const bLength = b.annotation.text.length;
+        return bLength - aLength; // Longer annotations first
+    });
 
-        const start = annotation.start + offset;
-        const end = start + text.length;
+    let html = content;
+    let offset = 0;
+    let activeAnnotations = [];
+    let lastStart = 0;
 
-        const error_name = annotation_span_categories[annotationType].name;
-        const note = annotation.reason || annotation.note;
-        let tooltip_text;
+    boundaries.forEach(boundary => {
+        const pos = boundary.pos + offset;
+        const ann = boundary.annotation;
 
-        if (note !== undefined && note !== "" && note !== null) {
-            tooltip_text = `${error_name} (${note})`;
+        if (boundary.type === 'start') {
+            // Close all active annotations at this position if needed
+            if (activeAnnotations.length > 0 && boundary.pos > lastStart) {
+                // End all spans
+                html = html.slice(0, pos) + '</span>'.repeat(activeAnnotations.length) + html.slice(pos);
+                offsetShift = '</span>'.repeat(activeAnnotations.length).length;
+                offset += offsetShift;
+
+                // Restart all spans
+                let spanOpening = '';
+                activeAnnotations.forEach((active, index) => {
+                    spanOpening += createSpanOpening(active, index + 1, annotation_span_categories);
+                });
+                html = html.slice(0, pos + offsetShift) + spanOpening + html.slice(pos + offsetShift);
+                offset += spanOpening.length;
+            }
+            // Add new annotation
+            activeAnnotations.push(ann);
+            const level = activeAnnotations.length;
+            const spanOpening = createSpanOpening(ann, level, annotation_span_categories);
+            html = html.slice(0, pos) + spanOpening + html.slice(pos);
+            offset += spanOpening.length;
+            lastStart = boundary.pos;
         } else {
-            tooltip_text = `${error_name}`;
+            // Remove annotation from active set
+            activeAnnotations = activeAnnotations.filter(a => a !== ann);
+            html = html.slice(0, pos) + '</span>' + html.slice(pos);
+            offset += '</span>'.length;
         }
-
-        const spanId = `span-${start}-${end}`;
-        const spanContent = `<span id="${spanId}" style="margin-right: 0px;background-color: ${color};" data-bs-toggle="tooltip" data-bs-placement="top" title="${tooltip_text}">${text}</span>`;
-
-        html = html.slice(0, start) + spanContent + html.slice(end);
-        // Update the offset
-        offset += spanContent.length - text.length;
+        
     });
+
     return html;
+}
+
+function createSpanOpening(annotation, level, annotation_span_categories) {
+    const color = annotation_span_categories[annotation.type].color;
+    const error_name = annotation_span_categories[annotation.type].name;
+    const note = annotation.reason || annotation.note;
+    const tooltip_text = note ? `${error_name} (${note})` : error_name;
+    const lineThickness = 7;
+    const lineHeight = 20;
+    const paddingBottom = 3 + (lineThickness - 1) * (level-1);
+
+    style=`background: linear-gradient(0deg, ${color} ${lineThickness}px, white 1px, transparent 1px); background-position: 0 100%; line-height: ${lineHeight}px; padding-bottom: ${paddingBottom}px;`;
+
+    return `<span style="${style}" data-bs-toggle="tooltip" data-bs-placement="top" title="${tooltip_text}">`;
 }
 
 function showRawData(data) {
