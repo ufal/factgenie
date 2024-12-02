@@ -67,6 +67,7 @@ setup(
             # See also pyproject.toml and setup of line length (to 120 characters)
             "ipdb",
             "black==24.10.0",
+            "isort==5.13.2",
         ],
         "test": [
             "pytest>=8.3.3",

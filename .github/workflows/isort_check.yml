@@ -1,0 +1,27 @@
+name: Black
+
+on:
+  push:
+    branches: [ main, release-1.0.0]
+  pull_request:
+    branches: [ main, release-1.0.0]
+
+jobs:
+
+  check-black:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.11
+    - name: Install isort 5.13.2 - check setup.py if version matches
+      run: |
+        python -m pip install --upgrade pip
+        pip install isort==5.13.2
+    - name: Isort check
+      run: |
+        isort --check --diff factgenie || echo "We know it fails ATM"
+        isort --check --diff tests 

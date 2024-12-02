@@ -1,6 +1,8 @@
 # conftest.py
-import pytest
 import shutil
+
+import pytest
+
 from factgenie import MAIN_CONFIG_PATH
 
 

@@ -51,7 +51,7 @@ git clone https://github.com/ufal/factgenie.git
 cd factgenie
 pip install -e .[dev,deploy]
 ```
-This approach will allow you to manually modify configuration files, write your own data classes and access generated files.
+This approach will allow you to manually modify configuration files and write your own data classes.
 
 After installing factgenie, use the following command to run the server on your local computer:
 ```bash
@@ -91,6 +91,14 @@ We also provide step-by-step walkthroughs showing how to employ factgenie on the
 If you want to get a quick feedback or actively participate in development of factgenie, join our public **Slack workspace**:
 
 <a href="https://join.slack.com/t/factgenie/shared_invite/zt-2u180yy81-3zCR7mt8EOy55cxA5zhKyQ"><img width="150px" alt="Join us on Slack" src="./img/slack.png"></a>
+
+## 📸 Try a public preview
+We used factgenie for [our related research project](https://d2t-llm.github.io/). We host the outputs from the project using a public instance of factgenie.
+
+> [!IMPORTANT]
+> Note that this preview is very limited: it enables only data viewing, not any data collection or management.
+
+**👉️ You can access the preview [here](https://quest.ms.mff.cuni.cz/nlg/d2t-llm/)**.
 
 ## 💬 Cite us
 
