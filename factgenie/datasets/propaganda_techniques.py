@@ -23,24 +23,22 @@ PCT_DATASET_ID = "propaganda-techniques"
 PCT_CAMPAING_ID = "PCT"
 
 PCT_colors = [
-    "#F0F8FF",  # Alice Blue
-    "#F0FFFF",  # Azure
-    "#F0FFF0",  # Honeydew
-    "#FAFAD2",  # Light Goldenrod Yellow
-    "#FFE4E1",  # Misty Rose
-    "#FFF0F5",  # Lavender Blush
-    "#FFDAB9",  # Peach Puff
-    "#E6E6FA",  # Lavender
-    "#FFEBCD",  # Blanched Almond
-    "#F5F5DC",  # Beige
-    "#FFEFD5",  # Papaya Whip
-    "#FFF5EE",  # Seashell
-    "#F0FFF0",  # Honeydew
-    "#F5DEB3",  # Wheat
-    "#FFE4B5",  # Moccasin
-    "#FAFAD2",  # Light Goldenrod Yellow
-    "#D8BFD8",  # Thistle
-    "#E6E6FA",  # Lavender
+    "#020263",  # Dark Blue
+    "#008B8B",  # Dark Cyan
+    "#006400",  # Dark Green
+    "#B8860B",  # Dark Goldenrod
+    "#8B008B",  # Dark Magenta
+    "#FF8C00",  # Dark Orange
+    "#4B0082",  # Indigo
+    "#8B4513",  # Saddle Brown
+    "#2F4F4F",  # Dark Slate Gray
+    "#556B2F",  # Dark Olive Green
+    "#A0522D",  # Sienna
+    "#8B0000",  # Dark Red
+    "#9932CC",  # Dark Orchid
+    "#8f0e42",  # Dark Pink
+    "#095700",  # Dark Green
+    "#FFD700",  # Gold
 ]
 
 
@@ -225,14 +223,15 @@ class PropagandaTechniques(Dataset):
         return examples
 
     def render(self, example):
-        """TODO Any other whitespace to handle except newline?"""
-        html = "<div>"
-        html += f"<h3>ID: article{example['id']}.txt </h3>"  # render the full file name
-        html += "<p>"
-        html += example["text"].replace("\\n", "<br>")
-        html += "</p>"
-        html += "</div>"
-        return html
+        # # Repeat the article as an input so the user can scroll to other place 
+        # html = "<div>"
+        # html += f"<h3>ID: article{example['id']}.txt </h3>"  # render the full file name
+        # html += "<p>"
+        # html += example["text"].replace("\\n", "<br>")
+        # html += "</p>"
+        # html += "</div>"
+        # return html
+        return None  # for None it shows just the output
 
     @classmethod
     def download(
