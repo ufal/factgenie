@@ -997,3 +997,17 @@ a:hover {
 .panel-50 {
     min-width: 900px;
 }
+
+.locked-grey {
+    background-color: #f3f3f3;
+    border: 1px solid #dcdcdc;
+    color: #666666;
+}
+
+.locked-grey a img {
+    filter: opacity(0.5);
+}
+
+.locked-grey h5 {
+    filter: opacity(0.5);
+}

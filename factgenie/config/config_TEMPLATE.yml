@@ -1,9 +1,16 @@
 ---
-host_prefix: ""
-logging:
-  level: INFO
-  flask_debug: false
 login:
+  # require user login for all pages except the page for human annotators
   active: false
+  # if set to `false`, the Browse and Analyze pages will not require login even when login is active (useful for publishing results)
+  lock_view_pages: true
+  # !!! change the default values !!!
   username: admin
   password: factgenie
+logging:
+  # accepts values from the logging module: https://docs.python.org/3/library/logging.html#logging-levels
+  level: INFO
+  # printing extra Flask debug logs
+  flask_debug: false
+# set e.g. to "/demo/factgenie" if your app is running behind a reverse proxy on https://your-server.com/demo/factgenie
+host_prefix: ""

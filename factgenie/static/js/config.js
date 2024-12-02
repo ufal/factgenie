@@ -8,6 +8,7 @@ function updateConfig() {
         host_prefix: $('#host_prefix').val(),
         login: {
             active: $('#login_active').is(':checked'),
+            lock_view_pages: $('#lock_view_pages').is(':checked'),
             username: $('#login_username').val(),
             password: $('#login_password').val()
         }
