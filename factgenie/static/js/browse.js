@@ -162,7 +162,18 @@ function fetchExample(dataset, split, example_idx) {
             return;
         }
         $("#dataset-spinner").hide();
-        $("#examplearea").html(data.html);
+
+        if (data.html === null) {
+            $("#centerpanel").hide();
+            // disable Split.js
+            splitInstance.setSizes([0, 100]);
+            // center the right panel
+            $("#rightpanel").css("width", "50%");
+            $("#rightpanel").css("margin", "auto");
+
+        } else {
+            $("#examplearea").html(data.html);
+        }
 
         showRawData(data);
 
