@@ -211,7 +211,7 @@ function getExampleLevelFields(annotations) {
     // show `outputs.flags`, `outputs.options`, and `outputs.textFields`
     var flags = annotations.flags;
     var options = annotations.options;
-    var textFields = annotations.textFields;
+    var textFields = annotations.text_fields;
 
     var html = $('<div>', { class: "p-2 extra-fields" });
 
