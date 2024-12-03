@@ -215,7 +215,6 @@ def load_annotations_for_campaign(subdir):
 
 
 def create_annotation_example_record(j):
-    # __import__("ipdb").set_trace()
     return {
         "annotation_span_categories": j["metadata"]["annotation_span_categories"],
         "annotator_id": j["metadata"]["annotator_id"],
