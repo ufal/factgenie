@@ -39,6 +39,8 @@ PCT_colors = [
     "#8f0e42",  # Dark Pink
     "#095700",  # Dark Green
     "#FFD700",  # Gold
+    "#FF4500",  # Orange Red
+    "#8B4513",  # Saddle Brown
 ]
 
 
@@ -270,6 +272,7 @@ class PropagandaTechniques(Dataset):
 
         short_categories = [{"name": c["name"], "color": c["color"], "description": ""} for c in PCT_span_categories]
         categories_names = [c["name"] for c in short_categories]
+
         # save outputs
         outputs_jsonl_parent = out_download_dir / dataset_id
         outputs_jsonl_parent.mkdir(parents=True, exist_ok=True)
@@ -360,7 +363,8 @@ class PropagandaTechniques(Dataset):
                 try:
                     type_idx = categories_names.index(category)
                 except ValueError:
-                    __import__("ipdb").set_trace()
+                    logger.warning(f"Category {category} not found in categories_names")
+                    continue
 
                 annotation_d = {
                     "reason": "",
