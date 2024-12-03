@@ -1,6 +1,7 @@
 # ---
 
 # If you want to start adding local datasets manually, rename this template file to `datasets.yml` and modify the example record.
+# See the factgenie/data/resources.yml or the /manage/ page after you started factgenie server in order to see out-of-box supported datasets. 
 
 # A dataset record looks like the following:
 example-dataset-id:
