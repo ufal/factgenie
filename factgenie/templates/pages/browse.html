@@ -120,12 +120,17 @@
         <div id="rightpanel" class="collapse show"">
           <div id='sidepanel-content' class=" tab-content">
           <div id='setuparea' style="display: none">
-            <!-- inline buttons -->
-            <div class="mb-1">
-              <small class="text-muted"><i class="fa fa-pencil"></i> Annotations (click to show)</small>
+            <div class="mb-1 d-flex align-items-center justify-content-between">
+              <small class="text-muted">
+                <i class="fa fa-pencil"></i> Annotations (click to show)
+              </small>
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="badgesSwitch">
+                <label class="form-check-label" style="margin-top: 2px;" for="badgesSwitch">Annotation badges</label>
+              </div>
             </div>
-            <p class="d-inline-flex gap-1" id="annotations-select">
-            </p>
+            <div class="d-inline-flex gap-1" id="annotations-select">
+            </div>
           </div>
 
         </div>

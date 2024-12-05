@@ -180,6 +180,8 @@ function fetchExample(dataset, split, example_idx) {
         total_examples = datasets[dataset].example_count[split];
         $("#total-examples").html(total_examples - 1);
 
+        window.generated_outputs = data.generated_outputs;
+
         createOutputBoxes(data.generated_outputs, window.highlight_setup_id);
         showSelectedCampaigns();
         updateDisplayedAnnotations();
@@ -301,10 +303,12 @@ function highlightContent(content, annotations, annotation_span_categories) {
     let offset = 0;
     let activeAnnotations = [];
     let lastStart = 0;
+    const displayBadge = $("#badgesSwitch").is(":checked");
 
     boundaries.forEach(boundary => {
         const pos = boundary.pos + offset;
         const ann = boundary.annotation;
+        var offsetShift = 0;
 
         if (boundary.type === 'start') {
             // Close all active annotations at this position if needed
@@ -317,7 +321,7 @@ function highlightContent(content, annotations, annotation_span_categories) {
                 // Restart all spans
                 let spanOpening = '';
                 activeAnnotations.forEach((active, index) => {
-                    spanOpening += createSpanOpening(active, index + 1, annotation_span_categories);
+                    spanOpening += createSpanOpening(active, index + 1, annotation_span_categories, displayBadge, true);
                 });
                 html = html.slice(0, pos + offsetShift) + spanOpening + html.slice(pos + offsetShift);
                 offset += spanOpening.length;
@@ -325,8 +329,8 @@ function highlightContent(content, annotations, annotation_span_categories) {
             // Add new annotation
             activeAnnotations.push(ann);
             const level = activeAnnotations.length;
-            const spanOpening = createSpanOpening(ann, level, annotation_span_categories);
-            html = html.slice(0, pos) + spanOpening + html.slice(pos);
+            const spanOpening = createSpanOpening(ann, level, annotation_span_categories, displayBadge, false);
+            html = html.slice(0, pos + offsetShift) + spanOpening + html.slice(pos + offsetShift);
             offset += spanOpening.length;
             lastStart = boundary.pos;
         } else {
@@ -341,18 +345,36 @@ function highlightContent(content, annotations, annotation_span_categories) {
     return html;
 }
 
-function createSpanOpening(annotation, level, annotation_span_categories) {
+function createSpanOpening(annotation, level, annotation_span_categories, displayBadge, isContinuation) {
     const color = annotation_span_categories[annotation.type].color;
     const error_name = annotation_span_categories[annotation.type].name;
+    const initial = error_name.charAt(0).toUpperCase();
     const note = annotation.reason || annotation.note;
     const tooltip_text = note ? `${error_name} (${note})` : error_name;
-    const lineThickness = 7;
     const lineHeight = 20;
+    const lineThickness = 6;
     const paddingBottom = 3 + (lineThickness - 1) * (level-1);
+    const paddingBottomBadge = 4 + (lineThickness - 1) * (level-1);
 
-    style=`background: linear-gradient(0deg, ${color} ${lineThickness}px, white 1px, transparent 1px); background-position: 0 100%; line-height: ${lineHeight}px; padding-bottom: ${paddingBottom}px;`;
+    if (displayBadge) {
+        // we display the tooltip on the badge
+        const badgeStyle = `background-color: ${color}; border-radius: 1px; font-size: 12px; color: #272727; font-weight: bold; padding: 3px 7px ${paddingBottomBadge}px 7px; margin-right: 0px;`;
+        const badgeSpan = `<span style="${badgeStyle}"  data-bs-toggle="tooltip" data-bs-placement="top" title="${tooltip_text}">${initial}</span>`;
 
-    return `<span style="${style}" data-bs-toggle="tooltip" data-bs-placement="top" title="${tooltip_text}">`;
+        const lineStyle = `position: relative; background: linear-gradient(0deg, ${color} ${lineThickness}px, white 0px, transparent 0px); background-position: 0 100%; line-height: ${lineHeight}px; padding-bottom: ${paddingBottom}px; padding-left: 3px;`;
+        const spanOpening = `<span style="${lineStyle}">`;
+
+        if (isContinuation) {
+            return `${spanOpening}`;
+        } else {
+            return `${badgeSpan}${spanOpening}`;
+        }
+    } else {
+        const lineStyle = `position: relative; background: linear-gradient(0deg, ${color} ${lineThickness}px, white 0px, transparent 0px); background-position: 0 100%; line-height: ${lineHeight}px; padding-bottom: ${paddingBottom}px; `;
+        const spanOpening = `<span style="${lineStyle}" data-bs-toggle="tooltip" data-bs-placement="top" title="${tooltip_text}">`;
+
+        return spanOpening;
+    }
 }
 
 function showRawData(data) {
@@ -418,6 +440,12 @@ $('#page-input').keypress(function (event) {
 
 $("#dataset-select").on("change", changeDataset);
 $("#split-select").on("change", changeSplit);
+
+$("#badgesSwitch").on("change", function () {
+    createOutputBoxes(window.generated_outputs, window.highlight_setup_id);
+    showSelectedCampaigns();
+    updateDisplayedAnnotations();
+});
 
 $(document).keydown(function (event) {
     const key = event.key;
