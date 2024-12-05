@@ -316,49 +316,70 @@ def get_annotations(app, dataset_id, split, example_idx, setup_id):
     return annotations.to_dict(orient="records")
 
 
-def get_output_index(app, force_reload=True):
-    start = time.time()
-    logger.info("Starting to generate output index")
+def get_output_files():
+    """Get dictionary of annotation JSONL files and their modification times"""
+    files_dict = {}
+    for jsonl_file in Path(OUTPUT_DIR).rglob("*.jsonl"):
+        files_dict[str(jsonl_file)] = jsonl_file.stat().st_mtime
 
+    return files_dict
+
+
+def load_outputs_from_file(file_path, cols):
+    outputs = []
+
+    with open(file_path) as f:
+        for line_num, line in enumerate(f):
+            try:
+                j = json.loads(line)
+
+                for key in ["dataset", "split", "setup_id"]:
+                    j[key] = slugify(j[key])
+
+                # drop any keys that are not in the key set
+                j = {k: v for k, v in j.items() if k in cols}
+                outputs.append(j)
+            except Exception as e:
+                logger.error(
+                    f"Error parsing output file {file_path} at line {line_num + 1}:\n\t{e.__class__.__name__}: {e}"
+                )
+
+    return outputs
+
+
+def get_output_index(app, force_reload=True):
     if hasattr(app, "db") and app.db["output_index"] is not None and not force_reload:
         return app.db["output_index"]
 
     logger.debug("Reloading output index")
 
-    outputs = []
     cols = ["dataset", "split", "setup_id", "example_idx", "output"]
 
-    # find recursively all JSONL files in the output directory
-    outs = list(Path(OUTPUT_DIR).rglob("*.jsonl"))
+    current_outs = get_output_files()
+    cached_outs = app.db.get("output_index_cache", {})
+    new_outputs = []
 
-    for out in outs:
-        with open(out) as f:
-            for line_num, line in enumerate(f):
-                try:
-                    j = json.loads(line)
+    # Handle modified files
+    for file_path, mod_time in current_outs.items():
+        if file_path not in cached_outs or cached_outs[file_path] < mod_time:
+            new_outputs.extend(load_outputs_from_file(file_path, cols))
 
-                    for key in ["dataset", "split", "setup_id"]:
-                        j[key] = slugify(j[key])
+    # Handle deleted files
+    for file_path in set(cached_outs.keys()) - set(current_outs.keys()):
+        # Remove outputs for deleted files from the index
+        if app.db["output_index"] is not None:
+            file_mask = app.db["output_index"]["file_path"] == file_path
+            app.db["output_index"] = app.db["output_index"][~file_mask]
 
-                    # drop any keys that are not in the key set
-                    j = {k: v for k, v in j.items() if k in cols}
+    # Update the cache
+    app.db["output_index_cache"] = current_outs
 
-                    outputs.append(j)
-                except Exception as e:
-                    logger.error(
-                        f"Error parsing output file {out} at line {line_num + 1}:\n\t{e.__class__.__name__}: {e}"
-                    )
+    if new_outputs:
+        app.db["output_index"] = pd.concat([app.db["output_index"], pd.DataFrame.from_records(new_outputs)])
+    elif app.db["output_index"] is None:
+        app.db["output_index"] = pd.DataFrame(columns=cols)
 
-    if outputs:
-        output_index = pd.DataFrame.from_records(outputs)
-    else:
-        output_index = pd.DataFrame(columns=cols)
-
-    if app:
-        app.db["output_index"] = output_index
-
-    logger.info(f"Finished generating output index in {time.time() - start:.2f} seconds")
-    return output_index
+    return app.db["output_index"]
 
 
 def export_campaign_outputs(campaign_id):

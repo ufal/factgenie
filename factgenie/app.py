@@ -38,6 +38,7 @@ app.db = {}
 app.db["annotation_index"] = None
 app.db["annotation_index_cache"] = {}
 app.db["output_index"] = None
+app.db["output_index_cache"] = {}
 app.db["lock"] = threading.Lock()
 app.db["running_campaigns"] = set()
 app.db["announcers"] = {}
