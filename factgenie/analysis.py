@@ -25,11 +25,11 @@ logger = logging.getLogger(__name__)
 # coloredlogs.install(level="INFO", logger=logger, fmt="%(asctime)s %(levelname)s %(message)s")
 
 
-def create_example_record(line, metadata, annotation_span_categories, annotation_records):
+def create_example_record(line, metadata, annotation_span_categories, annotation_records, jsonl_file):
     # a record is created even if there are no annotations
     j = json.loads(line)
 
-    example_record = workflows.create_annotation_example_record(j)
+    example_record = workflows.create_annotation_example_record(j, jsonl_file)
 
     for i, category in enumerate(annotation_span_categories):
         example_record["cat_" + str(i)] = 0
@@ -67,7 +67,7 @@ def load_annotations_for_campaign(campaign):
                 annotation_index += annotation_records
 
                 example_record = create_example_record(
-                    line, campaign.metadata, annotation_span_categories, annotation_records
+                    line, campaign.metadata, annotation_span_categories, annotation_records, jsonl_file
                 )
                 example_index.append(example_record)
             except Exception as e:
