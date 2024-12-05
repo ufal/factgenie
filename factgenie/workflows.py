@@ -13,7 +13,6 @@ import importlib
 import zipfile
 import traceback
 import tempfile
-
 import factgenie.utils as utils
 
 from io import BytesIO
@@ -189,32 +188,18 @@ def generate_campaign_index(app, force_reload=True):
     return app.db["campaign_index"]
 
 
-def load_annotations_for_campaign(subdir):
+def load_annotations_from_file(file_path):
     annotations_campaign = []
 
-    # find metadata for the campaign
-    metadata_path = CAMPAIGN_DIR / subdir / "metadata.json"
-    if not metadata_path.exists():
-        return []
-
-    with open(metadata_path) as f:
-        metadata = json.load(f)
-
-    if metadata["mode"] == CampaignMode.HIDDEN or metadata["mode"] == CampaignMode.LLM_GEN:
-        return []
-
-    jsonl_files = (CAMPAIGN_DIR / subdir / "files").glob("*.jsonl")
-
-    for jsonl_file in jsonl_files:
-        with open(jsonl_file) as f:
-            for line in f:
-                annotation_records = load_annotations_from_record(line)
-                annotations_campaign.append(annotation_records[0])
+    with open(file_path) as f:
+        for line in f:
+            annotation_records = load_annotations_from_record(line, jsonl_file=file_path)
+            annotations_campaign.append(annotation_records[0])
 
     return annotations_campaign
 
 
-def create_annotation_example_record(j):
+def create_annotation_example_record(j, jsonl_file):
     return {
         "annotation_span_categories": j["metadata"]["annotation_span_categories"],
         "annotator_id": j["metadata"]["annotator_id"],
@@ -227,14 +212,15 @@ def create_annotation_example_record(j):
         "flags": j.get("flags", []),
         "options": j.get("options", []),
         "text_fields": j.get("text_fields", []),
+        "jsonl_file": jsonl_file,
     }
 
 
-def load_annotations_from_record(line, split_spans=False):
+def load_annotations_from_record(line, jsonl_file, split_spans=False):
     j = json.loads(line)
     annotation_records = []
 
-    record = create_annotation_example_record(j)
+    record = create_annotation_example_record(j, jsonl_file)
 
     if split_spans:
         for annotation in j["annotations"]:
@@ -250,27 +236,65 @@ def load_annotations_from_record(line, split_spans=False):
     return annotation_records
 
 
+def get_annotation_files():
+    """Get dictionary of annotation JSONL files and their modification times"""
+    files_dict = {}
+    for jsonl_file in Path(CAMPAIGN_DIR).rglob("*.jsonl"):
+        campaign_dir = jsonl_file.parent.parent
+
+        # find metadata for the campaign
+        metadata_path = campaign_dir / "metadata.json"
+        if not metadata_path.exists():
+            continue
+
+        with open(metadata_path) as f:
+            metadata = json.load(f)
+
+        if metadata["mode"] == CampaignMode.HIDDEN or metadata["mode"] == CampaignMode.LLM_GEN:
+            continue
+
+        files_dict[str(jsonl_file)] = jsonl_file.stat().st_mtime
+
+    return files_dict
+
+
+def remove_annotations(app, file_path):
+    """Remove annotations from the annotation index for a specific file"""
+    if app.db["annotation_index"] is not None:
+        # Filter out annotations from the specified file
+        app.db["annotation_index"] = app.db["annotation_index"][app.db["annotation_index"]["jsonl_file"] != file_path]
+
+
 def get_annotation_index(app, force_reload=True):
     if app and app.db["annotation_index"] is not None and not force_reload:
         return app.db["annotation_index"]
 
     logger.debug("Reloading annotation index")
 
-    # contains annotations for each generated output
-    annotations = []
+    # Get current files and their modification times
+    current_files = get_annotation_files()
+    cached_files = app.db.get("annotation_index_cache", {})
+    new_annotations = []
 
-    # for all subdirectories in CAMPAIGN_DIR, load content of all the jsonl files
-    for subdir in os.listdir(CAMPAIGN_DIR):
-        try:
-            annotations += load_annotations_for_campaign(subdir)
-        except:
-            traceback.print_exc()
-            logger.error(f"Error while loading annotations for {subdir}")
+    # Handle modified files
+    for file_path, mod_time in current_files.items():
+        if file_path not in cached_files or cached_files[file_path] < mod_time:
+            remove_annotations(app, file_path)
+            new_annotations.extend(load_annotations_from_file(file_path))
 
-    annotation_index = pd.DataFrame.from_records(annotations)
-    app.db["annotation_index"] = annotation_index
+    # Handle deleted files
+    for file_path in set(cached_files.keys()) - set(current_files.keys()):
+        remove_annotations(app, file_path)
 
-    return annotation_index
+    # Update the cache
+    app.db["annotation_index_cache"] = current_files
+
+    if app.db["annotation_index"] is None:
+        app.db["annotation_index"] = pd.DataFrame.from_records(new_annotations)
+    else:
+        app.db["annotation_index"] = pd.concat([app.db["annotation_index"], pd.DataFrame.from_records(new_annotations)])
+
+    return app.db["annotation_index"]
 
 
 def get_annotations(app, dataset_id, split, example_idx, setup_id):
@@ -293,6 +317,9 @@ def get_annotations(app, dataset_id, split, example_idx, setup_id):
 
 
 def get_output_index(app, force_reload=True):
+    start = time.time()
+    logger.info("Starting to generate output index")
+
     if hasattr(app, "db") and app.db["output_index"] is not None and not force_reload:
         return app.db["output_index"]
 
@@ -330,6 +357,7 @@ def get_output_index(app, force_reload=True):
     if app:
         app.db["output_index"] = output_index
 
+    logger.info(f"Finished generating output index in {time.time() - start:.2f} seconds")
     return output_index
 
 

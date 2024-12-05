@@ -36,6 +36,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 app = Flask("factgenie", template_folder=TEMPLATES_DIR, static_folder=STATIC_DIR)
 app.db = {}
 app.db["annotation_index"] = None
+app.db["annotation_index_cache"] = {}
 app.db["output_index"] = None
 app.db["lock"] = threading.Lock()
 app.db["running_campaigns"] = set()
