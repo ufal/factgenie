@@ -172,7 +172,7 @@
                   class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Export model outputs">
                   <i class="fa fa-download"></i>
                 </a>
-                <a onclick="deleteOutput('{{ dataset }}', '{{ split }}', '{{ setup_id }}')"
+                <a onclick="deleteOutput('{{ record.dataset }}', '{{ record.split }}', '{{ record.setup_id }}')"
                   class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Delete the output">
                   <i class="fa fa-trash"></i>
                 </a>

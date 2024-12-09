@@ -74,7 +74,7 @@ function deleteOutput(dataset, split, setup_id) {
                 alert(response.error);
             } else {
                 // reload
-                window.location.hash = "#local";
+                window.location.hash = "#outputs";
                 location.reload();
             }
         }
