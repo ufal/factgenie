@@ -413,11 +413,19 @@ class LLMGen(Model):
         }
 
     def postprocess_output(self, output):
-        if self.config.get("extra_args", {}).get("remove_suffix", ""):
+        extra_args = self.config.get("extra_args", {})
+
+        if extra_args.get("remove_suffix", ""):
             suffix = self.config["extra_args"]["remove_suffix"]
 
             if output.endswith(suffix):
                 output = output[: -len(suffix)]
+
+        if extra_args.get("stopping_sequence", False):
+            stopping_sequence = self.config["extra_args"]["stopping_sequence"]
+
+            if stopping_sequence in output:
+                output = output[: output.index(stopping_sequence)]
 
         output = output.strip()
         return output
