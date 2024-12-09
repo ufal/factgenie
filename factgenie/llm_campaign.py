@@ -310,7 +310,7 @@ def save_generation_outputs(app, campaign_id, setup_id):
     path = OUTPUT_DIR / setup_id
     os.makedirs(path, exist_ok=True)
 
-    with open(path / f"{setup_id}.jsonl", "w") as f:
+    with open(path / f"{campaign_id}.jsonl", "w") as f:
         for example in outputs:
             f.write(json.dumps(example) + "\n")
 
