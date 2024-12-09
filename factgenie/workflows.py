@@ -338,6 +338,7 @@ def load_outputs_from_file(file_path, cols):
 
                 # drop any keys that are not in the key set
                 j = {k: v for k, v in j.items() if k in cols}
+                j["jsonl_file"] = file_path
                 outputs.append(j)
             except Exception as e:
                 logger.error(
@@ -345,6 +346,13 @@ def load_outputs_from_file(file_path, cols):
                 )
 
     return outputs
+
+
+def remove_outputs(app, file_path):
+    """Remove outputs from the output index for a specific file"""
+    if app.db["output_index"] is not None:
+        # Filter out outputs from the specified file
+        app.db["output_index"] = app.db["output_index"][app.db["output_index"]["jsonl_file"] != file_path]
 
 
 def get_output_index(app, force_reload=True):
@@ -362,14 +370,14 @@ def get_output_index(app, force_reload=True):
     # Handle modified files
     for file_path, mod_time in current_outs.items():
         if file_path not in cached_outs or cached_outs[file_path] < mod_time:
+            remove_outputs(app, file_path)
             new_outputs.extend(load_outputs_from_file(file_path, cols))
 
     # Handle deleted files
     for file_path in set(cached_outs.keys()) - set(current_outs.keys()):
         # Remove outputs for deleted files from the index
         if app.db["output_index"] is not None:
-            file_mask = app.db["output_index"]["file_path"] == file_path
-            app.db["output_index"] = app.db["output_index"][~file_mask]
+            remove_outputs(app, file_path)
 
     # Update the cache
     app.db["output_index_cache"] = current_outs
