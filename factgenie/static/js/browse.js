@@ -378,7 +378,7 @@ function createSpanOpening(annotation, level, annotation_span_categories, displa
 }
 
 function showRawData(data) {
-    var rawDataStr = JSON.stringify(data.raw_data, null, 2).replace(/\\n/g, '<br>');
+    var rawDataStr = JSON.stringify(data.raw_data, null, 2).replace(/\\n/g, '\n');
 
     if (rawDataStr[0] == '"') {
         // remove the first and last double quotes
