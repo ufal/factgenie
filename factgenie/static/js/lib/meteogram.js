@@ -246,7 +246,7 @@ Meteogram.prototype.getChartOptions = function (cityName) {
 
         plotOptions: {
             series: {
-                pointPlacement: 'between',
+                pointPlacement: 0.1,
                 animation: false
             }
         },
