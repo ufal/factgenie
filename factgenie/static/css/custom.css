@@ -1015,3 +1015,12 @@ a:hover {
 .out-placeholder {
     line-height: 2;
 }
+
+.inline-icon {
+    margin-right: 0.2em;
+    margin-top: 0;
+    margin-bottom: -0.1em;
+    /* margin-bottom: 2px; */
+    height: 0.8em;
+    vertical-align: baseline;
+}
