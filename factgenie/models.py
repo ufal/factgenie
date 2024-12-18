@@ -53,12 +53,12 @@ class ModelFactory:
 
 
 class SpanAnnotation(BaseModel):
+    reason: str = Field(description="The reason for the annotation.")
     text: str = Field(description="The text which is annotated.")
     # Do not name it type since it is a reserved keyword in JSON schema
     annotation_type: int = Field(
         description="Index to the list of span annotation types defined for the annotation campaign."
     )
-    reason: str = Field(description="The reason for the annotation.")
 
 
 class OutputAnnotations(BaseModel):
