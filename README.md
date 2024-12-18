@@ -76,7 +76,7 @@ See the following **wiki pages** that that will guide you through various use-ca
 | 🌱 [Contributing](../../wiki/Contributing)                           | How to contribute to factgenie.                    |
 
 ## 🔥 Tutorials
-We also provide step-by-step walkthroughs showing how to employ factgenie on the [the dataset from the Shared Task in Evaluating Semantic Accuracy](https://github.com/ehudreiter/accuracySharedTask):
+We also provide step-by-step walkthroughs showing how to employ factgenie on [the dataset from the Shared Task in Evaluating Semantic Accuracy](https://github.com/ehudreiter/accuracySharedTask):
 
 | Tutorial                                                                                                                    | Description                                                                                      |
 | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
