@@ -268,10 +268,10 @@ function prefillInstructions() {
 
     var errorList = [];
     annotationSpanCategories.forEach((category) => {
-        const span = `- <span style="background-color: ${category.color}"><b>${category.name}</b></span>: ${category.description}`;
+        const span = `- <span style="color: ${category.color}; text-decoration: underline; text-decoration-thickness: 4px;"><b>${category.name}</b></span>: ${category.description}`;
         errorList.push(span);
     });
-    var instructions = defaultInstructions.replace(/{error_list}/g, errorList.join("\n"));
+    var instructions = defaultInstructions.replace(/{error_list}/g, errorList.join("\n") + "\n");
     annotatorInstructionsMDE.value(instructions);
 }
 
@@ -553,8 +553,7 @@ function updateCrowdsourcingConfig() {
     $("#annotation-span-categories").empty();
 
     annotationSpanCategories.forEach((annotationSpanCategory) => {
-        const newCategory = createAnnotationSpanCategoryElem(annotationSpanCategory.name, annotationSpanCategory.color, annotationSpanCategory.description);
-        $("#annotation-span-categories").append(newCategory);
+        addAnnotationSpanCategory(annotationSpanCategory.name, annotationSpanCategory.description, annotationSpanCategory.color);
     });
     $("#flags").empty();
 
@@ -633,8 +632,7 @@ function updateLLMMetricConfig() {
         $("#annotation-span-categories").empty();
 
         annotationSpanCategories.forEach((annotationSpanCategory) => {
-            const newCategory = createAnnotationSpanCategoryElem(annotationSpanCategory.name, annotationSpanCategory.color, annotationSpanCategory.description);
-            $("#annotation-span-categories").append(newCategory);
+            createAnnotationSpanCategoryElem(annotationSpanCategory.name, annotationSpanCategory.description, annotationSpanCategory.color);
         });
     }
     if (mode == "llm_gen") {
