@@ -5,16 +5,16 @@ model: gpt-4o-mini-2024-07-18
 system_msg: "You are an expert data-to-text error annotation system. You undestand structured data and you can correcly operate with units and numerical values. You are designed to output token-level annotations in JSON."
 annotation_span_categories:
   - name: "Incorrect"
-    color: "#ffbcbc"
+    color: "rgb(214, 39, 40)"
     description: "The fact in the text contradicts the data."
   - name: "Not checkable"
-    color: "#e9d2ff"
+    color: "rgb(148, 103, 189)"
     description: "The fact in the text cannot be checked given the data."
   - name: "Misleading"
-    color: "#fff79f"
+    color: "rgb(230, 171, 2)"
     description: "The fact in the text is misleading in the given context."
   - name: "Other"
-    color: "#bbbbbb"
+    color: "rgb(102, 102, 102)"
     description: "The text is problematic for another reason, e.g. grammatically or stylistically incorrect, irrelevant, or repetitive."
 prompt_template: |
   Given the data:
