@@ -67,6 +67,11 @@
                     {{ category.name }}
                   </label>
                   {% endfor %}
+                  <input type="radio" class="btn-check btn-outline-secondary btn-eraser" name="btnradio"
+                    id="btnradioeraser" autocomplete="off" data-cat-idx="-1">
+                  <label class="btn btn-err-cat-label ms-auto" for="btnradioeraser" style="background-color: #FFF; color: #000 !important;">
+                    Eraser mode
+                  </label>
                 </div>
               </div>
               <div id='text-type-info' class='mt-3'>Drag your mouse over the text to highlight the span:

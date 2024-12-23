@@ -208,7 +208,13 @@ function getAnnotatedOutput(output, annId, annotations) {
 
     if (annotations !== null && annotations !== undefined) {
         const annotation_span_categories = annotations.annotation_span_categories;
-        annotated_content = highlightContent(content, annotations, annotation_span_categories);
+        spanAnnotator.init(annotations.annotation_granularity, annotation_span_categories);
+
+        const parId = `out-text-${annId}-par`;
+
+        annotated_content = $('<p>', { id: parId }).html(content);
+        spanAnnotator.addDocument(parId, annotated_content, false);
+        spanAnnotator.addAnnotations(parId, annotations.annotations);
     } else {
         // we do not have outputs for the particular campaign -> grey out the text
         if (annId != "original") {
@@ -285,102 +291,6 @@ function goToPage(page) {
     $("#page-input").val(current_example_idx);
 }
 
-function highlightContent(content, annotations, annotation_span_categories) {
-    // Create boundaries array
-    let boundaries = [];
-    annotations.annotations.forEach(ann => {
-        boundaries.push({ pos: ann.start, type: 'start', annotation: ann });
-        boundaries.push({ pos: ann.start + ann.text.length, type: 'end', annotation: ann });
-    });
-
-    boundaries.sort((a, b) => {
-        if (a.pos !== b.pos) {
-            return a.pos - b.pos;
-        }
-        // For same position, compare lengths (end - start)
-        const aLength = a.annotation.text.length;
-        const bLength = b.annotation.text.length;
-        return bLength - aLength; // Longer annotations first
-    });
-
-    let html = content;
-    let offset = 0;
-    let activeAnnotations = [];
-    let lastStart = 0;
-    const displayBadge = $("#badgesSwitch").is(":checked");
-
-    boundaries.forEach(boundary => {
-        const pos = boundary.pos + offset;
-        const ann = boundary.annotation;
-        var offsetShift = 0;
-
-        if (boundary.type === 'start') {
-            // Close all active annotations at this position if needed
-            if (activeAnnotations.length > 0 && boundary.pos > lastStart) {
-                // End all spans
-                html = html.slice(0, pos) + '</span>'.repeat(activeAnnotations.length) + html.slice(pos);
-                offsetShift = '</span>'.repeat(activeAnnotations.length).length;
-                offset += offsetShift;
-
-                // Restart all spans
-                let spanOpening = '';
-                activeAnnotations.forEach((active, index) => {
-                    spanOpening += createSpanOpening(active, index + 1, annotation_span_categories, displayBadge, true);
-                });
-                html = html.slice(0, pos + offsetShift) + spanOpening + html.slice(pos + offsetShift);
-                offset += spanOpening.length;
-            }
-            // Add new annotation
-            activeAnnotations.push(ann);
-            const level = activeAnnotations.length;
-            const spanOpening = createSpanOpening(ann, level, annotation_span_categories, displayBadge, false);
-            html = html.slice(0, pos + offsetShift) + spanOpening + html.slice(pos + offsetShift);
-            offset += spanOpening.length;
-            lastStart = boundary.pos;
-        } else {
-            // Remove annotation from active set
-            activeAnnotations = activeAnnotations.filter(a => a !== ann);
-            html = html.slice(0, pos) + '</span>' + html.slice(pos);
-            offset += '</span>'.length;
-        }
-        
-    });
-
-    return html;
-}
-
-function createSpanOpening(annotation, level, annotation_span_categories, displayBadge, isContinuation) {
-    const color = annotation_span_categories[annotation.type].color;
-    const error_name = annotation_span_categories[annotation.type].name;
-    const initial = error_name.charAt(0).toUpperCase();
-    const note = annotation.reason || annotation.note;
-    const tooltip_text = note ? `${error_name} (${note})` : error_name;
-    const lineHeight = 20;
-    const lineThickness = 6;
-    const paddingBottom = 3 + (lineThickness - 1) * (level-1);
-    const paddingBottomBadge = 4 + (lineThickness - 1) * (level-1);
-
-    if (displayBadge) {
-        // we display the tooltip on the badge
-        const badgeStyle = `background-color: ${color}; border-radius: 1px; font-size: 12px; color: #272727; font-weight: bold; padding: 3px 7px ${paddingBottomBadge}px 7px; margin-right: 0px;`;
-        const badgeSpan = `<span style="${badgeStyle}"  data-bs-toggle="tooltip" data-bs-placement="top" title="${tooltip_text}">${initial}</span>`;
-
-        const lineStyle = `position: relative; background: linear-gradient(0deg, ${color} ${lineThickness}px, white 0px, transparent 0px); background-position: 0 100%; line-height: ${lineHeight}px; padding-bottom: ${paddingBottom}px; padding-left: 3px;`;
-        const spanOpening = `<span style="${lineStyle}">`;
-
-        if (isContinuation) {
-            return `${spanOpening}`;
-        } else {
-            return `${badgeSpan}${spanOpening}`;
-        }
-    } else {
-        const lineStyle = `position: relative; background: linear-gradient(0deg, ${color} ${lineThickness}px, white 0px, transparent 0px); background-position: 0 100%; line-height: ${lineHeight}px; padding-bottom: ${paddingBottom}px; `;
-        const spanOpening = `<span style="${lineStyle}" data-bs-toggle="tooltip" data-bs-placement="top" title="${tooltip_text}">`;
-
-        return spanOpening;
-    }
-}
-
 function showRawData(data) {
     var rawDataStr = JSON.stringify(data.raw_data, null, 2).replace(/\\n/g, '\n');
 
@@ -404,7 +314,10 @@ function showSelectedCampaigns() {
         }
     });
 
-
+    // if no campaigns were selected, select the first one
+    if (selected_campaigns.length == 0) {
+        $(".btn-ann-select").first().addClass("active").trigger("change");
+    }
 }
 
 function toggleRaw() {
