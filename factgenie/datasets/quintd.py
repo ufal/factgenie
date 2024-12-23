@@ -114,6 +114,17 @@ class QuintdDataset(Dataset):
 
                 metadata["mode"] = metadata.pop("source")
 
+                # remap original colors to darker ones
+                mapping = {
+                    "#ffbcbc": "rgb(214, 39, 40)",
+                    "#e9d2ff": "rgb(148, 103, 189)",
+                    "#fff79f": "rgb(230, 171, 2)",
+                    "#bbbbbb": "rgb(102, 102, 102)",
+                }
+
+                for category in metadata["config"]["annotation_span_categories"]:
+                    category["color"] = mapping[category["color"]]
+
                 with open(f"{annotation_download_dir}/{campaign_id}/metadata.json", "w") as f:
                     json.dump(metadata, f, indent=4)
 

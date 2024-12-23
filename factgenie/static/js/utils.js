@@ -2,11 +2,36 @@ const datasets = window.datasets;
 const url_prefix = window.url_prefix;
 const mode = window.mode;
 
-function addAnnotationSpanCategory() {
+function addAnnotationSpanCategory(name, description, customColor) {
     const annotationSpanCategories = $("#annotation-span-categories");
-    const randomColor = '#' + Math.floor(Math.random() * 16777215).toString(16);
-    const newCategory = createAnnotationSpanCategoryElem("", randomColor, "");
+
+    name = name || "";
+    description = description || "";
+
+    const newCategory = createAnnotationSpanCategoryElem(name, description);
     annotationSpanCategories.append(newCategory);
+
+    const colors = [
+        '#9467bd', '#e377c2', '#e7298a', '#d62728',
+        '#66a61e', '#1b9e77', '#1f77b4', '#024983',
+        '#bcbd22', '#e6ab02', '#ff7f0e', '#d95f02',
+        '#8c564b', '#a6761d', '#666666', '#7f7f7f'
+    ];
+    var elem = $('.color-input').last()[0];
+
+    var hueb = new Huebee(elem, {
+        notation: 'hex',
+        customColors: colors,
+        shades: 0,
+        hues: 4,
+        setText: false,
+    });
+    if (customColor) {
+        hueb.setColor(customColor);
+    } else {
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+        hueb.setColor(randomColor);
+    }
 }
 
 function addModelArgument() {
@@ -117,15 +142,14 @@ function createArgElem(key, value) {
     `);
     return newArg;
 }
-
-function createAnnotationSpanCategoryElem(name, color, description) {
+function createAnnotationSpanCategoryElem(name, description) {
     const newCategory = $(`
         <div class="row mt-1">
         <div class="col-3">
         <input type="text" class="form-control" name="annotationSpanCategoryName" value="${name}" placeholder="Category name">
         </div>
         <div class="col-1">
-        <input type="color" class="form-control" name="annotationSpanCategoryColor" value="${color}">
+        <a class="form-control color-input" name="annotationSpanCategoryColor"></a>
         </div>
         <div class="col-7">
         <input type="text" class="form-control" name="annotationSpanCategoryDescription" placeholder="Description" value="${description}">
@@ -195,7 +219,7 @@ function getAnnotationSpanCategories() {
 
     $("#annotation-span-categories").children().each(function () {
         const name = $(this).find("input[name='annotationSpanCategoryName']").val();
-        const color = $(this).find("input[name='annotationSpanCategoryColor']").val();
+        const color = $(this).find("a[name='annotationSpanCategoryColor']").css('background-color');
         const description = $(this).find("input[name='annotationSpanCategoryDescription']").val();
         annotationSpanCategories.push({ name: name, color: color, description: description });
     });

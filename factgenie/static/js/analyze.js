@@ -115,7 +115,7 @@ function populateTable(tableId, data, columns) {
         for (const col of columns) {
             if (col === 'annotation_type') {
                 row += `<td>
-                    <span class="badge" style="background-color: ${metadata.config.annotation_span_categories[obj[col]].color}; color: rgb(60, 65, 73);">
+                    <span class="badge" style="background-color: ${metadata.config.annotation_span_categories[obj[col]].color}; color: rgb(253, 253, 253);">
                         ${metadata.config.annotation_span_categories[obj[col]].name}
                     </span>
                 </td>`;

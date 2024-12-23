@@ -7,13 +7,14 @@
   <link rel="stylesheet" type="text/css" href="{{ host_prefix }}/static/css/custom.css">
   <link href="{{ host_prefix }}/static/css/font-awesome.css" rel="stylesheet">
   <link rel="shortcut icon" href="{{ host_prefix }}/static/img/favicon.ico">
+  <link href="{{ host_prefix }}/static/css/huebee.min.css" rel="stylesheet">
   <meta name="viewport" content="width=1024">
   <script src="{{ host_prefix }}/static/js/lib/jquery.min.js"></script>
   <script src="{{ host_prefix }}/static/js/lib/popper.min.js"></script>
   <script src="{{ host_prefix }}/static/js/lib/bootstrap.min.js"></script>
-
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
   <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
+  <script src="{{ host_prefix }}/static/js/lib/huebee.min.js"></script>
 </head>
 
 <body>
@@ -137,7 +138,6 @@
                   value="1" required>
               </div>
               <div class="form-group mt-4">
-                <!-- select for sort order -->
                 <label for="annotationGranularity">Annotation granularity</label>
                 <div class="mb-2">
                   <small class="form-text text-muted">The smallest unit annotators can annotate.</small>
@@ -146,6 +146,15 @@
                   <option value="words">Words</option>
                   <option value="chars">Characters</option>
                 </select>
+              </div>
+              <div class="form-group mt-4">
+                <label for="annotationOverlapAllowed">Allow overlapping annotations</label>
+                <div class="mb-2">
+                  <small class="form-text text-muted">Whether annotators can annotate the same part of the text multiple times</small>
+                </div>
+                <div class="form-check form-switch">
+                  <input type="checkbox" class="form-check-input" id="annotationOverlapAllowed" name="annotationOverlapAllowed">
+                </div>
               </div>
               <div class="form-group mt-4">
                 <!-- select for sort order -->

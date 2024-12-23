@@ -150,13 +150,11 @@ pre {
 
 #outputarea {
     /* margin-top: 20px; */
+    font-family: monospace;
+    line-height: 1.6;
     /* font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; */
     padding: 10px;
     /* font-size: 16px; */
-}
-
-#outputarea .paragraph {
-    cursor: url(brush.png), grab !important;
 }
 
 #pipelinearea {
@@ -874,10 +872,12 @@ a:hover {
 }
 
 .btn-err-cat-label {
-    box-shadow: 0 2px 4px darkslategray;
-    color: #4a4a4a;
+    box-shadow: 0 1px 3px darkslategray;
+    color: #f2f2f2 !important;
+    padding: 4px 8px !important;
     border-color: transparent !important;
-    padding: 2px 5px !important;
+    min-width: 50px;
+    font-weight: bold;
 }
 
 .btn-err-cat-label:not(.active) {
@@ -1023,4 +1023,31 @@ a:hover {
     /* margin-bottom: 2px; */
     height: 0.8em;
     vertical-align: baseline;
+}
+
+.annotatable-paragraph {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.whitespace {
+    display: inline;
+}
+
+.whitespace-hidden {
+    display: none;
+    /* background: white;
+    padding-bottom: 6px; */
+}
+
+.huebee__cursor {
+    width: 30px !important;
+    height: 30px !important;
+}
+
+.color-input {
+    min-height: 40px;
+    max-width: 40px;
 }
