@@ -314,6 +314,9 @@ class SpanAnnotator {
         const doc = this.documents.get(objectId);
         const position = parseInt($span.data('index'));
 
+        const removedAnnotations = doc.annotations.filter(a =>
+            position >= a.start && position < a.start + a.text.length);
+
         doc.annotations = doc.annotations.filter(a =>
             position < a.start || position >= a.start + a.text.length);
 

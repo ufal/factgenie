@@ -53,6 +53,12 @@ function createLLMCampaign() {
     const config = gatherConfig();
     var campaignData = gatherSelectedCombinations();
 
+    // if no annotation categories are created, show an alert
+    if (mode != "llm_gen" && config.annotationSpanCategories.length == 0) {
+        alert("Please add at least one annotation span category.");
+        return;
+    }
+
     // if no datasets are selected, show an alert
     if (campaignData.length == 0) {
         alert("Please select at least one existing combination of dataset, split, and output.");
@@ -635,7 +641,7 @@ function updateLLMMetricConfig() {
         $("#annotation-span-categories").empty();
 
         annotationSpanCategories.forEach((annotationSpanCategory) => {
-            createAnnotationSpanCategoryElem(annotationSpanCategory.name, annotationSpanCategory.description, annotationSpanCategory.color);
+            addAnnotationSpanCategory(annotationSpanCategory.name, annotationSpanCategory.description, annotationSpanCategory.color);
         });
     }
     if (mode == "llm_gen") {

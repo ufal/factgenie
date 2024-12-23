@@ -82,7 +82,7 @@ function createButtons() {
         });
 
         const label = $('<label>', {
-            class: "btn btn-err-cat-label  me-1",
+            class: "btn btn-err-cat-label me-1",
             for: `btnradio${idx}`,
             style: `background-color: ${category.color};`
         }).text(category.name);
@@ -94,25 +94,45 @@ function createButtons() {
 
         $('#buttons-area').append(input);
         $('#buttons-area').append(label);
+    }
 
-        $(".btn-err-cat").change(function () {
+    // Add eraser button
+    const eraserInput = $('<input>', {
+        type: "radio",
+        class: "btn-check btn-outline-secondary btn-eraser",
+        name: "btnradio",
+        id: "btnradioeraser",
+        autocomplete: "off",
+        "data-cat-idx": "-1"
+    });
+
+    const eraserLabel = $('<label>', {
+        class: "btn btn-err-cat-label ms-auto",
+        for: "btnradioeraser",
+        style: "background-color: #FFF; color: #000 !important;"
+    }).text("Erase mode");
+
+    $('#buttons-area').append(eraserInput);
+    $('#buttons-area').append(eraserLabel);
+
+    // Event handlers
+    $(".btn-err-cat, .btn-eraser").change(function () {
+        if (this.checked) {
+            const cat_idx = $(this).attr("data-cat-idx");
+            spanAnnotator.setCurrentAnnotationType(cat_idx);
+        }
+    });
+
+    $('.btn-check').on('change', function () {
+        $('.btn-check').each(function () {
+            const label = $(`label[for=${this.id}]`);
             if (this.checked) {
-                const cat_idx = $(this).attr("data-cat-idx");
-                spanAnnotator.setCurrentAnnotationType(cat_idx);
+                label.addClass('active');
+            } else {
+                label.removeClass('active');
             }
         });
-
-        $('.btn-check').on('change', function () {
-            $('.btn-check').each(function () {
-                const label = $(`label[for=${this.id}]`);
-                if (this.checked) {
-                    label.addClass('active');
-                } else {
-                    label.removeClass('active');
-                }
-            });
-        });
-    }
+    });
 }
 
 function initAnnotation() {
