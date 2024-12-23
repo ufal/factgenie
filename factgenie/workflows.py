@@ -205,6 +205,7 @@ def create_annotation_example_record(j, jsonl_file):
         "annotator_id": j["metadata"]["annotator_id"],
         "annotator_group": int(j["metadata"].get("annotator_group", 0)),
         "annotation_granularity": j["metadata"].get("annotation_granularity", "words"),
+        "annotation_overlap_allowed": j["metadata"].get("annotation_overlap_allowed", False),
         "campaign_id": slugify(j["metadata"]["campaign_id"]),
         "dataset": slugify(j["dataset"]),
         "example_idx": int(j["example_idx"]),

@@ -208,7 +208,10 @@ function getAnnotatedOutput(output, annId, annotations) {
 
     if (annotations !== null && annotations !== undefined) {
         const annotation_span_categories = annotations.annotation_span_categories;
-        spanAnnotator.init(annotations.annotation_granularity, annotation_span_categories);
+
+        // always enable showing overlapping annotations
+        const overlapAllowed = true;
+        spanAnnotator.init(annotations.annotation_granularity, overlapAllowed, annotation_span_categories);
 
         const parId = `out-text-${annId}-par`;
 

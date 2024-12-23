@@ -13,14 +13,16 @@ class SpanAnnotator {
         this.eventListeners = new Map();
     }
 
-    init(granularity, annotationTypes) {
+    init(granularity, overlapAllowed, annotationTypes) {
         this.granularity = granularity;
+        this.overlapAllowed = overlapAllowed;
         this.annotationTypes = annotationTypes;
         return this;
     }
 
     setCurrentAnnotationType(type) {
-        this.currentType = type;
+        // make sure that type is integer
+        this.currentType = parseInt(type);
 
         // Get all annotatable paragraphs
         const paragraphs = $('.annotatable-paragraph');
@@ -216,6 +218,14 @@ class SpanAnnotator {
         }
     }
 
+    _hasExistingAnnotations(doc, startIdx, endIdx) {
+        return doc.annotations.some(ann => {
+            // Check if any part of the new annotation overlaps with existing ones
+            const annotationEnd = ann.start + ann.text.length - 1;
+            return (startIdx <= annotationEnd && endIdx >= ann.start);
+        });
+    }
+
     _findClosestSpan(objectId, x, y) {
         const doc = this.documents.get(objectId);
         let closestSpan = null;
@@ -276,6 +286,12 @@ class SpanAnnotator {
         const startIdx = parseInt($start.data('index'));
         const endIdx = parseInt($end.data('index')) + $end.data('content').length - 1;
         const [min, max] = [Math.min(startIdx, endIdx), Math.max(startIdx, endIdx)];
+
+        // Check for overlap if not allowed
+        if (!this.overlapAllowed && this._hasExistingAnnotations(doc, min, max)) {
+            this._renderAnnotations(objectId);
+            return; // Exit without creating annotation if overlap not allowed and overlap exists
+        }
 
         const text = doc.text.substring(min, max + 1);
         // generate a short random hash of 8 characters

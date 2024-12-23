@@ -208,7 +208,9 @@ function loadAnnotations() {
     }
     Promise.all(promises)
         .then(() => {
-            spanAnnotator.init(metadata.config.annotation_granularity, annotation_span_categories);
+            // take from metadata if defined, else false
+            const annotationOverlapAllowed = metadata.config.annotation_overlap_allowed || false;
+            spanAnnotator.init(metadata.config.annotation_granularity, annotationOverlapAllowed, annotation_span_categories);
 
             for (const [annotation_idx, data] of Object.entries(examples_cached)) {
                 const p = $('<p>', { id: `out-text-${annotation_idx}-par`, class: 'annotatable-paragraph' }).html(data.generated_outputs.output);

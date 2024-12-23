@@ -1,4 +1,5 @@
 annotation_granularity: words
+annotation_overlap_allowed: false
 annotation_span_categories:
 - color: rgb(148, 103, 189)
   description: 'Incorrect number: It does not matter whether the number is spelled

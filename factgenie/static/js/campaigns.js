@@ -208,6 +208,7 @@ function gatherConfig() {
         config.annotatorsPerExample = $("#annotatorsPerExample").val();
         config.idleTime = $("#idleTime").val();
         config.annotationGranularity = $("#annotationGranularity").val();
+        config.annotationOverlapAllowed = $("#annotationOverlapAllowed").is(":checked");
         config.service = $("#service").val();
         config.sortOrder = $("#sortOrder").val();
         config.annotationSpanCategories = getAnnotationSpanCategories();
@@ -534,6 +535,7 @@ function updateCrowdsourcingConfig() {
     const annotatorsPerExample = cfg.annotators_per_example;
     const idleTime = cfg.idle_time;
     const annotationGranularity = cfg.annotation_granularity;
+    const annotationOverlapAllowed = cfg.annotation_overlap_allowed;
     const service = cfg.service;
     const sortOrder = cfg.sort_order;
     const annotationSpanCategories = cfg.annotation_span_categories;
@@ -548,6 +550,7 @@ function updateCrowdsourcingConfig() {
     $("#annotatorsPerExample").val(annotatorsPerExample);
     $("#idleTime").val(idleTime);
     $("#annotationGranularity").val(annotationGranularity);
+    $("#annotationOverlapAllowed").prop("checked", annotationOverlapAllowed);
     $("#service").val(service);
     $("#sortOrder").val(sortOrder);
     $("#annotation-span-categories").empty();
