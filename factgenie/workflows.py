@@ -158,7 +158,7 @@ def generate_campaign_index(app, force_reload=True):
         try:
             metadata = json.load(open(campaign_dir / "metadata.json"))
             mode = metadata["mode"]
-            campaign_id = metadata["id"]
+            campaign_id = slugify(metadata["id"])
             existing_campaign_ids.add(campaign_id)
 
             if campaign_id in campaign_index and not force_reload:
