@@ -173,6 +173,10 @@ function fetchExample(dataset, split, example_idx) {
 
         } else {
             $("#examplearea").html(data.html);
+            $("#centerpanel").show();
+            // enable Split.js
+            splitInstance.setSizes([66, 33]);
+            // reset the right panel width
         }
 
         showRawData(data);

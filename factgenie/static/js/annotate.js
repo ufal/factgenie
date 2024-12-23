@@ -101,6 +101,18 @@ function fetchAnnotation(dataset, split, setup_id, example_idx, annotation_idx) 
                 style: 'display: none;'
             }).appendTo('#outputarea');
 
+            if (data.html === null) {
+                $("#centerpanel").hide();
+                // disable Split.js
+                splitInstance.setSizes([0, 100]);
+                // center the right panel
+                $("#rightpanel").css("width", "50%");
+                $("#rightpanel").css("margin", "auto");
+
+            } else {
+                $("#examplearea").html(data.html);
+            }
+
             // we have always only a single generated output here
             data.generated_outputs = data.generated_outputs[0];
             examples_cached[annotation_idx] = data;
