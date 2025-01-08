@@ -19,10 +19,10 @@ from factgenie.datasets.dataset import Dataset
 
 logger = logging.getLogger(__name__)
 
-PCT_DATASET_ID = "propaganda-techniques"
-PCT_CAMPAIGN_ID = "ptc"
+PTC_DATASET_ID = "propaganda-techniques"
+PTC_CAMPAIGN_ID = "ptc"
 
-PCT_colors = [
+PTC_colors = [
     "#020263",  # Dark Blue
     "#008B8B",  # Dark Cyan
     "#006400",  # Dark Green
@@ -46,7 +46,7 @@ PCT_colors = [
 
 # Description extracted from https://www.tanbih.org/persuasion-techniques , normalized label names are taken from the PCT dataset
 
-PCT_span_categories = [
+PTC_span_categories = [
     {
         "name": "Appeal_to_Authority",
         "description": """
@@ -207,7 +207,7 @@ Example 2: "Qatar spending profusely on Neymar, not fighting terrorism"
     },
 ]
 
-PCT_span_categories = [{**d, **{"color": c}} for d, c in zip(PCT_span_categories, PCT_colors)]  # add colour
+PTC_span_categories = [{**d, **{"color": c}} for d, c in zip(PTC_span_categories, PTC_colors)]  # add colour
 
 
 class PropagandaTechniques(Dataset):
@@ -247,7 +247,7 @@ class PropagandaTechniques(Dataset):
         dataset_config,
         **kwargs,
     ):
-        assert dataset_id == PCT_DATASET_ID, f"Dataset ID {dataset_id} does not match {PCT_DATASET_ID}"
+        assert dataset_id == PTC_DATASET_ID, f"Dataset ID {dataset_id} does not match {PTC_DATASET_ID}"
         link = dataset_config["data-link"]
         logger.info(f"Downloading dataset {dataset_id} from {link}")
         resumable_download(url=link, filename=f"{data_download_dir}/{dataset_id}.zip", force_download=False)
@@ -267,17 +267,17 @@ class PropagandaTechniques(Dataset):
         #     annotation_span_categories = r.readlines()
 
         # save annotations
-        annotation_jsonl_parent = annotation_download_dir / PCT_CAMPAIGN_ID / "files"
+        annotation_jsonl_parent = annotation_download_dir / PTC_CAMPAIGN_ID / "files"
         annotation_jsonl_parent.mkdir(parents=True, exist_ok=True)
 
-        short_categories = [{"name": c["name"], "color": c["color"], "description": ""} for c in PCT_span_categories]
+        short_categories = [{"name": c["name"], "color": c["color"], "description": ""} for c in PTC_span_categories]
         categories_names = [c["name"] for c in short_categories]
 
         # save outputs
         outputs_jsonl_parent = out_download_dir / dataset_id
         outputs_jsonl_parent.mkdir(parents=True, exist_ok=True)
 
-        db_csv_dummy_csv = annotation_download_dir / PCT_CAMPAIGN_ID / "db.csv"
+        db_csv_dummy_csv = annotation_download_dir / PTC_CAMPAIGN_ID / "db.csv"
         with open(db_csv_dummy_csv, "wt") as dbw:
             dbw.write("dataset,split,example_idx,setup_id,batch_idx,annotator_id,status,start,end\n")
             for split in splits:
@@ -290,7 +290,7 @@ class PropagandaTechniques(Dataset):
                     articles_files = glob.glob(f"{data_download_dir}/{split}/article*.txt")
 
                     for example_idx, f in enumerate(articles_files):
-                        dbw.write(f"{dataset_id},{split},{example_idx},{PCT_CAMPAIGN_ID},{example_idx},,finished,,\n")
+                        dbw.write(f"{dataset_id},{split},{example_idx},{PTC_CAMPAIGN_ID},{example_idx},,finished,,\n")
                         article_id = str(Path(f).stem)[len("article") :]
                         article_id_to_example_idx[article_id] = example_idx
 
@@ -312,15 +312,15 @@ class PropagandaTechniques(Dataset):
                         annotationw.write(
                             json.dumps(
                                 {
-                                    "dataset": PCT_DATASET_ID,
+                                    "dataset": PTC_DATASET_ID,
                                     "split": split,
-                                    "setup_id": PCT_DATASET_ID,
+                                    "setup_id": PTC_DATASET_ID,
                                     "example_idx": example_idx,
                                     "metadata": {
                                         "annotation_span_categories": short_categories,
                                         "annotator_id": "idk",
                                         "annotator_group": 0,
-                                        "campaign_id": PCT_CAMPAIGN_ID,
+                                        "campaign_id": PTC_CAMPAIGN_ID,
                                         "article": article_id,  # original dataset id
                                     },
                                     "annotations": cls._load_example_annotations(
@@ -332,13 +332,13 @@ class PropagandaTechniques(Dataset):
                         )
 
         # save metadata
-        metadata_json = annotation_download_dir / PCT_CAMPAIGN_ID / "metadata.json"
+        metadata_json = annotation_download_dir / PTC_CAMPAIGN_ID / "metadata.json"
 
         metadata = {
-            "id": PCT_CAMPAIGN_ID,
+            "id": PTC_CAMPAIGN_ID,
             "mode": "external",
             "config": {
-                "annotation_span_categories": PCT_span_categories,
+                "annotation_span_categories": PTC_span_categories,
                 "flags": [],
                 "options": [],
                 "text_fields": [],
