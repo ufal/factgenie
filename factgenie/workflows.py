@@ -158,7 +158,7 @@ def generate_campaign_index(app, force_reload=True):
         try:
             metadata = json.load(open(campaign_dir / "metadata.json"))
             mode = metadata["mode"]
-            campaign_id = metadata["id"]
+            campaign_id = slugify(metadata["id"])
             existing_campaign_ids.add(campaign_id)
 
             if campaign_id in campaign_index and not force_reload:
@@ -204,6 +204,8 @@ def create_annotation_example_record(j, jsonl_file):
         "annotation_span_categories": j["metadata"]["annotation_span_categories"],
         "annotator_id": j["metadata"]["annotator_id"],
         "annotator_group": int(j["metadata"].get("annotator_group", 0)),
+        "annotation_granularity": j["metadata"].get("annotation_granularity", "words"),
+        "annotation_overlap_allowed": j["metadata"].get("annotation_overlap_allowed", False),
         "campaign_id": slugify(j["metadata"]["campaign_id"]),
         "dataset": slugify(j["dataset"]),
         "example_idx": int(j["example_idx"]),

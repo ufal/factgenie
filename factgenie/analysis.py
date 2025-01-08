@@ -20,6 +20,9 @@ def generate_example_index(app, campaign):
     annotation_span_categories = campaign.metadata["config"]["annotation_span_categories"]
     example_index = workflows.get_annotation_index(app, force_reload=True).copy()
 
+    # get the examples for a specific campaign
+    example_index = example_index[example_index["campaign_id"] == campaign.campaign_id]
+
     # Add category count columns to example index
     for i in range(len(annotation_span_categories)):
         col_name = f"cat_{i}"
@@ -35,19 +38,23 @@ def generate_span_index(app, campaign):
 
     span_index = workflows.get_annotation_index(app).copy()
 
+    # get the examples for a specific campaign
+    span_index = span_index[span_index["campaign_id"] == campaign.campaign_id]
+
     # Remove examples with no annotations
     span_index = span_index[span_index["annotations"].apply(lambda x: len(x) > 0)]
 
-    # Create a separate row for each annotation
-    span_index = span_index.explode("annotations").reset_index(drop=True)
+    if not span_index.empty:
+        # Create a separate row for each annotation
+        span_index = span_index.explode("annotations").reset_index(drop=True)
 
-    # Extract annotation fields into separate columns
-    span_index["annotation_type"] = span_index["annotations"].apply(lambda x: x["type"])
-    span_index["annotation_start"] = span_index["annotations"].apply(lambda x: x["start"])
-    span_index["annotation_text"] = span_index["annotations"].apply(lambda x: x["text"])
+        # Extract annotation fields into separate columns
+        span_index["annotation_type"] = span_index["annotations"].apply(lambda x: x["type"])
+        span_index["annotation_start"] = span_index["annotations"].apply(lambda x: x["start"])
+        span_index["annotation_text"] = span_index["annotations"].apply(lambda x: x["text"])
 
-    # Drop the original annotations column
-    span_index = span_index.drop("annotations", axis=1)
+        # Drop the original annotations column
+        span_index = span_index.drop("annotations", axis=1)
 
     return span_index
 

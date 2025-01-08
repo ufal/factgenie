@@ -101,6 +101,18 @@ function fetchAnnotation(dataset, split, setup_id, example_idx, annotation_idx) 
                 style: 'display: none;'
             }).appendTo('#outputarea');
 
+            if (data.html === null) {
+                $("#centerpanel").hide();
+                // disable Split.js
+                splitInstance.setSizes([0, 100]);
+                // center the right panel
+                $("#rightpanel").css("width", "50%");
+                $("#rightpanel").css("margin", "auto");
+
+            } else {
+                $("#examplearea").html(data.html);
+            }
+
             // we have always only a single generated output here
             data.generated_outputs = data.generated_outputs[0];
             examples_cached[annotation_idx] = data;
@@ -166,13 +178,25 @@ function goToPage(page) {
     goToAnnotation(current_example_idx);
 }
 
+function addPageLink(annotation_idx) {
+    const li = $('<li>', { class: "page-item" });
+    const a = $('<a>', { class: "page-link bg-incomplete", style: "min-height: 28px;", id: `page-link-${annotation_idx}` }).text(annotation_idx);
+    li.append(a);
+    $("#nav-example-cnt").append(li);
+
+    // switch to the corresponding example when clicking on the page number
+    $(`#page-link-${annotation_idx}`).click(function () {
+        goToPage(annotation_idx);
+    });
+}
+
 function loadAnnotations() {
     $("#dataset-spinner").show();
 
     const promises = [];
     const annotation_span_categories = metadata.config.annotation_span_categories;
 
-    // prefetch the examples for annotation: we need them for YPet initialization
+    // prefetch the examples for annotation
     for (const [annotation_idx, example] of Object.entries(annotation_set)) {
         const dataset = example.dataset;
         const split = example.split;
@@ -184,44 +208,19 @@ function loadAnnotations() {
     }
     Promise.all(promises)
         .then(() => {
+            // take from metadata if defined, else false
+            const annotationOverlapAllowed = metadata.config.annotation_overlap_allowed || false;
+            spanAnnotator.init(metadata.config.annotation_granularity, annotationOverlapAllowed, annotation_span_categories);
 
-            YPet.addInitializer(function (options) {
-                /* Configure the # and colors of Annotation types (minimum 1 required) */
-                YPet.AnnotationTypes = new AnnotationTypeList(annotation_span_categories);
-                var regions = {};
-                var paragraphs = {};
+            for (const [annotation_idx, data] of Object.entries(examples_cached)) {
+                const p = $('<p>', { id: `out-text-${annotation_idx}-par`, class: 'annotatable-paragraph' }).html(data.generated_outputs.output);
+                $(`#out-text-${annotation_idx}`).append(p);
+                spanAnnotator.addDocument(`p${annotation_idx}`, p, true);
+                spanAnnotator.setCurrentAnnotationType(0);
+                addPageLink(annotation_idx);
+            }
 
-                for (const [annotation_idx, data] of Object.entries(examples_cached)) {
-
-                    var p = new Paragraph({ 'text': data.generated_outputs.output, 'granularity': metadata.config.annotation_granularity });
-
-                    paragraphs[`p${annotation_idx}`] = p;
-                    regions[`p${annotation_idx}`] = `#out-text-${annotation_idx}`;
-
-                    const li = $('<li>', { class: "page-item" });
-                    const a = $('<a>', { class: "page-link bg-incomplete", style: "min-height: 28px;", id: `page-link-${annotation_idx}` }).text(annotation_idx);
-                    li.append(a);
-                    $("#nav-example-cnt").append(li);
-
-                    // switch to the corresponding example when clicking on the page number
-                    $(`#page-link-${annotation_idx}`).click(function () {
-                        goToPage(annotation_idx);
-                    });
-                }
-                YPet.addRegions(regions);
-
-                for (const [p, p_obj] of Object.entries(paragraphs)) {
-                    YPet[p].show(new WordCollectionView({ collection: p_obj.get('words') }));
-
-                    YPet[p].currentView.collection.parentDocument.get('annotations').on('remove', function (model, collection) {
-                        if (collection.length == 0) {
-                            collection = [];
-                        }
-                    });
-                }
-                goToAnnotation(0);
-            });
-            YPet.start();
+            goToAnnotation(0);
 
             $("#hideOverlayBtn").attr("disabled", false);
             $("#hideOverlayBtn").html("View the annotation page");
@@ -262,21 +261,15 @@ function markAnnotationAsComplete() {
 }
 
 function saveCurrentAnnotations(example_idx) {
-    var collection = YPet[`p${example_idx}`].currentView.collection.parentDocument.get('annotations').toJSON();
-    annotation_set[example_idx]["annotations"] = collection;
+    const annotations = spanAnnotator.getAnnotations(`p${example_idx}`);
+
+    annotation_set[example_idx]["annotations"] = annotations;
     annotation_set[example_idx]["flags"] = collectFlags();
     annotation_set[example_idx]["options"] = collectOptions();
     annotation_set[example_idx]["textFields"] = collectTextFields();
 }
 
 function submitAnnotations(campaign_id) {
-    // remove `words` from the annotations: they are only used by the YPet library
-    for (const example of annotation_set) {
-        for (const annotation of example.annotations) {
-            delete annotation.words;
-        }
-    }
-
     $.post({
         url: `${url_prefix}/submit_annotations`,
         contentType: 'application/json', // Specify JSON content type
@@ -313,7 +306,13 @@ $("#hideOverlayBtn").click(function () {
 $(".btn-err-cat").change(function () {
     if (this.checked) {
         const cat_idx = $(this).attr("data-cat-idx");
-        YPet.setCurrentAnnotationType(cat_idx);
+        spanAnnotator.setCurrentAnnotationType(cat_idx);
+    }
+});
+
+$(".btn-eraser").change(function () {
+    if (this.checked) {
+        spanAnnotator.setCurrentAnnotationType(-1);
     }
 });
 

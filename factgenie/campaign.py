@@ -80,6 +80,9 @@ class Campaign:
         with open(self.metadata_path) as f:
             self.metadata = json.load(f)
 
+        # always implicity normalize campaign_id
+        self.metadata["campaign_id"] = self.campaign_id
+
     def clear_all_outputs(self):
         # remove files
         for jsonl_file in glob.glob(os.path.join(self.dir, "files/*.jsonl")):

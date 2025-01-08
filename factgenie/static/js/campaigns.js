@@ -53,6 +53,12 @@ function createLLMCampaign() {
     const config = gatherConfig();
     var campaignData = gatherSelectedCombinations();
 
+    // if no annotation categories are created, show an alert
+    if (mode != "llm_gen" && config.annotationSpanCategories.length == 0) {
+        alert("Please add at least one annotation span category.");
+        return;
+    }
+
     // if no datasets are selected, show an alert
     if (campaignData.length == 0) {
         alert("Please select at least one existing combination of dataset, split, and output.");
@@ -208,6 +214,7 @@ function gatherConfig() {
         config.annotatorsPerExample = $("#annotatorsPerExample").val();
         config.idleTime = $("#idleTime").val();
         config.annotationGranularity = $("#annotationGranularity").val();
+        config.annotationOverlapAllowed = $("#annotationOverlapAllowed").is(":checked");
         config.service = $("#service").val();
         config.sortOrder = $("#sortOrder").val();
         config.annotationSpanCategories = getAnnotationSpanCategories();
@@ -268,10 +275,10 @@ function prefillInstructions() {
 
     var errorList = [];
     annotationSpanCategories.forEach((category) => {
-        const span = `- <span style="background-color: ${category.color}"><b>${category.name}</b></span>: ${category.description}`;
+        const span = `- <span style="color: ${category.color}; text-decoration: underline; text-decoration-thickness: 4px;"><b>${category.name}</b></span>: ${category.description}`;
         errorList.push(span);
     });
-    var instructions = defaultInstructions.replace(/{error_list}/g, errorList.join("\n"));
+    var instructions = defaultInstructions.replace(/{error_list}/g, errorList.join("\n") + "\n");
     annotatorInstructionsMDE.value(instructions);
 }
 
@@ -534,6 +541,7 @@ function updateCrowdsourcingConfig() {
     const annotatorsPerExample = cfg.annotators_per_example;
     const idleTime = cfg.idle_time;
     const annotationGranularity = cfg.annotation_granularity;
+    const annotationOverlapAllowed = cfg.annotation_overlap_allowed;
     const service = cfg.service;
     const sortOrder = cfg.sort_order;
     const annotationSpanCategories = cfg.annotation_span_categories;
@@ -548,13 +556,13 @@ function updateCrowdsourcingConfig() {
     $("#annotatorsPerExample").val(annotatorsPerExample);
     $("#idleTime").val(idleTime);
     $("#annotationGranularity").val(annotationGranularity);
+    $("#annotationOverlapAllowed").prop("checked", annotationOverlapAllowed);
     $("#service").val(service);
     $("#sortOrder").val(sortOrder);
     $("#annotation-span-categories").empty();
 
     annotationSpanCategories.forEach((annotationSpanCategory) => {
-        const newCategory = createAnnotationSpanCategoryElem(annotationSpanCategory.name, annotationSpanCategory.color, annotationSpanCategory.description);
-        $("#annotation-span-categories").append(newCategory);
+        addAnnotationSpanCategory(annotationSpanCategory.name, annotationSpanCategory.description, annotationSpanCategory.color);
     });
     $("#flags").empty();
 
@@ -633,8 +641,7 @@ function updateLLMMetricConfig() {
         $("#annotation-span-categories").empty();
 
         annotationSpanCategories.forEach((annotationSpanCategory) => {
-            const newCategory = createAnnotationSpanCategoryElem(annotationSpanCategory.name, annotationSpanCategory.color, annotationSpanCategory.description);
-            $("#annotation-span-categories").append(newCategory);
+            addAnnotationSpanCategory(annotationSpanCategory.name, annotationSpanCategory.description, annotationSpanCategory.color);
         });
     }
     if (mode == "llm_gen") {

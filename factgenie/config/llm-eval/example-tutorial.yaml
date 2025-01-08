@@ -87,22 +87,26 @@ model_args:
   seed: '42'
   temperature: '0'
 annotation_span_categories:
-- color: '#d6d0f7'
+- color: rgb(148, 103, 189)
+  description: 'Incorrect number: It does not matter whether the number is spelled
+    out or is in digits.'
   name: NUMBER
-  description: "Incorrect number: It does not matter whether the number is spelled out or is in digits."
-- color: '#d8f7d0'
+- color: rgb(188, 189, 34)
+  description: 'Incorrect named entity: This includes people, places, teams, and days
+    of the week.'
   name: NAME
-  description: "Incorrect named entity: This includes people, places, teams, and days of the week."
-- color: '#f0cfc9'
+- color: rgb(217, 95, 2)
+  description: 'Incorrect word: A word which is not one of the above and is incorrect.'
   name: WORD
-  description: "Incorrect word: A word which is not one of the above and is incorrect."
-- color: '#eacded'
+- color: rgb(227, 119, 194)
+  description: 'Context error: A phrase which causes an incorrect inference because
+    of context or discourse.'
   name: CONTEXT
-  description: "Context error: A phrase which causes an incorrect inference because of context or discourse."
-- color: '#e3cac9'
+- color: rgb(140, 86, 75)
+  description: 'Not checkable: A statement which can not be checked, either because
+    the information is not available or because it is too time-consuming to check.'
   name: NOT_CHECKABLE
-  description: "Not checkable: A statement which can not be checked, either because the information is not available or because it is too time-consuming to check."
-- color: '#cef3f7'
+- color: rgb(127, 127, 127)
+  description: 'Other: Any other type of mistake.'
   name: OTHER
-  description: "Other: Any other type of mistake."
 extra_args: {}
