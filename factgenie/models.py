@@ -156,11 +156,19 @@ class LLMMetric(Model):
             # We do not use the name "type" in JSON schema for error types because it has much broader sense in the schema (e.g. string or integer)
             annotation_d["type"] = annotation.annotation_type
             del annotation_d["annotation_type"]
+
             # logging where the annotion starts to disambiguate errors on the same string in different places
             annotation_d["start"] = start_pos
             annotation_list.append(annotation_d)
 
-            current_pos = start_pos + len(annotation.text)  # does not allow for overlapping annotations
+            overlap_allowed = self.config.get("annotation_overlap_allowed", False)
+
+            if overlap_allowed:
+                # move the current position to the start of the annotation
+                current_pos = start_pos
+            else:
+                # move the current position to the end of the annotation
+                current_pos = start_pos + len(annotation.text)
 
         return annotation_list
 
