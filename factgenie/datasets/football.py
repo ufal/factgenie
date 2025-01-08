@@ -22,6 +22,12 @@ class Football(JSONDataset):
             if "venue" in match and match["venue"]:
                 match["venue_data"] = {"name": match["venue"].get("name", ""), "city": match["venue"].get("city", "")}
 
+            # Pop unnecessary keys
+            match.pop("timestamp", None)
+            match.pop("venue", None)
+            match.pop("fixture", None)
+            match.pop("date", None)
+
             for event in match.get("events", []):
                 if "team" in event:
                     event["team"] = event["team"].get("name", "")
