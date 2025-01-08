@@ -149,7 +149,7 @@ class LLMMetric(Model):
             start_pos = text.lower().find(annotation.text.lower(), current_pos)
 
             if start_pos == -1:
-                logger.warning(f"Cannot find {annotation=} in text {text}, skipping")
+                logger.warning(f'Cannot find {annotation=} in text "{text[current_pos:]}"')
                 continue
 
             annotation_d = annotation.model_dump()
@@ -158,7 +158,7 @@ class LLMMetric(Model):
             annotation_d["type"] = annotation.annotation_type
             del annotation_d["annotation_type"]
 
-            # logging where the annotion starts to disambiguate errors on the same string in different places
+            # Save the start position of the annotation
             annotation_d["start"] = start_pos
             annotation_list.append(annotation_d)
 
