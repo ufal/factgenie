@@ -129,6 +129,7 @@ class LLMMetric(Model):
         return {
             "system_msg": str,
             "start_with": str,
+            "annotation_overlap_allowed": bool,
             "api_url": str,
             "extra_args": dict,
         }
@@ -247,6 +248,7 @@ class OpenAIClientMetric(LLMMetric):
         return {
             "system_msg": str,
             "model_args": dict,
+            "annotation_overlap_allowed": bool,
             "api_url": str,  # TODO we receive it from the UI, but can be removed
             "extra_args": dict,  # TODO we receive it from the UI, but can be removed
         }

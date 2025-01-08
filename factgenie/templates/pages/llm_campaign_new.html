@@ -227,6 +227,20 @@
                     onclick="addExtraArgument();">+</button>
                 </div>
               </div>
+
+              {% if mode == 'llm_eval' %}
+              <div class="form-group mt-4 mb-3">
+                <i class="fa fa-flag-checkered"></i>
+                <label style="margin-left: 5px; margin-right: 10px;" for="annotationOverlapAllowed">Allow overlapping annotations</label>
+                <div class="mb-2">
+                  <small class="form-text text-muted">Whether the model should be allowed to produce overlapping annotations.</small>
+                </div>
+                <div class="form-check form-switch">
+                  <input type="checkbox" class="form-check-input" id="annotationOverlapAllowed" name="annotationOverlapAllowed">
+                </div>
+              </div>
+              {% endif %}
+
             </div>
             <div style="text-align: center;">
               <button type="button" class="btn btn-outline-secondary mt-3"
