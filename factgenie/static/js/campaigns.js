@@ -226,6 +226,7 @@ function gatherConfig() {
         config.modelName = $("#model-name").val();
         config.promptTemplate = $("#prompt-template").val();
         config.systemMessage = $("#system-message").val();
+        config.annotationOverlapAllowed = $("#annotationOverlapAllowed").is(":checked");
         config.apiUrl = $("#api-url").val();
         config.modelArguments = getKeysAndValues($("#model-arguments"));
         config.extraArguments = getKeysAndValues($("#extra-arguments"));
@@ -605,6 +606,7 @@ function updateLLMMetricConfig() {
         $("#model-arguments").empty();
         $("#annotation-span-categories").empty();
         $("#extra-arguments").empty();
+        $("#annotationOverlapAllowed").prop("checked", false);
         return;
     }
     const cfg = window.configs[llmConfigValue];
@@ -613,6 +615,7 @@ function updateLLMMetricConfig() {
     const model_name = cfg.model;
     const prompt_template = cfg.prompt_template;
     const system_msg = cfg.system_msg;
+    const annotation_overlap_allowed = cfg.annotation_overlap_allowed;
     const api_url = cfg.api_url;
     const model_args = cfg.model_args;
     const extra_args = cfg.extra_args;
@@ -622,6 +625,7 @@ function updateLLMMetricConfig() {
     $("#model-name").html(model_name);
     $("#prompt-template").html(prompt_template);
     $("#system-message").html(system_msg);
+    $("#annotationOverlapAllowed").prop("checked", annotation_overlap_allowed);
     $("#api-url").html(api_url);
     $("#model-arguments").empty();
     $("#extra-arguments").empty();

@@ -129,37 +129,47 @@ class LLMMetric(Model):
         return {
             "system_msg": str,
             "start_with": str,
+            "annotation_overlap_allowed": bool,
             "api_url": str,
             "extra_args": dict,
         }
 
     def parse_annotations(self, text, annotations_json):
         try:
-            annotations_obj = OutputAnnotations.parse_raw(annotations_json)
+            annotations_obj = OutputAnnotations.model_validate_json(annotations_json)
             annotations = annotations_obj.annotations
         except ValidationError as e:
             logger.error(f"LLM response in not in the expected format: {e}\n\t{annotations_json=}")
 
         annotation_list = []
         current_pos = 0
+
         for annotation in annotations:
             # find the `start` index of the error in the text
             start_pos = text.lower().find(annotation.text.lower(), current_pos)
 
             if start_pos == -1:
-                logger.warning(f"Cannot find {annotation=} in text {text}, skipping")
+                logger.warning(f'Cannot find {annotation=} in text "{text[current_pos:]}"')
                 continue
 
-            annotation_d = annotation.dict()
+            annotation_d = annotation.model_dump()
             # For backward compatibility let's use shorter "type"
             # We do not use the name "type" in JSON schema for error types because it has much broader sense in the schema (e.g. string or integer)
             annotation_d["type"] = annotation.annotation_type
             del annotation_d["annotation_type"]
-            # logging where the annotion starts to disambiguate errors on the same string in different places
+
+            # Save the start position of the annotation
             annotation_d["start"] = start_pos
             annotation_list.append(annotation_d)
 
-            current_pos = start_pos + len(annotation.text)  # does not allow for overlapping annotations
+            overlap_allowed = self.config.get("annotation_overlap_allowed", False)
+
+            if overlap_allowed:
+                # move the current position to the start of the annotation
+                current_pos = start_pos
+            else:
+                # move the current position to the end of the annotation
+                current_pos = start_pos + len(annotation.text)
 
         return annotation_list
 
@@ -238,6 +248,7 @@ class OpenAIClientMetric(LLMMetric):
         return {
             "system_msg": str,
             "model_args": dict,
+            "annotation_overlap_allowed": bool,
             "api_url": str,  # TODO we receive it from the UI, but can be removed
             "extra_args": dict,  # TODO we receive it from the UI, but can be removed
         }
@@ -320,6 +331,7 @@ class OllamaMetric(LLMMetric):
         super().__init__(config)
 
         self.set_api_endpoint()
+        self.output_schema = OutputAnnotations.model_json_schema()
 
     @property
     def new_connection_error_advice_docstring(self):
@@ -335,62 +347,43 @@ Please check the Ollama documentation:
             self.config["api_url"] += "/generate/"
 
     def postprocess_output(self, output):
-        output = output.strip()
-        j = json.loads(output)
-
-        ANNOTATION_STR = "annotations"
-        assert (
-            ANNOTATION_STR in OutputAnnotations.model_json_schema()["properties"]
-        ), f"Has the {OutputAnnotations=} schema changed?"
-
-        # Required for OllamaMetric. You may want to switch to VLLMMetric which uses constrained decoding.
-        # It is especially useful for weaker models which have problems decoding valid JSON on output.
-        if self.config["model"].startswith("llama3"):
-            # the model often tends to produce a nested list
-
-            annotations = j[ANNOTATION_STR]
-            if isinstance(annotations, list) and len(annotations) >= 1 and isinstance(annotations[0], list):
-                j[ANNOTATION_STR] = j[ANNOTATION_STR][0]
-
-        return json.dumps(j)
+        # With structured output, response should already be valid JSON
+        return output.strip()
 
     def annotate_example(self, data, text):
         prompt = self.prompt(data=data, text=text)
         request_d = {
             "model": self.config["model"],
             "prompt": prompt,
-            "format": "json",
+            "format": self.output_schema,  # Use Pydantic schema
             "stream": False,
             "options": self.config.get("model_args", {}),
         }
         msg = f"Ollama API {self.config['api_url']} with args:\n\t{request_d}"
         response, annotation_str, j = None, None, None
         try:
-            logger.debug(f"Calling {msg}")
+            logger.debug(f"Calling Ollama API {self.config['api_url']} with args:\n\t{request_d}")
             response = requests.post(self.config["api_url"], json=request_d)
+
             if response.status_code != 200:
                 raise ValueError(f"Received status code {response.status_code} from the API. Response: {response.text}")
 
-            try:
-                response_json = response.json()
-            except json.JSONDecodeError:
-                logger.warning(f"Received non-JSON response: {response.text}")
-                return []
-
+            response_json = response.json()
             annotation_str = response_json["response"]
-            annotation_postprocessed = self.postprocess_output(annotation_str)
-            logger.info(annotation_postprocessed)
+
+            logger.info(annotation_str)
+
+            # Response should match schema format
             return {
                 "prompt": prompt,
-                "annotations": self.parse_annotations(text=text, annotations_json=annotation_postprocessed),
+                "annotations": self.parse_annotations(text=text, annotations_json=annotation_str),
             }
+
         except (ConnectionError, requests.exceptions.ConnectionError) as e:
-            # notifiy the user that the API is down
             logger.error(f"Connection error: {e}")
             raise e
         except Exception as e:
-            # ignore occasional problems not to interrupt the annotation process
-            logger.error(f"Received\n\t{response=}\n\t{annotation_str=}\n\t{j=}\nError:{e}")
+            logger.error(f"Error processing response: {e}")
             traceback.print_exc()
             return {}
 
