@@ -3,7 +3,7 @@ extra_args:
   remove_suffix: '"'
 model: llama3
 model_args:
-  num_ctx: 8192
+  num_ctx: 32768
   num_predict: 1024
   seed: 42
   temperature: 1.0

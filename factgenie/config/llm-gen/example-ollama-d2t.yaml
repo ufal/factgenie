@@ -7,7 +7,7 @@ model: llama3
 api_url: http://localhost:11434/api/
 model_args:
 model_args:
-  num_ctx: 8192
+  num_ctx: 32768
   num_predict: 1024
   seed: 42
   temperature: 1.0
