@@ -6,6 +6,7 @@ model: llama3.1:8b
 # If you run ollama at the same machine as factgenie let's use just localhost.
 api_url: http://localhost:11434/api/
 model_args:
+  num_ctx: 32768
   num_predict: 1024
   temperature: 0.0
   top_p: 1.0
