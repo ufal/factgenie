@@ -378,6 +378,11 @@ def generate_iaa_files(app, selected_campaigns, combinations, campaigns):
         # Save each dataframe as CSV
         for name, df in results.items():
             csv_path = os.path.join(temp_dir, f"{name}.csv")
+
+            # set precision of the `count` column to 3 decimal places
+            if "count" in df.columns:
+                df["count"] = df["count"].round(3)
+
             df.to_csv(csv_path, index=False)
 
         # Create ZIP file
