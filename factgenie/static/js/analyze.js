@@ -1,4 +1,5 @@
 const metadata = window.metadata;
+const campaigns = window.campaigns;
 
 function deleteRow(button) {
     $(button).parent().parent().remove();

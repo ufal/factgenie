@@ -27,6 +27,7 @@ from factgenie.campaign import (
     LLMCampaignGen,
     CampaignMode,
     CampaignStatus,
+    ExampleStatus,
 )
 
 from factgenie import (
@@ -842,14 +843,39 @@ def upload_model_outputs(dataset, split, setup_id, model_outputs):
         )
 
 
+def get_campaign_data(campaign):
+    campaign_data = campaign.db.to_dict(orient="records")
+
+    # external campaigns do not have a db, we need to compute the equivalent from the JSONL files
+    if not campaign_data:
+        finished_examples = campaign.get_finished_examples()
+        campaign_data = []
+
+        for example in finished_examples:
+            campaign_data.append(
+                {
+                    "dataset": example["dataset"],
+                    "split": example["split"],
+                    "setup_id": example["setup_id"],
+                    "example_idx": example["example_idx"],
+                    "annotator_id": example["metadata"]["annotator_id"],
+                    "annotator_group": example["metadata"]["annotator_group"],
+                    "status": ExampleStatus.FINISHED,
+                }
+            )
+
+    return campaign_data
+
+
 def get_sorted_campaign_list(app, modes):
     campaign_index = generate_campaign_index(app, force_reload=True)
 
     campaigns = [c for c in campaign_index.values() if c.metadata["mode"] in modes]
 
     campaigns.sort(key=lambda x: x.metadata["created"], reverse=True)
+
     campaigns = {
-        c.metadata["id"]: {"metadata": c.metadata, "stats": c.get_stats(), "data": c.db.to_dict(orient="records")}
+        c.metadata["id"]: {"metadata": c.metadata, "stats": c.get_stats(), "data": get_campaign_data(c)}
         for c in campaigns
     }
     return campaigns
