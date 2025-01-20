@@ -12,66 +12,19 @@ function getSelectedCampaigns() {
     return selectedCampaigns;
 }
 
-
-function showAgreement(response) {
-    // uncover `agreement-modal`, fill the `agreement-area` with the data
-
-    $("#agreement-spinner").hide();
-
-    var content = '';
-    // iterate over the objects in the `response` list
-    for (const data of response) {
-        content += `
-            <h5><code>${data.first_annotator}</code> vs. <code>${data.second_annotator}</code></h5>
-                    <hr>
-        `;
-
-        var dataset_level_agreement = '';
-        if (data.dataset_level_pearson_r_macro !== null) {
-            dataset_level_agreement = `
-                <b>Dataset-level agreement</b>
-                <p><small class="text-muted">Pearson <i>r</i> between the annotators computed over a list of average error counts, one number for each (dataset, split, setup_id) combination.</small></p>
-                <dl class="row">
-                <dt class="col-sm-5">Pearson r (macro)</dt>
-                    <dd class="col-sm-7">${data.dataset_level_pearson_r_macro.toFixed(2)} (avg. of [${data.dataset_level_pearson_r_macro_categories}])</dd>
-                    <p><small class="text-muted"> An average of coefficients computed separately for each category.</small></p>
-                    <dt class="col-sm-5">Pearson r (micro)</dt>
-                    <dd class="col-sm-7">${data.dataset_level_pearson_r_micro.toFixed(2)}</dd>
-                    <p><small class="text-muted"> Computed over concatenated results from all the categories.</small></p>
-                    </dl>
-                    <hr>
-                    `;
-        } else {
-            dataset_level_agreement = `
-                <b>Dataset-level agreement</b>
-                <p class="alert alert-warning">Dataset-level agreement not available for a single split.</p>
-                <hr>
-                `;
-        }
-
-        content += dataset_level_agreement;
-
-        const example_level_agreement = `
-                <b> Example-level agreement</b>
-            <p><small class="text-muted">Pearson <i>r</i> between the annotators computed over a list of error counts, one number for each example.</small></p>
-            <dl class="row">
-                <dt class="col-sm-5">Pearson r (macro)</dt>
-                <dd class="col-sm-7">${data.example_level_pearson_r_macro.toFixed(2)} (avg. of [${data.example_level_pearson_r_macro_categories}])</dd>
-                <p><small class="text-muted"> An average of coefficients computed separately for each category.</small></p>
-                <dt class="col-sm-5">Pearson r (micro)</dt>
-                <dd class="col-sm-7">${data.example_level_pearson_r_micro.toFixed(2)}</dd>
-                 <p><small class="text-muted"> Computed over concatenated results from all the categories.</small></p>
-            </dl>
-            <hr>
-        `;
-        content += example_level_agreement;
-    }
-
-    $('#agreement-area').html(content);
-    $('#agreement-modal').modal('show');
+function downloadBlob(data, filename) {
+    const blob = new Blob([data], { type: 'application/zip' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || 'agreement_files.zip';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
 }
 
-function computeAgreement() {
+function downloadIaaFiles() {
     // get the selected campaigns and ask the backend
     const selectedCombinations = gatherSelectedCombinations();
     const selectedCampaigns = getSelectedCampaigns();
@@ -90,21 +43,17 @@ function computeAgreement() {
             selectedCampaigns: selectedCampaigns,
             combinations: selectedCombinations,
         }),
+        xhrFields: {
+            responseType: 'blob'  // Set response type to blob for binary data
+        },
         success: function (response) {
-            console.log(response);
-
-            if (response.error !== undefined) {
-                alert(response.error);
-            } else {
-                showAgreement(response);
-            }
+            downloadBlob(response, 'agreement_files.zip');
         },
         error: function (response) {
             alert("An error occurred: " + response.responseText);
         }
     });
 }
-
 
 
 function populateTable(tableId, data, columns) {
@@ -188,8 +137,6 @@ function updateComparisonData() {
 
     return combinations;
 }
-
-
 
 const fullTableColumns = ['dataset', 'split', 'setup_id', 'example_count', 'annotation_type', 'ann_count', 'avg_count', 'prevalence'];
 const spanTableColumns = ['example_count', 'annotation_type', 'ann_count', 'avg_count', 'prevalence'];

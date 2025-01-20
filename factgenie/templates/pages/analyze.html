@@ -81,6 +81,20 @@
         </div>
       </div>
       <div class="tab-pane fade" id="pills-inter" role="tabpanel" aria-labelledby="pills-inter-tab">
+
+        <div class="alert alert-info mt-3 blue-link" role="alert">
+          <p>To provide you better control over the results, we do not compute the inter-annotator agreement (IAA) directly in factgenie.</p> <p>Instead, the process is the following:</p>
+          <ol>
+            <li>You <b>select here the campaign(s)</b> you want to compute IAA for.</li>
+            <li>You <b>download the files with pre-computed data</b> for the selected campaigns.</li>
+            <li>You use a tool of your choice to <b>compute the IAA yourself</b>.</li>
+          </ol>
+        </p>  
+          <p>
+          For your convenience, we provide a 👉️ <b><a href="https://github.com/ufal/factgenie/tree/main/factgenie/notebooks/inter_annotator_agreement.ipynb">Jupyter notebook</a></b> 👈️ showing how you can compute the <b><a href="https://en.wikipedia.org/wiki/Pearson_correlation_coefficient">Pearson r coefficient</a></b> (dataset-level and example-level error count correlations) along with the <b><a href="https://pygamma-agreement.readthedocs.io/en/latest/index.html">γ (Gamma) score</a></b> (fine-grained score based on span alignment) using the files exported from factgenie.
+          </p>
+        </div>
+
         <p class="mt-3">
           <small class="text-muted">Select <b>at least two campaigns</b> for comparison.</small>
         </p>
@@ -144,11 +158,11 @@
             </table>
           </div>
         </div>
+        
+
         <div class="justify-content-center d-flex">
           <button type="submit" id="agreement-btn" class="btn btn-primary mt-3 disabled"
-            onclick="computeAgreement();">Compute
-            inter-annotator
-            agrement</button>
+            onclick="downloadIaaFiles();">Download data files</button>
         </div>
         <div class="justify-content-center d-flex mt-3">
           <div id="agreement-spinner" class="spinner-border" role="status" style="display: none">
