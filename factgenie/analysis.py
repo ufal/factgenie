@@ -3,10 +3,11 @@
 import os
 import pandas as pd
 from collections import defaultdict
-from scipy.stats import pearsonr
 import sys
 import logging
 import traceback
+import tempfile
+import zipfile
 import factgenie.workflows as workflows
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -237,80 +238,12 @@ def compute_statistics(app, campaign):
     return statistics
 
 
-def compute_pearson_macro_average(counts, first_ann_idx, second_ann_idx):
-    # compute the Pearson correlation coefficient separately for each category and then average the results
-    coefficients = []
-
-    for c, cat_counts in counts.items():
-        r, _ = pearsonr(cat_counts[first_ann_idx], cat_counts[second_ann_idx])
-
-        # if r is nan, set it to 0
-        if not r == r:
-            r = 0
-
-        coefficients.append(r)
-
-    return round(sum(coefficients) / len(coefficients), 2), [round(coeff, 2) for coeff in coefficients]
-
-
-def compute_pearson_micro_average(counts, first_ann_idx, second_ann_idx):
-    # flatten the list of counts for each category, keeping only a single list for each annotator
-    first_ann_counts = [count for cat_counts in counts.values() for count in cat_counts[first_ann_idx]]
-    second_ann_counts = [count for cat_counts in counts.values() for count in cat_counts[second_ann_idx]]
-
-    r, _ = pearsonr(first_ann_counts, second_ann_counts)
-
-    return round(r, 2)
-
-
-def compute_pearson_correlation(
-    dataset_level_counts, example_level_counts, annotator_count, annotator_group_ids, compute_dataset_level_corr
-):
-    results = []
-
-    for a in range(annotator_count):
-        for b in range(a + 1, annotator_count):
-            a_group_id = annotator_group_ids[a]
-            b_group_id = annotator_group_ids[b]
-
-            if compute_dataset_level_corr:
-                r_data_macro, r_data_list = compute_pearson_macro_average(
-                    dataset_level_counts, first_ann_idx=a, second_ann_idx=b
-                )
-            else:
-                r_data_macro, r_data_list = None, None
-
-            r_example_macro, r_example_list = compute_pearson_macro_average(
-                example_level_counts, first_ann_idx=a, second_ann_idx=b
-            )
-
-            if compute_dataset_level_corr:
-                r_data_micro = compute_pearson_micro_average(dataset_level_counts, first_ann_idx=a, second_ann_idx=b)
-            else:
-                r_data_micro = None
-
-            r_example_micro = compute_pearson_micro_average(example_level_counts, first_ann_idx=a, second_ann_idx=b)
-
-            results.append(
-                {
-                    "first_annotator": a_group_id,
-                    "second_annotator": b_group_id,
-                    "dataset_level_pearson_r_macro": r_data_macro,
-                    "dataset_level_pearson_r_macro_categories": r_data_list,
-                    "example_level_pearson_r_macro": r_example_macro,
-                    "example_level_pearson_r_macro_categories": r_example_list,
-                    "dataset_level_pearson_r_micro": r_data_micro,
-                    "example_level_pearson_r_micro": r_example_micro,
-                }
-            )
-
-    return results
-
-
 def compute_span_counts(example_index, annotator_count, combinations, cat_columns):
     # create a list for span counts from each annotator (do this separately for each error category)
-    dataset_level_counts = {c: [[] for _ in range(annotator_count)] for c in cat_columns}
-    example_level_counts = {c: [[] for _ in range(annotator_count)] for c in cat_columns}
+    dataset_level_counts = []
+    example_level_counts = []
+
+    annotator_group_ids = example_index.iloc[0].annotator_group_id
 
     for dataset, split, setup_id in combinations:
         example_index_subset = example_index[
@@ -326,16 +259,26 @@ def compute_span_counts(example_index, annotator_count, combinations, cat_column
                 for j, c in enumerate(cat_columns):
                     error_counts[a]["cat_" + str(j)].append(row[c][a])
 
-        # for each pair of annotators, compute the Pearson correlation coefficient between the average number of errors for each category
-        for a in range(annotator_count):
-            for j, c in enumerate(cat_columns):
-                if len(error_counts[a][c]) > 0:
-                    avg = sum(error_counts[a][c]) / len(error_counts[a][c])
-                else:
-                    avg = 0
+                    example_level_counts.append(
+                        {
+                            "dataset": dataset,
+                            "split": split,
+                            "setup_id": setup_id,
+                            "example_idx": row["example_idx"],
+                            "annotator_group_id": annotator_group_ids[a],
+                            "annotation_type": c.split("_")[1],
+                            "count": row[c][a],
+                        }
+                    )
 
-                dataset_level_counts[c][a].append(avg)
-                example_level_counts[c][a] += error_counts[a][c]
+    example_level_counts = pd.DataFrame(example_level_counts)
+
+    # average counts for each (dataset, split, setup_id)
+    dataset_level_counts = (
+        example_level_counts.groupby(["dataset", "split", "setup_id", "annotation_type", "annotator_group_id"])
+        .agg({"count": "mean"})
+        .reset_index()
+    )
 
     return dataset_level_counts, example_level_counts
 
@@ -382,7 +325,36 @@ def prepare_example_index(app, combinations, selected_campaigns, campaigns):
     return example_index, annotator_count, annotator_group_ids, cat_columns
 
 
-def compute_inter_annotator_agreement(app, selected_campaigns, combinations, campaigns):
+def compute_gamma_spans(app, selected_campaigns, campaigns):
+    span_index = []
+
+    for campaign_id in selected_campaigns:
+        df = generate_span_index(app, campaigns[campaign_id])
+
+        df["annotation_end"] = df["annotation_start"] + df["annotation_text"].str.len()
+        df["annotator_group_id"] = df["campaign_id"] + "-anngroup-" + df["annotator_group"].astype(str)
+        span_index.append(df)
+
+    span_index = pd.concat(span_index, ignore_index=True)
+
+    span_index = span_index.drop(
+        columns=[
+            "annotation_span_categories",
+            "annotator_id",
+            "annotation_granularity",
+            "annotation_overlap_allowed",
+            "flags",
+            "options",
+            "text_fields",
+            "jsonl_file",
+            "annotation_text",
+        ]
+    )
+
+    return span_index
+
+
+def generate_iaa_files(app, selected_campaigns, combinations, campaigns):
     combinations = [(c["dataset"], c["split"], c["setup_id"]) for c in combinations]
 
     example_index, annotator_count, annotator_group_ids, cat_columns = prepare_example_index(
@@ -392,13 +364,32 @@ def compute_inter_annotator_agreement(app, selected_campaigns, combinations, cam
     dataset_level_counts, example_level_counts = compute_span_counts(
         example_index=example_index, annotator_count=annotator_count, combinations=combinations, cat_columns=cat_columns
     )
-    compute_dataset_level_corr = len(combinations) > 1
-    results = compute_pearson_correlation(
-        dataset_level_counts=dataset_level_counts,
-        example_level_counts=example_level_counts,
-        annotator_count=annotator_count,
-        annotator_group_ids=annotator_group_ids,
-        compute_dataset_level_corr=compute_dataset_level_corr,
-    )
 
-    return results
+    gamma_spans = compute_gamma_spans(app, selected_campaigns, campaigns)
+
+    results = {
+        "dataset_level_counts": dataset_level_counts,
+        "example_level_counts": example_level_counts,
+        "gamma_spans": gamma_spans,
+    }
+
+    # Create temporary directory
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Save each dataframe as CSV
+        for name, df in results.items():
+            csv_path = os.path.join(temp_dir, f"{name}.csv")
+
+            # set precision of the `count` column to 3 decimal places
+            if "count" in df.columns:
+                df["count"] = df["count"].round(3)
+
+            df.to_csv(csv_path, index=False)
+
+        # Create ZIP file
+        zip_path = os.path.join(temp_dir, "agreement_results.zip")
+        with zipfile.ZipFile(zip_path, "w") as zipf:
+            for name in results.keys():
+                csv_path = os.path.join(temp_dir, f"{name}.csv")
+                zipf.write(csv_path, os.path.basename(csv_path))
+
+        return zip_path
