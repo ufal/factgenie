@@ -1,5 +1,5 @@
 <div class="modal fade" id="add-dataset-modal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="about-modal-label">Add dataset</h5>
@@ -53,6 +53,7 @@
                                     <th scope="col">Campaigns</th>
                                     <th scope="col">Source</th>
                                     <th scope="col">Download</th>
+                                    <th scope="col">Size</th>
                                     <th scope="col" data-visible="false">Description</th>
                                 </tr>
                             </thead>
@@ -102,6 +103,13 @@
                                         <i class="fa fa-check"
                                             style="margin: 10px 12px 10px 12px; {% if not dataset.downloaded %}display: none;{% endif %}"
                                             id="check-downloaded-{{ dataset_id }}"></i>
+                                    </td>
+                                    <td class="download-size">
+                                            {% if dataset['download-size'] %}
+                                            {{ dataset['download-size']|safe }}
+                                            {% else %}
+                                            <i>-</i>
+                                            {% endif %}
                                     </td>
                                     <td class="dataset-description" style="display: none;">
                                         <div class="blue-link">
