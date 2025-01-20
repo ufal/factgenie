@@ -7,6 +7,7 @@ easy-vqa:
   source: https://github.com/vzhou842/easy-VQA
   splits:
   - test
+  download-size: 34 kB
 logicnlg-100:
   class: logicnlg.LogicNLG
   name: logicnlg-100
@@ -18,6 +19,7 @@ logicnlg-100:
   source: https://huggingface.co/datasets/kasnerz/logicnlg
   splits:
   - test
+  download-size: 122 kB
 quintd1-gsmarena:
   name: quintd1-gsmarena
   annotations:
@@ -36,6 +38,7 @@ quintd1-gsmarena:
   splits:
   - dev
   - test
+  download-size: 728 kB
 quintd1-ice-hockey:
   name: quintd1-ice-hockey
   annotations:
@@ -54,6 +57,7 @@ quintd1-ice-hockey:
   splits:
   - dev
   - test
+  download-size: 728 kB
 quintd1-openweather:
   name: quintd1-openweather
   annotations:
@@ -68,10 +72,11 @@ quintd1-openweather:
   - mistral
   - zephyr
   - gpt-3.5
-  source: https://gitQuintd1-hub.com/kasnerz/quintd/tree/main/data/quintd-1
+  source: https://github.com/kasnerz/quintd/tree/main/data/quintd-1
   splits:
   - dev
   - test
+  download-size: 728 kB
 quintd1-owid:
   name: quintd1-owid
   annotations:
@@ -91,6 +96,7 @@ quintd1-owid:
   splits:
   - dev
   - test
+  download-size: 728 kB
 quintd1-wikidata:
   name: quintd1-wikidata
   annotations:
@@ -110,6 +116,7 @@ quintd1-wikidata:
   splits:
   - dev
   - test
+  download-size: 728 kB
 xsum-debug:
   name: xsum-debug
   class: basic.PlainTextDataset
@@ -122,6 +129,7 @@ xsum-debug:
   source: https://github.com/EdinburghNLP/XSum
   splits:
   - test
+  download-size: 5 kB
 propaganda-techniques:
   name: propaganda-techniques
   class: propaganda_techniques.PropagandaTechniques
@@ -140,3 +148,4 @@ Loaded Language, Name Calling&Labeling, Repetition, Exaggeration&Minimization, D
     - train
     - dev
     - test
+  download-size: 1.49 MB
