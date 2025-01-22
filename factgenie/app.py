@@ -3,6 +3,7 @@ import os
 import json
 import logging
 import time
+import tempfile
 import threading
 import traceback
 import shutil
@@ -363,13 +364,17 @@ def compute_agreement():
     campaign_index = workflows.generate_campaign_index(app, force_reload=True)
 
     try:
-        zip_path = analysis.generate_iaa_files(
-            app,
-            selected_campaigns=selected_campaigns,
-            combinations=combinations,
-            campaigns=campaign_index,
-        )
-        return send_file(zip_path, mimetype="application/zip", as_attachment=True, download_name="agreement_files.zip")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            zip_path = analysis.generate_iaa_files(
+                app,
+                selected_campaigns=selected_campaigns,
+                combinations=combinations,
+                campaigns=campaign_index,
+                temp_dir=temp_dir,
+            )
+            return send_file(
+                zip_path, mimetype="application/zip", as_attachment=True, download_name="agreement_files.zip"
+            )
 
     except Exception as e:
         traceback.print_exc()

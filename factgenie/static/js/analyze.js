@@ -48,6 +48,7 @@ function downloadIaaFiles() {
         },
         success: function (response) {
             downloadBlob(response, 'agreement_files.zip');
+            $("#agreement-spinner").hide();
         },
         error: function (response) {
             alert("An error occurred: " + response.responseText);
