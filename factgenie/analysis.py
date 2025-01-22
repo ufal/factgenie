@@ -6,7 +6,6 @@ from collections import defaultdict
 import sys
 import logging
 import traceback
-import tempfile
 import zipfile
 import factgenie.workflows as workflows
 
@@ -354,7 +353,7 @@ def compute_gamma_spans(app, selected_campaigns, campaigns):
     return span_index
 
 
-def generate_iaa_files(app, selected_campaigns, combinations, campaigns):
+def generate_iaa_files(app, selected_campaigns, combinations, campaigns, temp_dir):
     combinations = [(c["dataset"], c["split"], c["setup_id"]) for c in combinations]
 
     example_index, annotator_count, annotator_group_ids, cat_columns = prepare_example_index(
@@ -373,23 +372,21 @@ def generate_iaa_files(app, selected_campaigns, combinations, campaigns):
         "gamma_spans": gamma_spans,
     }
 
-    # Create temporary directory
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # Save each dataframe as CSV
-        for name, df in results.items():
+    # Save each dataframe as CSV
+    for name, df in results.items():
+        csv_path = os.path.join(temp_dir, f"{name}.csv")
+
+        # set precision of the `count` column to 3 decimal places
+        if "count" in df.columns:
+            df["count"] = df["count"].round(3)
+
+        df.to_csv(csv_path, index=False)
+
+    # Create ZIP file
+    zip_path = os.path.join(temp_dir, "agreement_results.zip")
+    with zipfile.ZipFile(zip_path, "w") as zipf:
+        for name in results.keys():
             csv_path = os.path.join(temp_dir, f"{name}.csv")
+            zipf.write(csv_path, os.path.basename(csv_path))
 
-            # set precision of the `count` column to 3 decimal places
-            if "count" in df.columns:
-                df["count"] = df["count"].round(3)
-
-            df.to_csv(csv_path, index=False)
-
-        # Create ZIP file
-        zip_path = os.path.join(temp_dir, "agreement_results.zip")
-        with zipfile.ZipFile(zip_path, "w") as zipf:
-            for name in results.keys():
-                csv_path = os.path.join(temp_dir, f"{name}.csv")
-                zipf.write(csv_path, os.path.basename(csv_path))
-
-        return zip_path
+    return zip_path
