@@ -203,8 +203,8 @@ class HumanCampaign(Campaign):
             example_cnt=pd.NamedAgg(column="example_idx", aggfunc="count"),
             status=pd.NamedAgg(column="status", aggfunc="first"),
             annotator_id=pd.NamedAgg(column="annotator_id", aggfunc="first"),
-            start=pd.NamedAgg(column="start", aggfunc="first"),
-            end=pd.NamedAgg(column="end", aggfunc="first"),
+            start=pd.NamedAgg(column="start", aggfunc="min"),
+            end=pd.NamedAgg(column="end", aggfunc="max"),
         ).reset_index()
 
         for col in ["status", "annotator_id", "start", "end"]:

@@ -125,17 +125,17 @@ class SpanAnnotator {
 
         $element.on('mousedown', (e) => {
             this.isSelecting = true;
-            this.startSpan = this._findClosestSpan(objectId, e.pageX, e.pageY);
+            this.startSpan = this._findClosestSpan(objectId, e.clientX, e.clientY);
         });
 
         $element.on('mousemove', (e) => {
             if (this.isSelecting) {
-                const closestSpan = this.throttledFindClosestSpan(objectId, e.pageX, e.pageY);
+                const closestSpan = this.throttledFindClosestSpan(objectId, e.clientX, e.clientY);
                 if (closestSpan) {
                     this._updateHighlight(objectId, this.startSpan, closestSpan);
                 }
             } else if (this.currentType === -1) {
-                const closestSpan = this._findClosestSpan(objectId, e.pageX, e.pageY);
+                const closestSpan = this._findClosestSpan(objectId, e.clientX, e.clientY);
                 if (closestSpan) {
                     this._previewEraserEffect(objectId, closestSpan);
                 }
@@ -146,7 +146,7 @@ class SpanAnnotator {
         $element.on('mouseup', (e) => {
             if (!this.isSelecting) return;
             this.isSelecting = false;
-            const endSpan = this._findClosestSpan(objectId, e.pageX, e.pageY);
+            const endSpan = this._findClosestSpan(objectId, e.clientX, e.clientY);
 
             if (this.startSpan && endSpan) {
                 if (this.currentType === -1) {
@@ -240,9 +240,9 @@ class SpanAnnotator {
 
         $('.annotatable', doc.element).each((_, span) => {
             const $span = $(span);
-            const offset = $span.offset();
-            const left = offset.left;
-            const top = offset.top;
+            const rect = span.getBoundingClientRect();
+            const left = rect.left;
+            const top = rect.top;
             const right = left + $span.width();
             const bottom = top + $span.height();
 
