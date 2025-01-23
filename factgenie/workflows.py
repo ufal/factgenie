@@ -932,6 +932,11 @@ def save_record(mode, campaign, row, result):
         last_run = campaign.metadata.get("last_run", int(time.time()))
         filename = f"{dataset_id}-{split}-{setup_id}-{last_run}.jsonl"
     elif mode == CampaignMode.CROWDSOURCING:
+        if result.get("time_last_saved", None):
+            record["time_last_saved"] = result.get("time_last_saved", None)
+        if result.get("time_last_accessed", None):
+            record["time_last_accessed"] = result.get("time_last_accessed", None)
+
         batch_idx = row["batch_idx"]
         annotator_group = row.get("annotator_group", 0)
         batch_end = int(row["end"])
