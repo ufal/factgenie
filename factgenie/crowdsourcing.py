@@ -278,9 +278,19 @@ def parse_crowdsourcing_config(config):
     return config
 
 
-def select_batch(db, seed):
-    # Choose from the batches with the most available annotators
+def select_batch(db, seed, annotator_id):
+    # If the annotator already has any examples with ExampleStatus.ASSIGNED, return that batch
+    if annotator_id != PREVIEW_STUDY_ID:
+        if not db.loc[(db["annotator_id"] == annotator_id) & (db["status"] == ExampleStatus.ASSIGNED)].empty:
+            assigned_batch = db.loc[
+                (db["annotator_id"] == annotator_id) & (db["status"] == ExampleStatus.ASSIGNED)
+            ].iloc[0]
+            logging.info(
+                f"Reusing batch {assigned_batch['batch_idx']} (annotator group {assigned_batch['annotator_group']})"
+            )
+            return assigned_batch["batch_idx"], assigned_batch["annotator_group"]
 
+    # Choose from the batches with the most available annotators
     free_batches = db[db["status"] == ExampleStatus.FREE]
     annotator_groups_per_batch = free_batches.groupby("batch_idx")["annotator_group"].nunique()
     eligible_batches = annotator_groups_per_batch[annotator_groups_per_batch == annotator_groups_per_batch.max()]
@@ -338,8 +348,9 @@ def get_annotator_batch(app, campaign, service_ids, batch_idx=None):
         if not batch_idx:
             # usual case: an annotator opened the annotation page, we need to select the batch
             try:
-                batch_idx, annotator_group = select_batch(db, seed)
-            except ValueError:
+                batch_idx, annotator_group = select_batch(db, seed, annotator_id)
+            except ValueError as e:
+                logging.info(str(e))
                 # no available batches
                 return []
         else:
@@ -411,6 +422,8 @@ def save_annotations(app, campaign_id, annotation_set, annotator_id):
                 "flags": ann["flags"],
                 "options": ann["options"],
                 "text_fields": ann["textFields"],
+                "time_last_saved": ann.get("timeLastSaved"),
+                "time_last_accessed": ann.get("timeLastAccessed"),
                 "output": output,
             }
             # save the record to a JSONL file
