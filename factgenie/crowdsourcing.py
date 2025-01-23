@@ -343,7 +343,7 @@ def get_annotator_batch(app, campaign, service_ids, batch_idx=None):
                 # no available batches
                 return []
         else:
-            # preview mode
+            # preview mode with the specific batch
             batch_idx = int(batch_idx)
             annotator_group = 0
 
@@ -352,10 +352,10 @@ def get_annotator_batch(app, campaign, service_ids, batch_idx=None):
         # we do not block the example if we are in preview mode
         if annotator_id != PREVIEW_STUDY_ID:
             db.loc[mask, "status"] = ExampleStatus.ASSIGNED
+            db.loc[mask, "start"] = start
+            db.loc[mask, "annotator_id"] = annotator_id
 
-        db.loc[mask, "start"] = start
-        db.loc[mask, "annotator_id"] = annotator_id
-        campaign.update_db(db)
+            campaign.update_db(db)
 
         annotator_batch = get_examples_for_batch(db, batch_idx, annotator_group)
         logging.info(f"Releasing lock for {annotator_id}")
