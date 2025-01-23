@@ -3,11 +3,13 @@ import os
 import json
 import logging
 import time
+import tempfile
 import threading
 import traceback
 import shutil
 import datetime
 import urllib.parse
+
 
 from flask import (
     Flask,
@@ -18,6 +20,7 @@ from flask import (
     make_response,
     redirect,
     send_from_directory,
+    send_file,
 )
 from slugify import slugify
 
@@ -361,13 +364,18 @@ def compute_agreement():
     campaign_index = workflows.generate_campaign_index(app, force_reload=True)
 
     try:
-        results = analysis.compute_inter_annotator_agreement(
-            app,
-            selected_campaigns=selected_campaigns,
-            combinations=combinations,
-            campaigns=campaign_index,
-        )
-        return jsonify(results)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            zip_path = analysis.generate_iaa_files(
+                app,
+                selected_campaigns=selected_campaigns,
+                combinations=combinations,
+                campaigns=campaign_index,
+                temp_dir=temp_dir,
+            )
+            return send_file(
+                zip_path, mimetype="application/zip", as_attachment=True, download_name="agreement_files.zip"
+            )
+
     except Exception as e:
         traceback.print_exc()
         return utils.error(f"Error while computing agreement: {e}")

@@ -27,6 +27,7 @@ from factgenie.campaign import (
     LLMCampaignGen,
     CampaignMode,
     CampaignStatus,
+    ExampleStatus,
 )
 
 from factgenie import (
@@ -842,14 +843,39 @@ def upload_model_outputs(dataset, split, setup_id, model_outputs):
         )
 
 
+def get_campaign_data(campaign):
+    campaign_data = campaign.db.to_dict(orient="records")
+
+    # external campaigns do not have a db, we need to compute the equivalent from the JSONL files
+    if not campaign_data:
+        finished_examples = campaign.get_finished_examples()
+        campaign_data = []
+
+        for example in finished_examples:
+            campaign_data.append(
+                {
+                    "dataset": example["dataset"],
+                    "split": example["split"],
+                    "setup_id": example["setup_id"],
+                    "example_idx": example["example_idx"],
+                    "annotator_id": example["metadata"]["annotator_id"],
+                    "annotator_group": example["metadata"]["annotator_group"],
+                    "status": ExampleStatus.FINISHED,
+                }
+            )
+
+    return campaign_data
+
+
 def get_sorted_campaign_list(app, modes):
     campaign_index = generate_campaign_index(app, force_reload=True)
 
     campaigns = [c for c in campaign_index.values() if c.metadata["mode"] in modes]
 
     campaigns.sort(key=lambda x: x.metadata["created"], reverse=True)
+
     campaigns = {
-        c.metadata["id"]: {"metadata": c.metadata, "stats": c.get_stats(), "data": c.db.to_dict(orient="records")}
+        c.metadata["id"]: {"metadata": c.metadata, "stats": c.get_stats(), "data": get_campaign_data(c)}
         for c in campaigns
     }
     return campaigns
@@ -906,7 +932,10 @@ def save_record(mode, campaign, row, result):
         last_run = campaign.metadata.get("last_run", int(time.time()))
         filename = f"{dataset_id}-{split}-{setup_id}-{last_run}.jsonl"
     elif mode == CampaignMode.CROWDSOURCING:
-        filename = f"{dataset_id}-{split}-{setup_id}-{annotator_id}.jsonl"
+        batch_idx = row["batch_idx"]
+        annotator_group = row.get("annotator_group", 0)
+        batch_end = int(row["end"])
+        filename = f"{batch_idx}-{annotator_group}-{annotator_id}-{batch_end}.jsonl"
     elif mode == CampaignMode.LLM_GEN:
         last_run = campaign.metadata.get("last_run", int(time.time()))
         filename = f"{dataset_id}-{split}-{last_run}.jsonl"
