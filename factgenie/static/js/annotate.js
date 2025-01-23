@@ -138,7 +138,7 @@ function goToAnnotation(example_idx) {
     const options = annotation_set[example_idx].options;
     const textFields = annotation_set[example_idx].textFields;
 
-    annotation_set[example_idx]["lastAccessedTime"] = Math.floor(Date.now() / 1000);
+    annotation_set[example_idx]["timeLastAccessed"] = Math.floor(Date.now() / 1000);
 
     clearExampleLevelFields();
 
@@ -269,7 +269,7 @@ function saveCurrentAnnotations(example_idx) {
     annotation_set[example_idx]["flags"] = collectFlags();
     annotation_set[example_idx]["options"] = collectOptions();
     annotation_set[example_idx]["textFields"] = collectTextFields();
-    annotation_set[example_idx]["lastSavedTime"] = Math.floor(Date.now() / 1000);
+    annotation_set[example_idx]["timeLastSaved"] = Math.floor(Date.now() / 1000);
 }
 
 function submitAnnotations(campaign_id) {

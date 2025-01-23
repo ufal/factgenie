@@ -422,6 +422,8 @@ def save_annotations(app, campaign_id, annotation_set, annotator_id):
                 "flags": ann["flags"],
                 "options": ann["options"],
                 "text_fields": ann["textFields"],
+                "time_last_saved": ann.get("timeLastSaved"),
+                "time_last_accessed": ann.get("timeLastAccessed"),
                 "output": output,
             }
             # save the record to a JSONL file
