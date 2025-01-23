@@ -906,7 +906,10 @@ def save_record(mode, campaign, row, result):
         last_run = campaign.metadata.get("last_run", int(time.time()))
         filename = f"{dataset_id}-{split}-{setup_id}-{last_run}.jsonl"
     elif mode == CampaignMode.CROWDSOURCING:
-        filename = f"{dataset_id}-{split}-{setup_id}-{annotator_id}.jsonl"
+        batch_idx = row["batch_idx"]
+        annotator_group = row.get("annotator_group", 0)
+        batch_end = int(row["end"])
+        filename = f"{batch_idx}-{annotator_group}-{annotator_id}-{batch_end}.jsonl"
     elif mode == CampaignMode.LLM_GEN:
         last_run = campaign.metadata.get("last_run", int(time.time()))
         filename = f"{dataset_id}-{split}-{last_run}.jsonl"
