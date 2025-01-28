@@ -21,6 +21,8 @@ install_requires = [
     "tinyhtml>=1.2.0",
     "litellm>=1.59.8",
     "pydantic>=2.10.6",
+    "google-api-python-client>=2.16.0",
+    "google-cloud-aiplatform>=1.38",
 ]
 
 setup(

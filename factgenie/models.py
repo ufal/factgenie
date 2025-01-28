@@ -6,8 +6,7 @@ import traceback
 import os
 import logging
 from pydantic import BaseModel, Field, ValidationError
-import requests
-
+import json
 from ast import literal_eval
 from factgenie.campaign import CampaignMode
 
@@ -42,6 +41,7 @@ class ModelFactory:
                 "vllm": VLLMMetric,
                 "anthropic": AnthropicMetric,
                 "gemini": GeminiMetric,
+                "vertexai": VertexAIMetric,
             },
             CampaignMode.LLM_GEN: {
                 "openai": OpenAIGen,
@@ -49,6 +49,7 @@ class ModelFactory:
                 "vllm": VLLMGen,
                 "anthropic": AnthropicGen,
                 "gemini": GeminiGen,
+                "vertexai": VertexAIGen,
             },
         }
 
@@ -87,6 +88,16 @@ class Model:
     def __init__(self, config):
         self.config = config
         self.parse_model_args()
+
+    def _api_url(self):
+        # by default we ignore the API URL
+        # override for local services that actually require the API URL (such as Ollama)
+        return None
+
+    def _service_prefix(self):
+        raise NotImplementedError(
+            "Override this method in the subclass to call the appropriate API. See LiteLLM documentation: https://docs.litellm.ai/docs/providers."
+        )
 
     def get_annotator_id(self):
         return "llm-" + self.config["type"] + "-" + self.config["model"]
@@ -152,7 +163,7 @@ class LLMMetric(Model):
             annotations_obj = OutputAnnotations.model_validate_json(annotations_json)
             annotations = annotations_obj.annotations
         except ValidationError as e:
-            logger.error(f"LLM response in not in the expected format: {e}\n\t{annotations_json=}")
+            logger.error(f"Model response is not in the expected format: {e}\n\nResponse: {annotations_json=}")
             return []
 
         annotation_list = []
@@ -187,16 +198,6 @@ class LLMMetric(Model):
 
         return annotation_list
 
-    def _service_prefix(self):
-        raise NotImplementedError(
-            "Override this method in the subclass to call the appropriate API. See LiteLLM documentation: https://docs.litellm.ai/docs/providers."
-        )
-
-    def _api_url(self):
-        # by default we ignore the API URL
-        # override for local services that actually require the API URL (such as Ollama)
-        return None
-
     def preprocess_data_for_prompt(self, data):
         """Override this method to change the format how the data is presented in the prompt. See self.prompt() method for usage."""
         return data
@@ -209,10 +210,42 @@ class LLMMetric(Model):
 
         return prompt_template.replace("{data}", str(data_for_prompt)).replace("{text}", text)
 
+    def get_model_response(self, prompt, model_service):
+        response = litellm.completion(
+            model=model_service,
+            messages=[
+                {"role": "system", "content": self.config["system_msg"]},
+                {"role": "user", "content": prompt},
+            ],
+            response_format=OutputAnnotations,
+            api_base=self._api_url(),
+            **self.config.get("model_args", {}),
+        )
+
+        return response
+
+    def validate_environment(self, model_service):
+        response = litellm.validate_environment(model=model_service)
+
+        if not response["keys_in_environment"]:
+            raise ValueError(
+                f"Required API variables not found for the model {model_service}. Please add the following keys to the system environment or factgenie config: {response['missing_keys']}"
+            )
+
     def annotate_example(self, data, text):
+        model = self.config["model"]
+        model_service = self._service_prefix() + model
+
+        self.validate_environment(model_service)
+
+        # temporarily disable until this is properly merged: https://github.com/BerriAI/litellm/pull/7832
+
+        # assert litellm.supports_response_schema(
+        #     model_service
+        # ), f"Model {model_service} does not support the JSON response schema."
+
         try:
             prompt = self.prompt(data, text)
-            model = self.config["model"]
 
             logger.debug(f"Calling LiteLLM API.")
             logger.debug(f"Prompt: {prompt}")
@@ -221,16 +254,8 @@ class LLMMetric(Model):
             logger.debug(f"API URL: {self._api_url()}")
             logger.debug(f"System message: {self.config['system_msg']}")
 
-            response = litellm.completion(
-                model=self._service_prefix() + model,
-                messages=[
-                    {"role": "system", "content": self.config["system_msg"]},
-                    {"role": "user", "content": prompt},
-                ],
-                response_format=OutputAnnotations,
-                api_base=self._api_url(),
-                **self.config.get("model_args", {}),
-            )
+            response = self.get_model_response(prompt, model_service)
+
             logger.debug(f"Prompt tokens: {response.usage.prompt_tokens}")
             logger.debug(f"Response tokens: {response.usage.completion_tokens}")
 
@@ -248,17 +273,23 @@ class LLMMetric(Model):
 
 
 class OpenAIMetric(LLMMetric):
+    # https://docs.litellm.ai/docs/providers/openai
     def __init__(self, config, **kwargs):
         super().__init__(config)
 
     def _service_prefix(self):
-        # OpenAI models do not seem to require a prefix: https://docs.litellm.ai/docs/providers/openai
+        # OpenAI models do not seem to require a prefix
         return ""
 
 
 class OllamaMetric(LLMMetric):
+    # https://docs.litellm.ai/docs/providers/ollama
     def __init__(self, config):
         super().__init__(config)
+
+    def validate_environment(self, model_service):
+        # Ollama would require setting OLLAMA_API_BASE, but we set the API URL in the config
+        pass
 
     def _service_prefix(self):
         # we want to call the `chat` endpoint: https://docs.litellm.ai/docs/providers/ollama#using-ollama-apichat
@@ -276,6 +307,7 @@ class OllamaMetric(LLMMetric):
 
 
 class VLLMMetric(LLMMetric):
+    # https://docs.litellm.ai/docs/providers/vllm
     def __init__(self, config):
         super().__init__(config)
 
@@ -290,6 +322,7 @@ class VLLMMetric(LLMMetric):
 
 
 class AnthropicMetric(LLMMetric):
+    # https://docs.litellm.ai/docs/providers/anthropic
     def __init__(self, config):
         super().__init__(config)
 
@@ -298,11 +331,57 @@ class AnthropicMetric(LLMMetric):
 
 
 class GeminiMetric(LLMMetric):
+    # https://docs.litellm.ai/docs/providers/gemini
     def __init__(self, config):
         super().__init__(config)
 
     def _service_prefix(self):
         return "gemini/"
+
+
+class VertexAIMetric(LLMMetric):
+    # https://docs.litellm.ai/docs/providers/vertex
+    def __init__(self, config):
+        super().__init__(config)
+
+        self.load_google_credentials()
+
+    def load_google_credentials(self):
+        json_file_path = os.environ.get("VERTEXAI_JSON_FULL_PATH")
+
+        if not json_file_path:
+            raise ValueError(
+                "Please set VERTEXAI_JSON_FULL_PATH in your environment or in the config. For more details, see https://docs.litellm.ai/docs/providers/vertex"
+            )
+
+        # check if file exists
+        if not os.path.exists(json_file_path):
+            raise ValueError(f"The file {json_file_path} was not found.")
+
+        # Load the JSON file
+        with open(json_file_path, "r") as file:
+            vertex_credentials = json.load(file)
+
+        # Convert to JSON string
+        self.vertex_credentials_json = json.dumps(vertex_credentials)
+
+    def _service_prefix(self):
+        return "vertex_ai/"
+
+    def get_model_response(self, prompt, model_service):
+        response = litellm.completion(
+            model=model_service,
+            messages=[
+                {"role": "system", "content": self.config["system_msg"]},
+                {"role": "user", "content": prompt},
+            ],
+            response_format=OutputAnnotations,
+            api_base=self._api_url(),
+            vertex_credentials=self.vertex_credentials_json,
+            **self.config.get("model_args", {}),
+        )
+
+        return response
 
 
 class LLMGen(Model):
@@ -375,6 +454,9 @@ class LLMGen(Model):
                 "output": the generated output
             }
         """
+        model = self.config["model"]
+        model_service = self._service_prefix() + model
+
         try:
             prompt = self.prompt(data)
 
@@ -387,7 +469,7 @@ class LLMGen(Model):
                 messages.append({"role": "assistant", "content": self.config["start_with"]})
 
             response = litellm.completion(
-                model=self.config["model"],
+                model=model_service,
                 messages=messages,
                 api_base=self._api_url(),
                 **self.config.get("model_args", {}),
@@ -405,6 +487,7 @@ class LLMGen(Model):
 
 
 class OpenAIGen(LLMGen):
+    # https://docs.litellm.ai/docs/providers/openai
     def __init__(self, config, **kwargs):
         super().__init__(config)
 
@@ -414,6 +497,7 @@ class OpenAIGen(LLMGen):
 
 
 class OllamaGen(LLMGen):
+    # https://docs.litellm.ai/docs/providers/ollama
     def __init__(self, config):
         super().__init__(config)
 
@@ -433,6 +517,7 @@ class OllamaGen(LLMGen):
 
 
 class VLLMGen(LLMGen):
+    # https://docs.litellm.ai/docs/providers/vllm
     def __init__(self, config):
         super().__init__(config)
 
@@ -447,6 +532,7 @@ class VLLMGen(LLMGen):
 
 
 class AnthropicGen(LLMGen):
+    # https://docs.litellm.ai/docs/providers/anthropic
     def __init__(self, config):
         super().__init__(config)
 
@@ -455,8 +541,39 @@ class AnthropicGen(LLMGen):
 
 
 class GeminiGen(LLMGen):
+    # https://docs.litellm.ai/docs/providers/gemini
     def __init__(self, config):
         super().__init__(config)
 
     def _service_prefix(self):
         return "gemini/"
+
+
+class VertexAIGen(LLMGen):
+    # https://docs.litellm.ai/docs/providers/vertex
+    def __init__(self, config):
+        super().__init__(config)
+
+        self.load_google_credentials()
+
+    def load_google_credentials(self):
+        json_file_path = os.environ.get("VERTEXAI_JSON_FULL_PATH")
+
+        if not json_file_path:
+            raise ValueError(
+                "Please set VERTEXAI_JSON_FULL_PATH in your environment or in the config. For more details, see https://docs.litellm.ai/docs/providers/vertex"
+            )
+
+        # check if file exists
+        if not os.path.exists(json_file_path):
+            raise ValueError(f"The file {json_file_path} was not found.")
+
+        # Load the JSON file
+        with open(json_file_path, "r") as file:
+            vertex_credentials = json.load(file)
+
+        # Convert to JSON string
+        self.vertex_credentials_json = json.dumps(vertex_credentials)
+
+    def _service_prefix(self):
+        return "vertex_ai/"

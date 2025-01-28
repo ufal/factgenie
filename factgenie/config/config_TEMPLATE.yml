@@ -16,14 +16,13 @@ logging:
 host_prefix: ""
 # API keys: set the keys for the services you will be using
 api_keys:
-  # OpenAI models
-  OPENAI_API_KEY: ""
-  # Claude
-  ANTHROPIC_API_KEY: ""
-  # Gemini
-  VERTEX_PROJECT: ""
-  VERTEX_LOCATION: ""
-  # Azure API
-  AZURE_API_KEY: ""
-  AZURE_API_BASE: ""
-  AZURE_API_VERSION: ""
+  # https://docs.litellm.ai/docs/providers/anthropic
+  ANTHROPIC_API_KEY: ''
+  # https://docs.litellm.ai/docs/providers/gemini
+  GEMINI_API_KEY: ''
+  # https://docs.litellm.ai/docs/providers/openai
+  OPENAI_API_KEY: ''
+  # https://docs.litellm.ai/docs/providers/vertex
+  VERTEXAI_LOCATION: ''
+  VERTEXAI_PROJECT: ''
+  VERTEXAI_JSON_FULL_PATH: ''

@@ -15,11 +15,10 @@ function updateConfig() {
         api_keys: {
             OPENAI_API_KEY: $('#openai_api_key').val(),
             ANTHROPIC_API_KEY: $('#anthropic_api_key').val(),
-            VERTEX_PROJECT: $('#vertex_project').val(),
-            VERTEX_LOCATION: $('#vertex_location').val(),
-            AZURE_API_KEY: $('#azure_api_key').val(),
-            AZURE_API_BASE: $('#azure_api_base').val(),
-            AZURE_API_VERSION: $('#azure_api_version').val(),
+            GEMINI_API_KEY: $('#gemini_api_key').val(),
+            VERTEXAI_PROJECT: $('#vertexai_project').val(),
+            VERTEXAI_LOCATION: $('#vertexai_location').val(),
+            VERTEXAI_JSON_FULL_PATH: $('#vertexai_json_full_path').val(),
         }
     };
 

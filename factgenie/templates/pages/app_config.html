@@ -122,7 +122,7 @@
           <input type="password" class="form-control" id="openai_api_key" name="openai_api_key" 
             value="{{ app_config.api_keys.OPENAI_API_KEY }}">
         </div>
-
+      
         <div class="form-group mt-3">
           <label>Anthropic</label>
           <div class="mb-2">
@@ -131,31 +131,28 @@
           <input type="password" class="form-control" id="anthropic_api_key" name="anthropic_api_key"
             value="{{ app_config.api_keys.ANTHROPIC_API_KEY }}">
         </div>
-
+      
+        <div class="form-group mt-3">
+          <label>Gemini (Google AI Studio)</label>
+          <div class="mb-2">
+            <small class="form-text text-muted">API key for Google Gemini models</small>
+          </div>
+          <input type="password" class="form-control" id="gemini_api_key" name="gemini_api_key"
+            value="{{ app_config.api_keys.GEMINI_API_KEY }}">
+        </div>
+      
         <div class="form-group mt-3">
           <label>Google Vertex AI</label>
           <div class="mb-2">
-            <small class="form-text text-muted">Settings for Gemini models</small>
+            <small class="form-text text-muted">Settings for Vertex AI</small>
           </div>
-          <input type="text" class="form-control mb-2" id="vertex_project" name="vertex_project" placeholder="Project ID"
-            value="{{ app_config.api_keys.VERTEX_PROJECT }}">
-          <input type="text" class="form-control" id="vertex_location" name="vertex_location" placeholder="Location"
-            value="{{ app_config.api_keys.VERTEX_LOCATION }}">
+          <input type="text" class="form-control mb-2" id="vertexai_project" name="vertexai_project" placeholder="Project ID"
+            value="{{ app_config.api_keys.VERTEXAI_PROJECT }}">
+          <input type="text" class="form-control mb-2" id="vertexai_location" name="vertexai_location" placeholder="Location"
+            value="{{ app_config.api_keys.VERTEXAI_LOCATION }}">
+          <input type="text" class="form-control" id="vertexai_json_full_path" name="vertexai_json_full_path" placeholder="JSON Credentials Full Path"
+            value="{{ app_config.api_keys.VERTEXAI_JSON_FULL_PATH }}">
         </div>
-
-        <div class="form-group mt-3">
-          <label>Azure OpenAI</label>
-          <div class="mb-2">
-            <small class="form-text text-muted">Settings for Azure OpenAI deployment</small>
-          </div>
-          <input type="password" class="form-control mb-2" id="azure_api_key" name="azure_api_key" placeholder="API Key"
-            value="{{ app_config.api_keys.AZURE_API_KEY }}">
-          <input type="text" class="form-control mb-2" id="azure_api_base" name="azure_api_base" placeholder="API Base"
-            value="{{ app_config.api_keys.AZURE_API_BASE }}">
-          <input type="text" class="form-control" id="azure_api_version" name="azure_api_version" placeholder="API Version"
-            value="{{ app_config.api_keys.AZURE_API_VERSION }}">
-        </div>
-
       </div>
 
       <button type="button" class="btn btn-primary mt-3 mb-5" onclick="updateConfig()">Save Config</button>
