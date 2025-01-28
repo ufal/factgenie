@@ -30,20 +30,31 @@ class ModelFactory:
     def model_classes():
         return {
             CampaignMode.LLM_EVAL: {
-                "openai_metric": OpenAIMetric,
-                "ollama_metric": OllamaMetric,
-                "vllm_metric": VLLMMetric,
+                "openai": OpenAIMetric,
+                "ollama": OllamaMetric,
+                "vllm": VLLMMetric,
+                "anthropic": AnthropicMetric,
+                "gemini": GeminiMetric,
             },
             CampaignMode.LLM_GEN: {
-                "openai_gen": OpenAIGen,
-                "ollama_gen": OllamaGen,
-                "tgwebui_gen": TextGenerationWebuiGen,
+                "openai": OpenAIGen,
+                "ollama": OllamaGen,
+                "vllm": VLLMGen,
+                "anthropic": AnthropicGen,
+                "gemini": GeminiGen,
             },
         }
 
     @staticmethod
     def from_config(config, mode):
         metric_type = config["type"]
+
+        # suffixes are not needed
+        if metric_type.endswith("_metric"):
+            metric_type = metric_type[: -len("_metric")]
+        elif metric_type.endswith("_gen"):
+            metric_type = metric_type[: -len("_gen")]
+
         classes = ModelFactory.model_classes()[mode]
 
         if metric_type not in classes:

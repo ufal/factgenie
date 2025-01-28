@@ -155,7 +155,9 @@ def run_llm_campaign(app, mode, campaign_id, announcer, campaign, datasets, mode
     campaign.metadata["status"] = CampaignStatus.RUNNING
     campaign.metadata["last_run"] = int(time.time())
     campaign.update_metadata()
-    logger.info(f"Starting LLM campaign {campaign_id}")
+
+    provider = campaign.metadata["config"].get("type", None)
+    logger.info(f"Starting LLM campaign {campaign_id} ({provider})")
 
     # regenerate output index
     workflows.get_output_index(app, force_reload=True)

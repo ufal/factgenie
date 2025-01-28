@@ -1,4 +1,4 @@
-type: vllm_metric
+type: vllm
 model: meta-llama/Meta-Llama-3-8B-Instruct
 # You can run vllm also on other machine than factgenie 
 #  e.g. we run it on a machine tdll-3gpu3 and access it from any machine which is withing the same firewall
