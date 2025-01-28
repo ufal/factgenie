@@ -57,10 +57,8 @@ def create_crowdsourcing_campaign(app, campaign_id, config, campaign_data):
 
 def create_crowdsourcing_page(campaign_id, config):
     final_page_path = os.path.join(CAMPAIGN_DIR, campaign_id, "pages", "annotate.html")
-    symlink_path = os.path.join(TEMPLATES_DIR, "campaigns", campaign_id, "annotate.html")
 
     os.makedirs(os.path.dirname(final_page_path), exist_ok=True)
-    os.makedirs(os.path.dirname(symlink_path), exist_ok=True)
 
     # assemble the crowdsourcing page
     parts = []
@@ -88,12 +86,6 @@ def create_crowdsourcing_page(campaign_id, config):
 
     with open(final_page_path, "w") as f:
         f.write(content)
-
-    # create a symlink to the page in the templates folder
-    if os.path.exists(symlink_path):
-        os.remove(symlink_path)
-
-    os.symlink(final_page_path, symlink_path)
 
 
 def generate_text_fields(text_fields):
