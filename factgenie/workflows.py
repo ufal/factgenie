@@ -949,8 +949,9 @@ def save_record(mode, campaign, row, result):
     record["metadata"]["annotator_id"] = str(annotator_id)
     record["metadata"]["annotator_group"] = int(row["annotator_group"])
     record["metadata"]["campaign_id"] = str(campaign_id)
-    record["metadata"]["start_timestamp"] = int(row["start"])
-    record["metadata"]["end_timestamp"] = int(row["end"])
+
+    record["metadata"]["start_timestamp"] = row.get("start", int(time.time()))
+    record["metadata"]["end_timestamp"] = row.get("end", int(time.time()))
 
     # append the record to the file from the current run
     with open(os.path.join(save_dir, filename), "a") as f:

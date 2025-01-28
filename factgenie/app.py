@@ -30,7 +30,7 @@ import factgenie.workflows as workflows
 import factgenie.analysis as analysis
 import factgenie.utils as utils
 
-from factgenie import CAMPAIGN_DIR, TEMPLATES_DIR, STATIC_DIR, INPUT_DIR
+from factgenie import CAMPAIGN_DIR, TEMPLATES_DIR, STATIC_DIR, INPUT_DIR, PACKAGE_DIR
 from factgenie.campaign import CampaignMode, CampaignStatus, ExampleStatus
 from factgenie.models import ModelFactory
 
@@ -198,8 +198,9 @@ def annotate(campaign_id):
             host_prefix=app.config["host_prefix"],
         )
 
-    return render_template(
-        f"campaigns/{campaign.campaign_id}/annotate.html",
+    return utils.render_from_folder(
+        f"annotate.html",
+        custom_folder=f"{PACKAGE_DIR}/campaigns/{campaign.campaign_id}/pages",
         host_prefix=app.config["host_prefix"],
         annotation_set=annotation_set,
         annotator_id=service_ids["annotator_id"],
