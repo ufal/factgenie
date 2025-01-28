@@ -191,7 +191,7 @@ def run_llm_campaign(app, mode, campaign_id, announcer, campaign, datasets, mode
         except requests.exceptions.ConnectionError as e:
             traceback.print_exc()
             return utils.error(
-                f"Error processing example {dataset_id}-{split}-{example_idx}: {e.__class__.__name__}: {str(e)}\n\n{model.new_connection_error_advice_docstring}\n"
+                f"Error processing example {dataset_id}-{split}-{example_idx}: {e.__class__.__name__}: {str(e)}\n"
             )
 
         except Exception as e:
