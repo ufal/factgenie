@@ -8,7 +8,7 @@ import json
 from slugify import slugify
 from tqdm import tqdm
 from pathlib import Path
-from flask import jsonify
+from flask import jsonify, render_template_string
 from factgenie.campaign import CampaignMode
 from factgenie import (
     RESOURCES_CONFIG_PATH,
@@ -252,3 +252,10 @@ def save_config(filename, config, mode):
 
     with open(os.path.join(save_dir, filename), "w") as f:
         yaml.dump(config, f, indent=2, allow_unicode=True)
+
+
+def render_from_folder(template_path, custom_folder, **context):
+    template_file = os.path.join(custom_folder, template_path)
+    with open(template_file, "r") as f:
+        template_content = f.read()
+    return render_template_string(template_content, **context)
