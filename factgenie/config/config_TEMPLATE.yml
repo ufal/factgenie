@@ -14,3 +14,16 @@ logging:
   flask_debug: false
 # set e.g. to "/demo/factgenie" if your app is running behind a reverse proxy on https://your-server.com/demo/factgenie
 host_prefix: ""
+# API keys: set the keys for the services you will be using
+api_keys:
+  # OpenAI models
+  OPENAI_API_KEY: ""
+  # Claude
+  ANTHROPIC_API_KEY: ""
+  # Gemini
+  VERTEX_PROJECT: ""
+  VERTEX_LOCATION: ""
+  # Azure API
+  AZURE_API_KEY: ""
+  AZURE_API_BASE: ""
+  AZURE_API_VERSION: ""

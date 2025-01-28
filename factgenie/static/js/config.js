@@ -11,6 +11,15 @@ function updateConfig() {
             lock_view_pages: $('#lock_view_pages').is(':checked'),
             username: $('#login_username').val(),
             password: $('#login_password').val()
+        },
+        api_keys: {
+            OPENAI_API_KEY: $('#openai_api_key').val(),
+            ANTHROPIC_API_KEY: $('#anthropic_api_key').val(),
+            VERTEX_PROJECT: $('#vertex_project').val(),
+            VERTEX_LOCATION: $('#vertex_location').val(),
+            AZURE_API_KEY: $('#azure_api_key').val(),
+            AZURE_API_BASE: $('#azure_api_base').val(),
+            AZURE_API_VERSION: $('#azure_api_version').val(),
         }
     };
 
