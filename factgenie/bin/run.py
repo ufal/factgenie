@@ -320,6 +320,10 @@ def create_app(**kwargs):
     config["login"]["username"] = os.getenv("FACTGENIE_LOGIN_USERNAME", config["login"]["username"])
     config["login"]["password"] = os.getenv("FACTGENIE_LOGIN_PASSWORD", config["login"]["password"])
 
+    for service, key in config.get("api_keys", {}).items():
+        if key != "":
+            os.environ[service] = key
+
     os.makedirs(CAMPAIGN_DIR, exist_ok=True)
     os.makedirs(INPUT_DIR, exist_ok=True)
     os.makedirs(OUTPUT_DIR, exist_ok=True)

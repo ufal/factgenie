@@ -11,6 +11,14 @@ function updateConfig() {
             lock_view_pages: $('#lock_view_pages').is(':checked'),
             username: $('#login_username').val(),
             password: $('#login_password').val()
+        },
+        api_keys: {
+            OPENAI_API_KEY: $('#openai_api_key').val(),
+            ANTHROPIC_API_KEY: $('#anthropic_api_key').val(),
+            GEMINI_API_KEY: $('#gemini_api_key').val(),
+            VERTEXAI_PROJECT: $('#vertexai_project').val(),
+            VERTEXAI_LOCATION: $('#vertexai_location').val(),
+            VERTEXAI_JSON_FULL_PATH: $('#vertexai_json_full_path').val(),
         }
     };
 

@@ -14,3 +14,15 @@ logging:
   flask_debug: false
 # set e.g. to "/demo/factgenie" if your app is running behind a reverse proxy on https://your-server.com/demo/factgenie
 host_prefix: ""
+# API keys: set the keys for the services you will be using
+api_keys:
+  # https://docs.litellm.ai/docs/providers/anthropic
+  ANTHROPIC_API_KEY: ''
+  # https://docs.litellm.ai/docs/providers/gemini
+  GEMINI_API_KEY: ''
+  # https://docs.litellm.ai/docs/providers/openai
+  OPENAI_API_KEY: ''
+  # https://docs.litellm.ai/docs/providers/vertex
+  VERTEXAI_LOCATION: ''
+  VERTEXAI_PROJECT: ''
+  VERTEXAI_JSON_FULL_PATH: ''

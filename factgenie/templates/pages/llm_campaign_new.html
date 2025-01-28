@@ -143,12 +143,12 @@
               <div class="row g-3 mb-3 align-items-center">
                 <div class="col-auto">
                   <i class="fa fa-code"></i>
-                  <span style="margin-left: 5px; margin-right: 10px;">LLM evaluator</span>
+                  <span style="margin-left: 5px; margin-right: 10px;">API provider</span>
                   <div class="mb-2">
-                    <small class="form-text text-muted">Select one of the available LLM evaluators (or add your own
+                    <small class="form-text text-muted">Select one of the available providers (or add your own
                       class
                       to
-                      <code>factgenie/models.py</code>).
+                      <code>factgenie/models.py</code>) Do not forget to add the relevant API keys in the <a href="/app_config">app settings</a> or in the <code>factgenie/config/config.yml</code> file.
                     </small>
                   </div>
                 </div>
@@ -164,10 +164,10 @@
               <div class="row g-3 mb-3 align-items-center">
                 <div class="col-auto">
                   <i class="fa fa-link"></i>
-                  <span style=" margin-left: 10px; margin-right: 10px;">API URL</span>
+                  <span style=" margin-left: 10px; margin-right: 10px;">Local API URL (base)</span>
                   <div class="mb-2">
-                    <small class="form-text text-muted">For Ollama API, this is the API URL, e.g.
-                      <code>http://my-server.com:11434/api/</code>. The parameter is ignored for OpenAI API.
+                    <small class="form-text text-muted">For local services, this is the API URL, e.g.
+                      <code>http://my-server.com:11434</code>. The parameter is ignored for external APIs.
                     </small>
                   </div>
 

@@ -1,15 +1,15 @@
-type: vllm_metric
-model: meta-llama/Meta-Llama-3-8B-Instruct
-# You can run vllm also on other machine than factgenie 
+type: ollama
+model: llama3.3
+# You can run ollama alson on other machine than factgenie 
 #  e.g. we run it on a machine tdll-3gpu3 and access it from any machine which is withing the same firewall
-#  in that case we use api_url: http://tdll-3gpu3.ufal.hide.ms.mff.cuni.cz:8000/v1/
-# If you run vllm at the same machine as factgenie let's use just localhost.
-api_url: http://localhost:8000/v1/
+#  in that case we use api_url: http://tdll-3gpu3.ufal.hide.ms.mff.cuni.cz:11434
+# If you run ollama at the same machine as factgenie let's use just localhost.
+api_url: http://localhost:11434
 model_args:
+  # input context window size, 2048 by default
+  num_ctx: 32768
   num_predict: 1024
   temperature: 0.0
-  top_p: 1.0
-  top_k: 0.0
   seed: 42
 annotation_span_categories:
   - name: "Incorrect"
@@ -24,6 +24,7 @@ annotation_span_categories:
   - name: "Other"
     color: "rgb(102, 102, 102)"
     description: "The text is problematic for another reason, e.g. grammatically or stylistically incorrect, irrelevant, or repetitive."
+annotation_overlap_allowed: true
 prompt_template: |
   Given the data:
   ```
