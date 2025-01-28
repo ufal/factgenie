@@ -441,6 +441,15 @@ class LLMGen(Model):
         """Override this method to change the format how the data is presented in the prompt. See self.prompt() method for usage."""
         return data
 
+    def get_model_response(self, messages, model_service):
+        response = litellm.completion(
+            model=model_service,
+            messages=messages,
+            api_base=self._api_url(),
+            **self.config.get("model_args", {}),
+        )
+        return response
+
     def generate_output(self, data):
         """
         Generate the output with the model.
@@ -468,12 +477,8 @@ class LLMGen(Model):
             if self.config.get("start_with"):
                 messages.append({"role": "assistant", "content": self.config["start_with"]})
 
-            response = litellm.completion(
-                model=model_service,
-                messages=messages,
-                api_base=self._api_url(),
-                **self.config.get("model_args", {}),
-            )
+            response = self.get_model_response(messages, model_service)
+
             output = response.choices[0].message.content
             output = self.postprocess_output(output)
             logger.info(output)
@@ -574,6 +579,16 @@ class VertexAIGen(LLMGen):
 
         # Convert to JSON string
         self.vertex_credentials_json = json.dumps(vertex_credentials)
+
+    def get_model_response(self, messages, model_service):
+        response = litellm.completion(
+            model=model_service,
+            messages=messages,
+            api_base=self._api_url(),
+            vertex_credentials=self.vertex_credentials_json,
+            **self.config.get("model_args", {}),
+        )
+        return response
 
     def _service_prefix(self):
         return "vertex_ai/"
