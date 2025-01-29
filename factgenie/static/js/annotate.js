@@ -182,7 +182,7 @@ function goToPage(page) {
 
 function addPageLink(annotation_idx) {
     const li = $('<li>', { class: "page-item" });
-    const a = $('<a>', { class: "page-link bg-incomplete", style: "min-height: 28px;", id: `page-link-${annotation_idx}` }).text(annotation_idx);
+    const a = $('<a>', { class: "page-link bg-incomplete", style: "min-height: 28px;", id: `page-link-${annotation_idx}` }).text(parseInt(annotation_idx) + 1);
     li.append(a);
     $("#nav-example-cnt").append(li);
 
