@@ -352,17 +352,19 @@ class SpanAnnotator {
 
         const doc = this.documents.get(objectId);
         const startIdx = parseInt($start.data('index'));
-        const endIdx = parseInt($end.data('index')) + $end.data('content').length - 1;
+        const endIdx = parseInt($end.data('index')); // Remove the content length adjustment
         const [min, max] = [Math.min(startIdx, endIdx), Math.max(startIdx, endIdx)];
 
+        // Get the actual end position by adding length of the last token
+        const maxWithLength = max + $end.data('content').length - 1;
+
         // Check for overlap if not allowed
-        if (!this.overlapAllowed && this._hasExistingAnnotations(doc, min, max)) {
+        if (!this.overlapAllowed && this._hasExistingAnnotations(doc, min, maxWithLength)) {
             this._renderAnnotations(objectId);
-            return; // Exit without creating annotation if overlap not allowed and overlap exists
+            return;
         }
 
-        const text = doc.text.substring(min, max + 1);
-        // generate a short random hash of 8 characters
+        const text = doc.text.substring(min, maxWithLength + 1);
         const id = Math.random().toString(36).substring(2, 10);
 
         const annotation = {
@@ -373,7 +375,6 @@ class SpanAnnotator {
         };
 
         doc.annotations.push(annotation);
-
         this._renderAnnotations(objectId);
         this.emit('annotationAdded', { objectId, annotation });
     }
