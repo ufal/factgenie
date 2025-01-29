@@ -19,10 +19,10 @@ annotator_instructions: |-
 
   There are four types of errors that you can mark in the generated text:
 
-  1.  <span style="color: rgb(214, 39, 40); text-decoration: underline; text-decoration-thickness: 2px;"><b>Incorrect fact</b></span>: The fact in the text contradicts the data.
-  2.  <span style="color: rgb(148, 103, 189); text-decoration: underline; text-decoration-thickness: 2px;"><b>Not checkable</b></span> : The fact in the text cannot be checked given the data.
-  3.  <span style="color: rgb(230, 171, 2); text-decoration: underline; text-decoration-thickness: 2px;"><b>Misleading</b></span>: The fact in the text is misleading in the given context.
-  4.  <span style="color: rgb(102, 102, 102); text-decoration: underline; text-decoration-thickness: 2px;"><b>Other</b></span> : The text is problematic for another reason, e.g. grammatically or stylistically incorrect, irrelevant, or repetitive.
+  - <span style="color: rgb(214, 39, 40); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>Incorrect</b></span>: The fact in the text contradicts the data.
+  - <span style="color: rgb(148, 103, 189); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>Not checkable</b></span>: The fact in the text cannot be checked given the data.
+  - <span style="color: rgb(230, 171, 2); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>Misleading</b></span>: The fact in the text is misleading in the given context.
+  - <span style="color: rgb(102, 102, 102); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>Other</b></span>: The text is problematic for another reason, e.g. grammatically or stylistically incorrect, irrelevant, or repetitive.
 
   You can annotate the errors by selecting the appropriate error category and dragging your mouse over the text, highlighting the error span.
 
