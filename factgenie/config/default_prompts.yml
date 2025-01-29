@@ -5,7 +5,7 @@ crowdsourcing: |
 
   {error_list}
 
-  You can annotate the errors by selecting the appropriate error category and dragging your mouse over the text, highlighting the error span.
+  You can annotate the errors by selecting the appropriate error category and dragging your mouse over the text, highlighting the error span. You can also use the right mouse button or Erase mode to remove your annotations.
   
   Once you think you have marked all the errors present in the text, click the **✅ Mark example as complete** button (you can still update the annotation later). 
   
