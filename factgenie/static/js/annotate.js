@@ -306,6 +306,12 @@ $("#hideOverlayBtn").click(function () {
     $("#overlay-start").fadeOut();
 });
 
+$("#undo-button").click(function () {
+    // Get current document ID based on current example index
+    const currentDocId = `p${current_example_idx}`;
+    spanAnnotator.undo(currentDocId);
+});
+
 $(".btn-err-cat").change(function () {
     if (this.checked) {
         const cat_idx = $(this).attr("data-cat-idx");

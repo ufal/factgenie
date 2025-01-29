@@ -12,6 +12,8 @@ class SpanAnnotator {
         this.eraserPreviewActive = false;
         this.rightClickPreviewActive = false;
         this.eventListeners = new Map();
+        this.history = new Map(); // Map of document ID -> array of history states
+        this.currentHistoryIndex = new Map(); // Map of document ID -> current history index
     }
 
     init(granularity, overlapAllowed, annotationTypes) {
@@ -48,6 +50,43 @@ class SpanAnnotator {
             this.eventListeners.set(eventName, []);
         }
         this.eventListeners.get(eventName).push(callback);
+    }
+
+    _addToHistory(objectId) {
+        const doc = this.documents.get(objectId);
+        if (!this.history.has(objectId)) {
+            this.history.set(objectId, []);
+            this.currentHistoryIndex.set(objectId, -1);
+        }
+
+        // Remove any future history after current index
+        const currentIndex = this.currentHistoryIndex.get(objectId);
+        this.history.get(objectId).splice(currentIndex + 1);
+
+        // Add new state
+        this.history.get(objectId).push({
+            annotations: JSON.parse(JSON.stringify(doc.annotations)) // Deep copy
+        });
+        this.currentHistoryIndex.set(objectId, this.currentHistoryIndex.get(objectId) + 1);
+    }
+
+    undo(objectId) {
+        if (!this.history.has(objectId)) return;
+
+        const currentIndex = this.currentHistoryIndex.get(objectId);
+        if (currentIndex < 0) return;
+
+        // Restore previous state
+        const previousState = this.history.get(objectId)[currentIndex];
+        const doc = this.documents.get(objectId);
+        doc.annotations = JSON.parse(JSON.stringify(previousState.annotations));
+
+        // Update index
+        this.currentHistoryIndex.set(objectId, currentIndex - 1);
+
+        // Rerender
+        this._renderAnnotations(objectId);
+        this.emit('annotationUndone', { objectId });
     }
 
     emit(eventName, data) {
@@ -306,6 +345,8 @@ class SpanAnnotator {
     }
 
     _createAnnotation(objectId, $start, $end) {
+        this._addToHistory(objectId);
+
         const doc = this.documents.get(objectId);
         const startIdx = parseInt($start.data('index'));
         const endIdx = parseInt($end.data('index')) + $end.data('content').length - 1;
@@ -335,6 +376,8 @@ class SpanAnnotator {
     }
 
     _removeAnnotation(objectId, $span) {
+        this._addToHistory(objectId);
+
         const doc = this.documents.get(objectId);
         const position = parseInt($span.data('index'));
 
