@@ -97,7 +97,7 @@ function fetchAnnotation(dataset, split, setup_id, example_idx, annotation_idx) 
         }, function (data) {
             $('<div>', {
                 id: `out-text-${annotation_idx}`,
-                class: `annotate-box `,
+                class: `annotate-box`,
                 style: 'display: none;'
             }).appendTo('#outputarea');
 

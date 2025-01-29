@@ -28,7 +28,7 @@ class SpanAnnotator {
         this.currentType = parseInt(type);
 
         // Get all annotatable paragraphs
-        const paragraphs = $('.annotatable-paragraph');
+        const paragraphs = $('.annotate-box');
 
         if (type === -1) {
             // Eraser mode - use eraser cursor
@@ -157,7 +157,10 @@ class SpanAnnotator {
 
     _attachEventHandlers(objectId) {
         const doc = this.documents.get(objectId);
-        const $element = doc.element;
+        const $elementPar = doc.element;
+
+        // Change element to parent's div
+        const $element = $elementPar.parent();
 
         $element.on('selectstart', (e) => {
             e.preventDefault();
