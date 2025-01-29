@@ -10,6 +10,7 @@ class SpanAnnotator {
             100
         );
         this.eraserPreviewActive = false;
+        this.rightClickPreviewActive = false;
         this.eventListeners = new Map();
     }
 
@@ -123,12 +124,31 @@ class SpanAnnotator {
             e.preventDefault();
         });
 
+        $element.on('contextmenu', (e) => {
+            e.preventDefault();
+        });
+
         $element.on('mousedown', (e) => {
+            if (e.button === 2) { // Right click
+                const span = this._findClosestSpan(objectId, e.clientX, e.clientY);
+                if (span) {
+                    this._removeAnnotation(objectId, span);
+                }
+                return;
+            }
             this.isSelecting = true;
             this.startSpan = this._findClosestSpan(objectId, e.clientX, e.clientY);
         });
 
         $element.on('mousemove', (e) => {
+            if (e.buttons === 2) { // Right button pressed
+                const closestSpan = this._findClosestSpan(objectId, e.clientX, e.clientY);
+                if (closestSpan) {
+                    this._previewEraserEffect(objectId, closestSpan);
+                    this.rightClickPreviewActive = true;
+                }
+                return;
+            }
             if (this.isSelecting) {
                 const closestSpan = this.throttledFindClosestSpan(objectId, e.clientX, e.clientY);
                 if (closestSpan) {
@@ -165,6 +185,10 @@ class SpanAnnotator {
             }
             if (this.eraserPreviewActive) {
                 this._clearEraserPreview(objectId);
+            }
+            if (this.rightClickPreviewActive) {
+                this._clearEraserPreview(objectId);
+                this.rightClickPreviewActive = false;
             }
         });
     }
