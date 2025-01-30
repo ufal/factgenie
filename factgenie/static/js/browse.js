@@ -96,12 +96,15 @@ function createOutputBoxes(generated_outputs, highlight_setup_id) {
             annIds.set(ann_id, { "campaign_id": campaign_id, "annotator_group": annotator_group });
         });
     });
+
     const selectBox = $("#annotations-select");
     // clear the selectbox
     selectBox.empty();
 
+    const sortedAnnIds = Array.from(annIds.keys()).sort();
+
     // add an option for each campaign id
-    for (const [ann_id, { campaign_id, annotator_group }] of annIds) {
+    for (const ann_id of sortedAnnIds) {
         const button = $(`<button type="button" class="btn btn-sm btn-primary btn-ann-select" data-ann="${ann_id}">${ann_id}</button>`);
         button.on('click', function () {
             $(this).toggleClass('active');
@@ -124,7 +127,8 @@ function createOutputBoxes(generated_outputs, highlight_setup_id) {
         card = createOutputBox(plain_output, null, "original", output.setup_id);
         card.appendTo(groupDiv);
 
-        for (const [annId, { campaign_id, annotator_group }] of annIds) {
+        for (const annId of sortedAnnIds) {
+            const { campaign_id, annotator_group } = annIds.get(annId);
             annotations = output.annotations.filter(a => a.campaign_id == campaign_id && a.annotator_group == annotator_group)[0];
 
             const annotated_output = getAnnotatedOutput(output, annId, annotations);
