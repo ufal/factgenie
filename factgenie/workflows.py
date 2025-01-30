@@ -390,6 +390,14 @@ def get_output_index(app, force_reload=True):
     elif app.db["output_index"] is None:
         app.db["output_index"] = pd.DataFrame(columns=cols)
 
+    # Hotfix to prevent duplicate outputs after some updates
+    # Probably a caching issue, should be fixed more properly
+    app.db["output_index"] = (
+        app.db["output_index"]
+        .drop_duplicates(subset=["dataset", "split", "setup_id", "example_idx"], keep="last")
+        .reset_index(drop=True)
+    )
+
     return app.db["output_index"]
 
 
