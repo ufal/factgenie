@@ -155,7 +155,9 @@ def run_llm_campaign(app, mode, campaign_id, announcer, campaign, datasets, mode
     campaign.metadata["status"] = CampaignStatus.RUNNING
     campaign.metadata["last_run"] = int(time.time())
     campaign.update_metadata()
-    logger.info(f"Starting LLM campaign {campaign_id}")
+
+    provider = campaign.metadata["config"].get("type", None)
+    logger.info(f"Starting LLM campaign {campaign_id} ({provider})")
 
     # regenerate output index
     workflows.get_output_index(app, force_reload=True)
@@ -189,7 +191,7 @@ def run_llm_campaign(app, mode, campaign_id, announcer, campaign, datasets, mode
         except requests.exceptions.ConnectionError as e:
             traceback.print_exc()
             return utils.error(
-                f"Error processing example {dataset_id}-{split}-{example_idx}: {e.__class__.__name__}: {str(e)}\n\n{model.new_connection_error_advice_docstring}\n"
+                f"Error processing example {dataset_id}-{split}-{example_idx}: {e.__class__.__name__}: {str(e)}\n"
             )
 
         except Exception as e:

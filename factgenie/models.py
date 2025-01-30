@@ -2,19 +2,25 @@
 
 from abc import abstractmethod
 import traceback
-from typing import Optional
-from openai import OpenAI
-from textwrap import dedent
-import json
 
 import os
 import logging
 from pydantic import BaseModel, Field, ValidationError
-import requests
-import copy
-
+import json
 from ast import literal_eval
 from factgenie.campaign import CampaignMode
+
+# LiteLLM seems to be triggering deprecation warnings in Pydantic, so we suppress them
+import warnings
+
+warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
+
+import litellm
+
+# also disable info logs from litellm
+logging.getLogger("LiteLLM").setLevel(logging.ERROR)
+logging.getLogger("LiteLLM Proxy").setLevel(logging.ERROR)
+logging.getLogger("LiteLLM Router").setLevel(logging.ERROR)
 
 logger = logging.getLogger(__name__)
 
@@ -30,20 +36,33 @@ class ModelFactory:
     def model_classes():
         return {
             CampaignMode.LLM_EVAL: {
-                "openai_metric": OpenAIMetric,
-                "ollama_metric": OllamaMetric,
-                "vllm_metric": VLLMMetric,
+                "openai": OpenAIMetric,
+                "ollama": OllamaMetric,
+                "vllm": VLLMMetric,
+                "anthropic": AnthropicMetric,
+                "gemini": GeminiMetric,
+                "vertexai": VertexAIMetric,
             },
             CampaignMode.LLM_GEN: {
-                "openai_gen": OpenAIGen,
-                "ollama_gen": OllamaGen,
-                "tgwebui_gen": TextGenerationWebuiGen,
+                "openai": OpenAIGen,
+                "ollama": OllamaGen,
+                "vllm": VLLMGen,
+                "anthropic": AnthropicGen,
+                "gemini": GeminiGen,
+                "vertexai": VertexAIGen,
             },
         }
 
     @staticmethod
     def from_config(config, mode):
         metric_type = config["type"]
+
+        # suffixes are not needed
+        if metric_type.endswith("_metric"):
+            metric_type = metric_type[: -len("_metric")]
+        elif metric_type.endswith("_gen"):
+            metric_type = metric_type[: -len("_gen")]
+
         classes = ModelFactory.model_classes()[mode]
 
         if metric_type not in classes:
@@ -67,13 +86,18 @@ class OutputAnnotations(BaseModel):
 
 class Model:
     def __init__(self, config):
-        self.validate_config(config)
         self.config = config
         self.parse_model_args()
 
-    @property
-    def new_connection_error_advice_docstring(self):
-        return """Please check the LLM engine documentation. The call to the LLM API server failed."""
+    def _api_url(self):
+        # by default we ignore the API URL
+        # override for local services that actually require the API URL (such as Ollama)
+        return None
+
+    def _service_prefix(self):
+        raise NotImplementedError(
+            "Override this method in the subclass to call the appropriate API. See LiteLLM documentation: https://docs.litellm.ai/docs/providers."
+        )
 
     def get_annotator_id(self):
         return "llm-" + self.config["type"] + "-" + self.config["model"]
@@ -122,7 +146,6 @@ class LLMMetric(Model):
             "annotation_span_categories": list,
             "prompt_template": str,
             "model": str,
-            "model_args": dict,
         }
 
     def get_optional_fields(self):
@@ -130,6 +153,7 @@ class LLMMetric(Model):
             "system_msg": str,
             "start_with": str,
             "annotation_overlap_allowed": bool,
+            "model_args": dict,
             "api_url": str,
             "extra_args": dict,
         }
@@ -139,7 +163,8 @@ class LLMMetric(Model):
             annotations_obj = OutputAnnotations.model_validate_json(annotations_json)
             annotations = annotations_obj.annotations
         except ValidationError as e:
-            logger.error(f"LLM response in not in the expected format: {e}\n\t{annotations_json=}")
+            logger.error(f"Model response is not in the expected format: {e}\n\nResponse: {annotations_json=}")
+            return []
 
         annotation_list = []
         current_pos = 0
@@ -183,96 +208,57 @@ class LLMMetric(Model):
 
         prompt_template = self.config["prompt_template"]
 
-        # we used to require replacing any curly braces with double braces
-        # to support existing prompts, we replace any double braces with single braces
-        # this should not do much harm, as the prompts usually do contain double braces (but remove this in the future?)
-        prompt_template = prompt_template.replace("{{", "{").replace("}}", "}")
-
         return prompt_template.replace("{data}", str(data_for_prompt)).replace("{text}", text)
 
-    def annotate_example(self, data, text):
-        """
-        Annotate the given text with the model.
+    def get_model_response(self, prompt, model_service):
+        response = litellm.completion(
+            model=model_service,
+            messages=[
+                {"role": "system", "content": self.config["system_msg"]},
+                {"role": "user", "content": prompt},
+            ],
+            response_format=OutputAnnotations,
+            api_base=self._api_url(),
+            **self.config.get("model_args", {}),
+        )
 
-        Args:
-            data: the data to be used in the prompt
-            text: the text to be annotated
+        return response
 
-        Returns:
-            A dictionary: {
-                "prompt": the prompt used for the annotation,
-                "annotations": a list of annotations
-            }
-        """
-        raise NotImplementedError("Override this method in the subclass to call the LLM API")
+    def validate_environment(self, model_service):
+        response = litellm.validate_environment(model=model_service)
 
-
-class OpenAIClientMetric(LLMMetric):
-    def __init__(self, config, **kwargs):
-        super().__init__(config)
-        self.client = OpenAI(**kwargs)
-
-        config_schema = config.get("extra_args", {}).get("schema", {})
-        pydantic_schema = OutputAnnotations.model_json_schema()
-        if config_schema:
-            self._schema = config_schema
-            logger.warning(
-                f"We expect parsing according to \n{pydantic_schema=}\n but got anoter schema from config\n{config_schema=}"
-                "\nAdapt parsing accordingly!"
+        if not response["keys_in_environment"]:
+            raise ValueError(
+                f"Required API variables not found for the model {model_service}. Please add the following keys to the system environment or factgenie config: {response['missing_keys']}"
             )
-        else:
-            self._schema = pydantic_schema
-
-        # Required for  OpenAI API but make sense in general too
-        # TODO make it more pydantic / Python friendly
-        self._schema["additionalProperties"] = False
-        self._schema["$defs"]["SpanAnnotation"]["additionalProperties"] = False
-
-        logger.warning(f"The schema is set to\n{self._schema}.\n\tCheck that your prompt is compatible!!! ")
-        # access the later used config keys early to log them once and test if they are present
-        logger.info(f"Using {config['model']=} with {config['system_msg']=}")
-
-    @property
-    def schema(self):
-        return self._schema
-
-    def get_required_fields(self):
-        return {
-            "type": str,
-            "annotation_span_categories": list,
-            "prompt_template": str,
-            "model": str,
-        }
-
-    def get_optional_fields(self):
-        return {
-            "system_msg": str,
-            "model_args": dict,
-            "annotation_overlap_allowed": bool,
-            "api_url": str,  # TODO we receive it from the UI, but can be removed
-            "extra_args": dict,  # TODO we receive it from the UI, but can be removed
-        }
-
-    @abstractmethod
-    def _prepare_chat_completions_create_args(self):
-        raise NotImplementedError("Override this method in the subclass to prepare the arguments for the OpenAI API")
 
     def annotate_example(self, data, text):
+        model = self.config["model"]
+        model_service = self._service_prefix() + model
+
+        self.validate_environment(model_service)
+
+        # temporarily disable until this is properly merged: https://github.com/BerriAI/litellm/pull/7832
+
+        # assert litellm.supports_response_schema(
+        #     model_service
+        # ), f"Model {model_service} does not support the JSON response schema."
+
         try:
             prompt = self.prompt(data, text)
 
-            logger.debug(f"Calling OpenAI API with prompt: {prompt}")
+            logger.debug(f"Calling LiteLLM API.")
+            logger.debug(f"Prompt: {prompt}")
+            logger.debug(f"Model: {model}")
+            logger.debug(f"Model args: {self.config.get('model_args', {})}")
+            logger.debug(f"API URL: {self._api_url()}")
+            logger.debug(f"System message: {self.config['system_msg']}")
 
-            model = self.config["model"]
+            response = self.get_model_response(prompt, model_service)
 
-            response = self.client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": self.config["system_msg"]},
-                    {"role": "user", "content": prompt},
-                ],
-                **self._prepare_chat_completions_create_args(),
-            )
+            logger.debug(f"Prompt tokens: {response.usage.prompt_tokens}")
+            logger.debug(f"Response tokens: {response.usage.completion_tokens}")
+
             annotation_str = response.choices[0].message.content
             logger.info(annotation_str)
 
@@ -286,106 +272,116 @@ class OpenAIClientMetric(LLMMetric):
             raise e
 
 
-class VLLMMetric(OpenAIClientMetric):
+class OpenAIMetric(LLMMetric):
+    # https://docs.litellm.ai/docs/providers/openai
     def __init__(self, config, **kwargs):
-        base_url = config["api_url"]  # Mandatory for VLLM
-        api_key = config.get("api_key", None)  # Optional authentication for VLLM
+        super().__init__(config)
 
-        super().__init__(config, base_url=base_url, api_key=api_key, **kwargs)
-
-    def _prepare_chat_completions_create_args(self):
-        guided_json = self.schema
-        # # works well with vllm https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html#extra-parameters
-        config_args = {"extra_body": {"guided_json": guided_json}}
-        return config_args
-
-
-class OpenAIMetric(OpenAIClientMetric):
-    def _prepare_chat_completions_create_args(self):
-        model = self.config["model"]
-
-        model_supported = any(model.startswith(prefix) for prefix in ["gpt-4o", "gpt-4o-mini"])
-        if not model_supported:
-            logger.warning(
-                f"Model {model} does not support structured output. It is probablye there will be SOME OF PARSING ERRORS"
-            )
-            response_format = {"type": "json_object"}
-        else:
-            # Details at https://platform.openai.com/docs/guides/structured-outputs?context=without_parse
-            json_schema = dict(name="OutputNLGAnnotations", strict=True, schema=self.schema)
-            response_format = {
-                "type": "json_schema",
-                "json_schema": json_schema,
-            }
-
-        config_args = self.config.get("model_args", {})
-        if "response_format" in config_args and config_args["response_format"] != response_format:
-            logger.warning(f"Not using the default {response_format=} but using {config_args['response_format']=}")
-        else:
-            config_args["response_format"] = response_format
-        return config_args
+    def _service_prefix(self):
+        # OpenAI models do not seem to require a prefix
+        return ""
 
 
 class OllamaMetric(LLMMetric):
+    # https://docs.litellm.ai/docs/providers/ollama
     def __init__(self, config):
         super().__init__(config)
 
-        self.set_api_endpoint()
-        self.output_schema = OutputAnnotations.model_json_schema()
+    def validate_environment(self, model_service):
+        # Ollama would require setting OLLAMA_API_BASE, but we set the API URL in the config
+        pass
 
-    @property
-    def new_connection_error_advice_docstring(self):
-        return """\
-Please check the Ollama documentation:
-    https://github.com/ollama/ollama?tab=readme-ov-file#generate-a-response
-"""
+    def _service_prefix(self):
+        # we want to call the `chat` endpoint: https://docs.litellm.ai/docs/providers/ollama#using-ollama-apichat
+        return "ollama_chat/"
 
-    def set_api_endpoint(self):
-        # make sure the API URL ends with the `generate` endpoint
-        self.config["api_url"] = self.config["api_url"].rstrip("/")
-        if not self.config["api_url"].endswith("/generate"):
-            self.config["api_url"] += "/generate/"
+    def _api_url(self):
+        # local server URL
+        api_url = self.config.get("api_url", None)
+        api_url = api_url.rstrip("/")
 
-    def postprocess_output(self, output):
-        # With structured output, response should already be valid JSON
-        return output.strip()
+        if api_url.endswith("/generate") or api_url.endswith("/chat") or api_url.endswith("/api"):
+            raise ValueError(f"The API URL {api_url} is not valid. Use only the base URL, e.g. http://localhost:11434.")
 
-    def annotate_example(self, data, text):
-        prompt = self.prompt(data=data, text=text)
-        request_d = {
-            "model": self.config["model"],
-            "prompt": prompt,
-            "format": self.output_schema,  # Use Pydantic schema
-            "stream": False,
-            "options": self.config.get("model_args", {}),
-        }
-        msg = f"Ollama API {self.config['api_url']} with args:\n\t{request_d}"
-        response, annotation_str, j = None, None, None
-        try:
-            logger.debug(f"Calling Ollama API {self.config['api_url']} with args:\n\t{request_d}")
-            response = requests.post(self.config["api_url"], json=request_d)
+        return api_url
 
-            if response.status_code != 200:
-                raise ValueError(f"Received status code {response.status_code} from the API. Response: {response.text}")
 
-            response_json = response.json()
-            annotation_str = response_json["response"]
+class VLLMMetric(LLMMetric):
+    # https://docs.litellm.ai/docs/providers/vllm
+    def __init__(self, config):
+        super().__init__(config)
 
-            logger.info(annotation_str)
+    def _service_prefix(self):
+        return "hosted_vllm/"
 
-            # Response should match schema format
-            return {
-                "prompt": prompt,
-                "annotations": self.parse_annotations(text=text, annotations_json=annotation_str),
-            }
+    def _api_url(self):
+        # local server URL
+        api_url = self.config.get("api_url", None)
 
-        except (ConnectionError, requests.exceptions.ConnectionError) as e:
-            logger.error(f"Connection error: {e}")
-            raise e
-        except Exception as e:
-            logger.error(f"Error processing response: {e}")
-            traceback.print_exc()
-            return {}
+        return api_url
+
+
+class AnthropicMetric(LLMMetric):
+    # https://docs.litellm.ai/docs/providers/anthropic
+    def __init__(self, config):
+        super().__init__(config)
+
+    def _service_prefix(self):
+        return "anthropic/"
+
+
+class GeminiMetric(LLMMetric):
+    # https://docs.litellm.ai/docs/providers/gemini
+    def __init__(self, config):
+        super().__init__(config)
+
+    def _service_prefix(self):
+        return "gemini/"
+
+
+class VertexAIMetric(LLMMetric):
+    # https://docs.litellm.ai/docs/providers/vertex
+    def __init__(self, config):
+        super().__init__(config)
+
+        self.load_google_credentials()
+
+    def load_google_credentials(self):
+        json_file_path = os.environ.get("VERTEXAI_JSON_FULL_PATH")
+
+        if not json_file_path:
+            raise ValueError(
+                "Please set VERTEXAI_JSON_FULL_PATH in your environment or in the config. For more details, see https://docs.litellm.ai/docs/providers/vertex"
+            )
+
+        # check if file exists
+        if not os.path.exists(json_file_path):
+            raise ValueError(f"The file {json_file_path} was not found.")
+
+        # Load the JSON file
+        with open(json_file_path, "r") as file:
+            vertex_credentials = json.load(file)
+
+        # Convert to JSON string
+        self.vertex_credentials_json = json.dumps(vertex_credentials)
+
+    def _service_prefix(self):
+        return "vertex_ai/"
+
+    def get_model_response(self, prompt, model_service):
+        response = litellm.completion(
+            model=model_service,
+            messages=[
+                {"role": "system", "content": self.config["system_msg"]},
+                {"role": "user", "content": prompt},
+            ],
+            response_format=OutputAnnotations,
+            api_base=self._api_url(),
+            vertex_credentials=self.vertex_credentials_json,
+            **self.config.get("model_args", {}),
+        )
+
+        return response
 
 
 class LLMGen(Model):
@@ -394,11 +390,11 @@ class LLMGen(Model):
             "type": str,
             "prompt_template": str,
             "model": str,
-            "model_args": dict,
         }
 
     def get_optional_fields(self):
         return {
+            "model_args": dict,
             "system_msg": str,
             "api_url": str,
             "extra_args": dict,
@@ -445,6 +441,15 @@ class LLMGen(Model):
         """Override this method to change the format how the data is presented in the prompt. See self.prompt() method for usage."""
         return data
 
+    def get_model_response(self, messages, model_service):
+        response = litellm.completion(
+            model=model_service,
+            messages=messages,
+            api_base=self._api_url(),
+            **self.config.get("model_args", {}),
+        )
+        return response
+
     def generate_output(self, data):
         """
         Generate the output with the model.
@@ -458,166 +463,132 @@ class LLMGen(Model):
                 "output": the generated output
             }
         """
-        raise NotImplementedError("Override this method in the subclass to call the LLM API")
+        model = self.config["model"]
+        model_service = self._service_prefix() + model
+
+        try:
+            prompt = self.prompt(data)
+
+            messages = [
+                {"role": "system", "content": self.config["system_msg"]},
+                {"role": "user", "content": prompt},
+            ]
+
+            if self.config.get("start_with"):
+                messages.append({"role": "assistant", "content": self.config["start_with"]})
+
+            response = self.get_model_response(messages, model_service)
+
+            output = response.choices[0].message.content
+            output = self.postprocess_output(output)
+            logger.info(output)
+
+            return {"prompt": prompt, "output": output}
+
+        except Exception as e:
+            traceback.print_exc()
+            logger.error(e)
+            raise e
 
 
 class OpenAIGen(LLMGen):
-    def __init__(self, config):
-        super().__init__(config)
-        self.client = OpenAI()
-
-    def get_required_fields(self):
-        return {
-            "type": str,
-            "prompt_template": str,
-            "model": str,
-        }
-
-    def get_optional_fields(self):
-        return {
-            "system_msg": str,
-            "model_args": dict,
-            "api_url": str,  # TODO we receive it from the UI, but can be removed
-            "extra_args": dict,  # TODO we receive it from the UI, but can be removed
-            "start_with": str,
-        }
-
-    def generate_output(self, data):
-        try:
-            prompt = self.prompt(data)
-
-            messages = [
-                {"role": "system", "content": self.config["system_msg"]},
-                {"role": "user", "content": prompt},
-            ]
-
-            if self.config.get("start_with"):
-                messages.append({"role": "assistant", "content": self.config["start_with"]})
-
-            logger.debug(f"Calling OpenAI API with prompt: {prompt}")
-            response = self.client.chat.completions.create(
-                model=self.config["model"],
-                messages=messages,
-                **self.config.get("model_args", {}),
-            )
-            output = response.choices[0].message.content
-            output = self.postprocess_output(output)
-            logger.info(output)
-
-            return {"prompt": prompt, "output": output}
-
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(e)
-            raise e
-
-
-class TextGenerationWebuiGen(LLMGen):
-    def __init__(self, config):
+    # https://docs.litellm.ai/docs/providers/openai
+    def __init__(self, config, **kwargs):
         super().__init__(config)
 
-    def get_required_fields(self):
-        return {"type": str, "prompt_template": str, "model": str, "api_url": str, "extra_args": dict}
-
-    def get_optional_fields(self):
-        return {
-            "system_msg": str,
-            "model_args": dict,
-            "start_with": str,
-        }
-
-    def generate_output(self, data):
-        try:
-            prompt = self.prompt(data)
-            api_url = self.config["api_url"]
-            api_key = self.config["extra_args"]["api_key"]
-
-            messages = [
-                {"role": "user", "content": prompt},
-            ]
-
-            if self.config.get("start_with"):
-                messages.append({"role": "assistant", "content": self.config["start_with"]})
-
-            model_args = self.config.get("model_args", {})
-            logger.debug(f"Calling Text Generation Webui API with prompt: {prompt}")
-            response = requests.post(
-                api_url,
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {api_key}",
-                },
-                json={"model": self.config["model"], "messages": messages, **model_args},
-            )
-
-            output = response.choices[0].message.content
-            output = self.postprocess_output(output)
-            logger.info(output)
-
-            return {"prompt": prompt, "output": output}
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(e)
-            raise e
+    def _service_prefix(self):
+        # OpenAI models do not seem to require a prefix: https://docs.litellm.ai/docs/providers/openai
+        return ""
 
 
 class OllamaGen(LLMGen):
+    # https://docs.litellm.ai/docs/providers/ollama
     def __init__(self, config):
         super().__init__(config)
 
-        self.set_api_endpoint()
+    def _service_prefix(self):
+        # we want to call the `chat` endpoint: https://docs.litellm.ai/docs/providers/ollama#using-ollama-apichat
+        return "ollama_chat/"
 
-    @property
-    def new_connection_error_advice_docstring(self):
-        return """\
-Please check the Ollama documentation:
-    https://github.com/ollama/ollama?tab=readme-ov-file#generate-a-response
-"""
+    def _api_url(self):
+        # local server URL
+        api_url = self.config.get("api_url", None)
+        api_url = api_url.rstrip("/")
 
-    def set_api_endpoint(self):
-        # make sure the API URL ends with the `chat` endpoint
-        self.config["api_url"] = self.config["api_url"].rstrip("/")
-        if not self.config["api_url"].endswith("/chat"):
-            self.config["api_url"] += "/chat/"
+        if api_url.endswith("/generate") or api_url.endswith("/chat") or api_url.endswith("/api"):
+            raise ValueError(f"The API URL {api_url} is not valid. Use only the base URL, e.g. http://localhost:11434.")
 
-    def generate_output(self, data):
-        try:
-            prompt = self.prompt(data=data)
+        return api_url
 
-            messages = [
-                {"role": "system", "content": self.config["system_msg"]},
-                {"role": "user", "content": prompt},
-            ]
-            if self.config.get("start_with"):
-                messages.append({"role": "assistant", "content": self.config["start_with"]})
 
-            request_d = {
-                "model": self.config["model"],
-                "messages": messages,
-                "stream": False,
-                "options": self.config.get("model_args", {}),
-            }
-            msg = f"Ollama API {self.config['api_url']} with args:\n\t{request_d}"
-            response, output = None, None
+class VLLMGen(LLMGen):
+    # https://docs.litellm.ai/docs/providers/vllm
+    def __init__(self, config):
+        super().__init__(config)
 
-            logger.debug(f"Calling {msg}")
+    def _service_prefix(self):
+        return "hosted_vllm/"
 
-            response = requests.post(self.config["api_url"], json=request_d)
-            response_json = response.json()
+    def _api_url(self):
+        # local server URL
+        api_url = self.config.get("api_url", None)
 
-            if "error" in response_json:
-                raise ValueError(f"Received error from the API: {response_json['error']}")
+        return api_url
 
-            output = response_json["message"]["content"]
-            output = self.postprocess_output(output)
-            logger.info(output)
-            return {"prompt": prompt, "output": output}
-        except (ConnectionError, requests.exceptions.ConnectionError) as e:
-            # notifiy the user that the API is down
-            logger.error(f"Connection error: {e}")
-            raise e
-        except Exception as e:
-            # ignore occasional problems not to interrupt the annotation process
-            logger.error(f"Received\n\t{response=}\n\t{output=}\nError:{e}")
-            traceback.print_exc()
-            raise e
+
+class AnthropicGen(LLMGen):
+    # https://docs.litellm.ai/docs/providers/anthropic
+    def __init__(self, config):
+        super().__init__(config)
+
+    def _service_prefix(self):
+        return "anthropic/"
+
+
+class GeminiGen(LLMGen):
+    # https://docs.litellm.ai/docs/providers/gemini
+    def __init__(self, config):
+        super().__init__(config)
+
+    def _service_prefix(self):
+        return "gemini/"
+
+
+class VertexAIGen(LLMGen):
+    # https://docs.litellm.ai/docs/providers/vertex
+    def __init__(self, config):
+        super().__init__(config)
+
+        self.load_google_credentials()
+
+    def load_google_credentials(self):
+        json_file_path = os.environ.get("VERTEXAI_JSON_FULL_PATH")
+
+        if not json_file_path:
+            raise ValueError(
+                "Please set VERTEXAI_JSON_FULL_PATH in your environment or in the config. For more details, see https://docs.litellm.ai/docs/providers/vertex"
+            )
+
+        # check if file exists
+        if not os.path.exists(json_file_path):
+            raise ValueError(f"The file {json_file_path} was not found.")
+
+        # Load the JSON file
+        with open(json_file_path, "r") as file:
+            vertex_credentials = json.load(file)
+
+        # Convert to JSON string
+        self.vertex_credentials_json = json.dumps(vertex_credentials)
+
+    def get_model_response(self, messages, model_service):
+        response = litellm.completion(
+            model=model_service,
+            messages=messages,
+            api_base=self._api_url(),
+            vertex_credentials=self.vertex_credentials_json,
+            **self.config.get("model_args", {}),
+        )
+        return response
+
+    def _service_prefix(self):
+        return "vertex_ai/"

@@ -97,7 +97,7 @@ function fetchAnnotation(dataset, split, setup_id, example_idx, annotation_idx) 
         }, function (data) {
             $('<div>', {
                 id: `out-text-${annotation_idx}`,
-                class: `annotate-box `,
+                class: `annotate-box`,
                 style: 'display: none;'
             }).appendTo('#outputarea');
 
@@ -182,7 +182,7 @@ function goToPage(page) {
 
 function addPageLink(annotation_idx) {
     const li = $('<li>', { class: "page-item" });
-    const a = $('<a>', { class: "page-link bg-incomplete", style: "min-height: 28px;", id: `page-link-${annotation_idx}` }).text(annotation_idx);
+    const a = $('<a>', { class: "page-link bg-incomplete", style: "min-height: 28px;", id: `page-link-${annotation_idx}` }).text(parseInt(annotation_idx) + 1);
     li.append(a);
     $("#nav-example-cnt").append(li);
 
@@ -304,6 +304,12 @@ function submitAnnotations(campaign_id) {
 
 $("#hideOverlayBtn").click(function () {
     $("#overlay-start").fadeOut();
+});
+
+$("#undo-button").click(function () {
+    // Get current document ID based on current example index
+    const currentDocId = `p${current_example_idx}`;
+    spanAnnotator.undo(currentDocId);
 });
 
 $(".btn-err-cat").change(function () {

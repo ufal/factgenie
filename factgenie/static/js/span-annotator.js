@@ -10,7 +10,10 @@ class SpanAnnotator {
             100
         );
         this.eraserPreviewActive = false;
+        this.rightClickPreviewActive = false;
         this.eventListeners = new Map();
+        this.history = new Map(); // Map of document ID -> array of history states
+        this.currentHistoryIndex = new Map(); // Map of document ID -> current history index
     }
 
     init(granularity, overlapAllowed, annotationTypes) {
@@ -25,7 +28,7 @@ class SpanAnnotator {
         this.currentType = parseInt(type);
 
         // Get all annotatable paragraphs
-        const paragraphs = $('.annotatable-paragraph');
+        const paragraphs = $('.annotate-box');
 
         if (type === -1) {
             // Eraser mode - use eraser cursor
@@ -47,6 +50,43 @@ class SpanAnnotator {
             this.eventListeners.set(eventName, []);
         }
         this.eventListeners.get(eventName).push(callback);
+    }
+
+    _addToHistory(objectId) {
+        const doc = this.documents.get(objectId);
+        if (!this.history.has(objectId)) {
+            this.history.set(objectId, []);
+            this.currentHistoryIndex.set(objectId, -1);
+        }
+
+        // Remove any future history after current index
+        const currentIndex = this.currentHistoryIndex.get(objectId);
+        this.history.get(objectId).splice(currentIndex + 1);
+
+        // Add new state
+        this.history.get(objectId).push({
+            annotations: JSON.parse(JSON.stringify(doc.annotations)) // Deep copy
+        });
+        this.currentHistoryIndex.set(objectId, this.currentHistoryIndex.get(objectId) + 1);
+    }
+
+    undo(objectId) {
+        if (!this.history.has(objectId)) return;
+
+        const currentIndex = this.currentHistoryIndex.get(objectId);
+        if (currentIndex < 0) return;
+
+        // Restore previous state
+        const previousState = this.history.get(objectId)[currentIndex];
+        const doc = this.documents.get(objectId);
+        doc.annotations = JSON.parse(JSON.stringify(previousState.annotations));
+
+        // Update index
+        this.currentHistoryIndex.set(objectId, currentIndex - 1);
+
+        // Rerender
+        this._renderAnnotations(objectId);
+        this.emit('annotationUndone', { objectId });
     }
 
     emit(eventName, data) {
@@ -117,18 +157,40 @@ class SpanAnnotator {
 
     _attachEventHandlers(objectId) {
         const doc = this.documents.get(objectId);
-        const $element = doc.element;
+        const $elementPar = doc.element;
+
+        // Change element to parent's div
+        const $element = $elementPar.parent();
 
         $element.on('selectstart', (e) => {
             e.preventDefault();
         });
 
+        $element.on('contextmenu', (e) => {
+            e.preventDefault();
+        });
+
         $element.on('mousedown', (e) => {
+            if (e.button === 2) { // Right click
+                const span = this._findClosestSpan(objectId, e.clientX, e.clientY);
+                if (span) {
+                    this._removeAnnotation(objectId, span);
+                }
+                return;
+            }
             this.isSelecting = true;
             this.startSpan = this._findClosestSpan(objectId, e.clientX, e.clientY);
         });
 
         $element.on('mousemove', (e) => {
+            if (e.buttons === 2) { // Right button pressed
+                const closestSpan = this._findClosestSpan(objectId, e.clientX, e.clientY);
+                if (closestSpan) {
+                    this._previewEraserEffect(objectId, closestSpan);
+                    this.rightClickPreviewActive = true;
+                }
+                return;
+            }
             if (this.isSelecting) {
                 const closestSpan = this.throttledFindClosestSpan(objectId, e.clientX, e.clientY);
                 if (closestSpan) {
@@ -165,6 +227,10 @@ class SpanAnnotator {
             }
             if (this.eraserPreviewActive) {
                 this._clearEraserPreview(objectId);
+            }
+            if (this.rightClickPreviewActive) {
+                this._clearEraserPreview(objectId);
+                this.rightClickPreviewActive = false;
             }
         });
     }
@@ -282,19 +348,23 @@ class SpanAnnotator {
     }
 
     _createAnnotation(objectId, $start, $end) {
+        this._addToHistory(objectId);
+
         const doc = this.documents.get(objectId);
         const startIdx = parseInt($start.data('index'));
-        const endIdx = parseInt($end.data('index')) + $end.data('content').length - 1;
+        const endIdx = parseInt($end.data('index')); // Remove the content length adjustment
         const [min, max] = [Math.min(startIdx, endIdx), Math.max(startIdx, endIdx)];
 
+        // Get the actual end position by adding length of the last token
+        const maxWithLength = max + $end.data('content').length - 1;
+
         // Check for overlap if not allowed
-        if (!this.overlapAllowed && this._hasExistingAnnotations(doc, min, max)) {
+        if (!this.overlapAllowed && this._hasExistingAnnotations(doc, min, maxWithLength)) {
             this._renderAnnotations(objectId);
-            return; // Exit without creating annotation if overlap not allowed and overlap exists
+            return;
         }
 
-        const text = doc.text.substring(min, max + 1);
-        // generate a short random hash of 8 characters
+        const text = doc.text.substring(min, maxWithLength + 1);
         const id = Math.random().toString(36).substring(2, 10);
 
         const annotation = {
@@ -305,12 +375,13 @@ class SpanAnnotator {
         };
 
         doc.annotations.push(annotation);
-
         this._renderAnnotations(objectId);
         this.emit('annotationAdded', { objectId, annotation });
     }
 
     _removeAnnotation(objectId, $span) {
+        this._addToHistory(objectId);
+
         const doc = this.documents.get(objectId);
         const position = parseInt($span.data('index'));
 

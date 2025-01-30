@@ -276,7 +276,7 @@ function prefillInstructions() {
 
     var errorList = [];
     annotationSpanCategories.forEach((category) => {
-        const span = `- <span style="color: ${category.color}; text-decoration: underline; text-decoration-thickness: 4px;"><b>${category.name}</b></span>: ${category.description}`;
+        const span = `- <span style="color: ${category.color}; text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>${category.name}</b></span>: ${category.description}`;
         errorList.push(span);
     });
     var instructions = defaultInstructions.replace(/{error_list}/g, errorList.join("\n") + "\n");

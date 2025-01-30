@@ -14,12 +14,15 @@ install_requires = [
     "lxml>=5.3.0",
     "Markdown>=3.7.0",
     "natsort>=8.4.0",
-    "openai>=1.51.2",
     "python-slugify>=8.0.4",
     "PyYAML>=6.0.2",
     "requests>=2.32.3",
     "scipy>=1.14.1",
     "tinyhtml>=1.2.0",
+    "litellm>=1.59.8",
+    "pydantic>=2.10.6",
+    "google-api-python-client>=2.16.0",
+    "google-cloud-aiplatform>=1.38",
 ]
 
 setup(
