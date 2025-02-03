@@ -359,8 +359,16 @@ class SpanAnnotator {
         // Get the actual end position by adding length of the last token
         const maxWithLength = max + String($end.data('content')).length - 1;
 
+
+        // Check for exactly matching annotations
+        const isExisting = doc.annotations.some(ann =>
+            ann.start === min &&
+            ann.start + ann.text.length === maxWithLength + 1 &&
+            ann.type === this.currentType
+        );
+
         // Check for overlap if not allowed
-        if (!this.overlapAllowed && this._hasExistingAnnotations(doc, min, maxWithLength)) {
+        if ((!this.overlapAllowed && this._hasExistingAnnotations(doc, min, maxWithLength)) || isExisting) {
             this._renderAnnotations(objectId);
             return;
         }
