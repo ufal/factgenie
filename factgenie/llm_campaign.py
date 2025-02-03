@@ -100,14 +100,6 @@ def duplicate_llm_campaign(app, mode, campaign_id, new_campaign_id):
     with open(metadata_path, "w") as f:
         json.dump(metadata, f, indent=4)
 
-    # if it is a human campaign, copy also the symlink to the annotate page
-    if metadata["mode"] == CampaignMode.CROWDSOURCING:
-        os.makedirs(os.path.join(TEMPLATES_DIR, "campaigns", new_campaign_id), exist_ok=True)
-        shutil.copy(
-            os.path.join(TEMPLATES_DIR, "campaigns", campaign_id, "annotate.html"),
-            os.path.join(TEMPLATES_DIR, "campaigns", new_campaign_id, "annotate.html"),
-        )
-
     return utils.success()
 
 
