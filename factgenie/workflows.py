@@ -39,7 +39,7 @@ from factgenie import (
     CROWDSOURCING_CONFIG_DIR,
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("factgenie")
 
 
 def get_dataset(app, dataset_id):

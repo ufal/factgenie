@@ -5,7 +5,7 @@ from datasets import load_dataset
 
 from factgenie.datasets.dataset import Dataset
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("factgenie")
 
 
 class HFDataset(Dataset):

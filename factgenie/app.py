@@ -47,7 +47,7 @@ app.db["running_campaigns"] = set()
 app.db["announcers"] = {}
 app.wsgi_app = ProxyFix(app.wsgi_app, x_host=1)
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("factgenie")
 
 
 # -----------------
@@ -228,7 +228,7 @@ def browse():
 
     if dataset_id and split and example_idx:
         display_example = {"dataset": dataset_id, "split": split, "example_idx": int(example_idx)}
-        logger.info(f"Browsing {display_example}")
+        logger.info(f"Browsing {dataset_id} | {split} | {example_idx}")
     else:
         display_example = None
 

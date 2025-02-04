@@ -279,19 +279,75 @@ def run_llm_campaign(campaign_id: str):
     )
 
 
-def create_app(**kwargs):
-    import yaml
+def setup_logging(config):
     import logging
     import coloredlogs
     import os
+    import re
+    from datetime import datetime
+
+    from factgenie import ROOT_DIR
+
+    class PlainTextFormatter(logging.Formatter):
+        def format(self, record):
+            msg = super().format(record)
+            return remove_ansi_codes(msg)
+
+    def remove_ansi_codes(text):
+        """Removes ANSI escape sequences from text."""
+        import re
+
+        ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+        return ansi_escape.sub("", text)
+
+    os.makedirs(f"{ROOT_DIR}/logs", exist_ok=True)
+    datetime_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    # Define log format
+    log_format = "%(asctime)s - %(levelname)s - %(message)s"
+
+    # Create loggers
+    logger = logging.getLogger("factgenie")
+
+    # Get logging level from config
+    logging_level = config.get("logging", {}).get("level", "INFO")
+    logger.setLevel(logging_level)
+
+    # File handler for errors and warnings
+    error_handler = logging.FileHandler(f"{ROOT_DIR}/logs/{datetime_str}_error.log")
+    error_handler.setLevel(logging.WARNING)
+    error_handler.setFormatter(PlainTextFormatter(log_format))
+
+    # File handler for info messages only
+    info_handler = logging.FileHandler(f"{ROOT_DIR}/logs/{datetime_str}_info.log")
+    info_handler.setLevel(logging.INFO)
+    info_handler.addFilter(lambda record: record.levelno == logging.INFO)
+    info_handler.setFormatter(PlainTextFormatter(log_format))
+
+    # # Console handler with colored output
+    # console_handler = logging.StreamHandler()
+    # console_handler.setLevel(logging_level)
+    coloredlogs.install(level=logging_level, logger=logger, fmt=log_format)
+    # console_handler.setFormatter(logging.Formatter(log_format))  # ANSI codes preserved
+
+    # Add handlers to logger
+    logger.addHandler(error_handler)
+    logger.addHandler(info_handler)
+    # logger.addHandler(console_handler)
+
+    return logger
+
+
+def create_app(**kwargs):
+    import yaml
+    import os
     import shutil
+    import logging
     import factgenie.workflows as workflows
     from apscheduler.schedulers.background import BackgroundScheduler
+    from datetime import datetime
     from factgenie.utils import check_login
     from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, MAIN_CONFIG_TEMPLATE_PATH, CAMPAIGN_DIR, INPUT_DIR, OUTPUT_DIR
-
-    file_handler = logging.FileHandler("error.log")
-    file_handler.setLevel(logging.ERROR)
 
     if not MAIN_CONFIG_PATH.exists():
         print("Activating the default configuration.")
@@ -300,18 +356,8 @@ def create_app(**kwargs):
     with open(MAIN_CONFIG_PATH) as f:
         config = yaml.safe_load(f)
 
-    logging_level = config.get("logging", {}).get("level", "INFO")
-    logging.basicConfig(
-        format="%(levelname)s (%(filename)s:%(lineno)d) - %(message)s",
-        level=logging_level,
-        handlers=[file_handler, logging.StreamHandler()],
-    )
-    logger = logging.getLogger(__name__)
-    coloredlogs.install(
-        level=logging_level,
-        logger=logger,
-        fmt="%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s",
-    )
+    logger = setup_logging(config)
+
     config["host_prefix"] = os.getenv("FACTGENIE_HOST_PREFIX", config["host_prefix"])
     config["login"]["active"] = os.getenv("FACTGENIE_LOGIN_ACTIVE", config["login"]["active"])
     config["login"]["lock_view_pages"] = os.getenv(

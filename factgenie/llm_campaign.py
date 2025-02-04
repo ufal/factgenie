@@ -21,7 +21,7 @@ import factgenie.workflows as workflows
 
 from factgenie import CAMPAIGN_DIR, OUTPUT_DIR, TEMPLATES_DIR
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("factgenie")
 
 
 def create_llm_campaign(app, mode, campaign_id, config, campaign_data, datasets, overwrite=False):
@@ -149,7 +149,20 @@ def run_llm_campaign(app, mode, campaign_id, announcer, campaign, datasets, mode
     campaign.update_metadata()
 
     provider = campaign.metadata["config"].get("type", None)
-    logger.info(f"Starting LLM campaign {campaign_id} ({provider})")
+
+    logger.info(f"Starting LLM campaign \033[1m{campaign_id}\033[0m | {provider}")
+
+    logger.info(f"=" * 50)
+    logger.info(f"\033[1mModel\033[0m: {campaign.metadata['config']['model']}")
+    logger.info(f"\033[1mAPI URL\033[0m: {campaign.metadata['config'].get('api_url')}")
+    logger.info(f"\033[1mModel args\033[0m: {campaign.metadata['config'].get('model_args')}")
+    logger.info(f"\033[1mSystem message\033[0m: \"{campaign.metadata['config'].get('system_msg')}\"")
+    logger.info(f"\033[1mAnnotation span categories\033[0m:")
+
+    for cat in campaign.metadata["config"].get("annotation_span_categories", []):
+        logger.info(f"[{cat['name']}] {cat['description']}")
+
+    logger.info(f"=" * 50)
 
     # regenerate output index
     workflows.get_output_index(app, force_reload=True)
@@ -211,7 +224,9 @@ def run_llm_campaign(app, mode, campaign_id, announcer, campaign, datasets, mode
         payload = {"campaign_id": campaign_id, "stats": stats, "type": "result", "response": response}
 
         utils.announce(announcer, payload)
+        logger.info(f"-" * 50)
         logger.info(f"{campaign_id}: {stats['finished']}/{stats['total']} examples")
+        logger.info(f"-" * 50)
 
     # if all examples are finished, set the campaign status to finished
     if len(db.status.unique()) == 1 and db.status.unique()[0] == ExampleStatus.FINISHED:
