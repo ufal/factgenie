@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("factgenie")
 
 import dateutil.parser
 from factgenie.datasets.dataset import Dataset

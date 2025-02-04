@@ -17,7 +17,7 @@ import factgenie.workflows as workflows
 from factgenie import CAMPAIGN_DIR, PREVIEW_STUDY_ID, TEMPLATES_DIR
 from factgenie.campaign import CampaignMode, ExampleStatus
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("factgenie")
 
 
 def create_crowdsourcing_campaign(app, campaign_id, config, campaign_data):

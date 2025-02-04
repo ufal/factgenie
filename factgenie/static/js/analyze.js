@@ -88,10 +88,6 @@ function updateComparisonData() {
     $("#selectedDatasetsContent").empty();
     $("#agreement-btn").addClass("disabled")
 
-    if (selectedCampaigns.length < 2) {
-        // TODO make it also work for multiple annotators within the same campaign
-        return;
-    }
     // find which category label names are common to all campaigns
     const campaignCategories = selectedCampaigns.map(c => campaigns[c].metadata.config.annotation_span_categories).map(c => c.map(cat => cat.name));
     const commonCategories = campaignCategories.reduce((acc, val) => {
@@ -102,23 +98,59 @@ function updateComparisonData() {
         commonCategories.map(c => `<span class="badge bg-secondary">${c}</span>`).join("\n")
     );
 
-    // find examples that are common to all selected campaigns and that have a status `finished`
-    const combinations = selectedCampaigns.map(c => campaigns[c].data);
+    // Create campaign-annotator group combinations
+    const campaignAnnotatorGroups = selectedCampaigns.flatMap(campaign => {
+        const campaignData = campaigns[campaign].data;
+        const annotatorGroups = [...new Set(campaignData.map(d => d.annotator_group))];
+        return annotatorGroups.map(group => ({ campaign, group }));
+    });
+
+    // Get examples for each campaign-annotator group combination
+    const combinations = campaignAnnotatorGroups.map(({ campaign, group }) =>
+        campaigns[campaign].data.filter(d => d.annotator_group === group)
+    );
+
+    // Find common examples across all combinations
     const commonExamples = combinations.reduce((acc, val) => {
-        return acc.filter(x => val.some(y => y.dataset === x.dataset && y.split === x.split && y.setup_id === x.setup_id));
+        return acc.filter(x => val.some(y =>
+            y.dataset === x.dataset &&
+            y.split === x.split &&
+            y.setup_id === x.setup_id
+        ));
     });
     const finishedExamples = commonExamples.filter(e => e.status === 'finished');
 
-    // for every (dataset, split, setup_id) combination, compute the number of examples
+    // Count examples per dataset-split-setup combination
     const exampleCounts = finishedExamples.reduce((acc, val) => {
         const key = `${val.dataset}|${val.split}|${val.setup_id}`;
         acc[key] = (acc[key] || 0) + 1;
         return acc;
     }, {});
 
-    const comparisonData = Object.entries(exampleCounts).map(([key, count]) => {
+    const filteredExampleCounts = Object.entries(exampleCounts).reduce((acc, [key, count]) => {
         const [dataset, split, setup_id] = key.split('|');
-        return { dataset, split, setup_id, example_count: count };
+        const groupsWithExample = campaignAnnotatorGroups.filter(({ campaign, group }) => {
+            return campaigns[campaign].data.some(d =>
+                d.annotator_group === group &&
+                d.dataset === dataset &&
+                d.split === split &&
+                d.setup_id === setup_id &&
+                d.status === 'finished'
+            );
+        });
+
+        if (groupsWithExample.length >= 2) {
+            acc[key] = count;
+        }
+        return acc;
+    }, {});
+
+    const comparisonData = Object.entries(filteredExampleCounts).map(([key, count]) => {
+        const [dataset, split, setup_id] = key.split('|');
+        const groups = campaignAnnotatorGroups
+            .map(({ campaign, group }) => `${campaign}:${group}`)
+            .join(", ");
+        return { dataset, split, setup_id, example_count: count, groups };
     });
 
     $("#selectedDatasetsContent").html(
@@ -128,6 +160,7 @@ function updateComparisonData() {
                 <td>${d.split}</td>
                 <td>${d.setup_id}</td>
                 <td>${d.example_count}</td>
+                <td><small>${d.groups}</small></td>
                 <td><button type="button" class="btn btn-sm btn-secondary" onclick="deleteRow(this);">x</button></td>
             </tr>`
         ).join("\n")

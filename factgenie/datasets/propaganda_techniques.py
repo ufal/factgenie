@@ -17,7 +17,7 @@ import zipfile
 from factgenie.utils import resumable_download
 from factgenie.datasets.dataset import Dataset
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("factgenie")
 
 PTC_DATASET_ID = "propaganda-techniques"
 PTC_CAMPAIGN_ID = "ptc"

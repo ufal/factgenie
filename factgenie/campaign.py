@@ -9,7 +9,7 @@ import ast
 from datetime import datetime
 from factgenie import CAMPAIGN_DIR
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("factgenie")
 
 
 class CampaignMode:

@@ -7,6 +7,7 @@ import os
 import logging
 from pydantic import BaseModel, Field, ValidationError
 import json
+import time
 from ast import literal_eval
 from factgenie.campaign import CampaignMode
 
@@ -22,7 +23,10 @@ logging.getLogger("LiteLLM").setLevel(logging.ERROR)
 logging.getLogger("LiteLLM Proxy").setLevel(logging.ERROR)
 logging.getLogger("LiteLLM Router").setLevel(logging.ERROR)
 
-logger = logging.getLogger(__name__)
+# disable requests logging
+logging.getLogger("httpx").setLevel(logging.ERROR)
+
+logger = logging.getLogger("factgenie")
 
 DIR_PATH = os.path.dirname(__file__)
 LLM_ANNOTATION_DIR = os.path.join(DIR_PATH, "annotations")
@@ -163,18 +167,39 @@ class LLMMetric(Model):
             annotations_obj = OutputAnnotations.model_validate_json(annotations_json)
             annotations = annotations_obj.annotations
         except ValidationError as e:
-            logger.error(f"Model response is not in the expected format: {e}\n\nResponse: {annotations_json=}")
+            logger.error("Parsing error: ", json.loads(e.json())[0]["msg"])
+            try:
+                logger.error(f"Model response does not follow the schema.")
+                parsed_json = json.loads(annotations_json)
+                logger.error(f"Model response: {parsed_json}")
+            except json.JSONDecodeError:
+                logger.error(f"Model response is not a valid JSON.")
+                logger.error(f"Model response: {annotations_json}")
+
             return []
 
         annotation_list = []
         current_pos = 0
 
-        for annotation in annotations:
+        logger.info(f"Response contains {len(annotations)} annotations.")
+
+        for i, annotation in enumerate(annotations):
+            annotated_span = annotation.text.lower()
+
+            if len(text) == 0:
+                logger.warning(f"❌ Span EMPTY.")
+                continue
+
             # find the `start` index of the error in the text
-            start_pos = text.lower().find(annotation.text.lower(), current_pos)
+            start_pos = text.lower().find(annotated_span, current_pos)
 
             if start_pos == -1:
-                logger.warning(f'Cannot find {annotation=} in text "{text[current_pos:]}"')
+                if text.lower().find(annotated_span) != -1:
+                    # The annotation was found earlier in the text. That may be an accident, therefore we ignore it. The model should be instructed to order the annotation sequentially.
+                    logger.warning(f'❌ Span OUT OF ORDER: "{annotated_span}"')
+                else:
+                    # The annotation was not found in the text.
+                    logger.warning(f'❌ Span NOT FOUND: "{annotated_span}"')
                 continue
 
             annotation_d = annotation.model_dump()
@@ -185,6 +210,17 @@ class LLMMetric(Model):
 
             # Save the start position of the annotation
             annotation_d["start"] = start_pos
+
+            try:
+                annotation_type_str = self.config["annotation_span_categories"][annotation_d["type"]]["name"]
+            except:
+                logger.error(f"Annotation type {annotation_d['type']} not found in the annotation_span_categories.")
+                continue
+
+            logger.info(
+                f'[\033[32m\033[1m{annotation_type_str}\033[0m] "\033[32m{annotation.text}\033[0m" ({start_pos}:{start_pos + len(annotation.text)})'
+            )
+
             annotation_list.append(annotation_d)
 
             overlap_allowed = self.config.get("annotation_overlap_allowed", False)
@@ -247,20 +283,20 @@ class LLMMetric(Model):
         try:
             prompt = self.prompt(data, text)
 
-            logger.debug(f"Calling LiteLLM API.")
             logger.debug(f"Prompt: {prompt}")
-            logger.debug(f"Model: {model}")
-            logger.debug(f"Model args: {self.config.get('model_args', {})}")
-            logger.debug(f"API URL: {self._api_url()}")
-            logger.debug(f"System message: {self.config['system_msg']}")
 
+            logger.info("Annotated text:")
+            logger.info(f"\033[34m{text}\033[0m")
+
+            logger.info(f"Waiting for {model_service}.")
+            start = time.time()
             response = self.get_model_response(prompt, model_service)
+            logger.info(f"Received response in {time.time() - start:.2f} seconds.")
 
             logger.debug(f"Prompt tokens: {response.usage.prompt_tokens}")
             logger.debug(f"Response tokens: {response.usage.completion_tokens}")
 
             annotation_str = response.choices[0].message.content
-            logger.info(annotation_str)
 
             return {
                 "prompt": prompt,
@@ -564,21 +600,18 @@ class VertexAIGen(LLMGen):
     def load_google_credentials(self):
         json_file_path = os.environ.get("VERTEXAI_JSON_FULL_PATH")
 
-        if not json_file_path:
-            raise ValueError(
-                "Please set VERTEXAI_JSON_FULL_PATH in your environment or in the config. For more details, see https://docs.litellm.ai/docs/providers/vertex"
-            )
+        if json_file_path:
+            if not os.path.exists(json_file_path):
+                raise ValueError(
+                    "File not found in VERTEXAI_JSON_FULL_PATH. For more details, see https://docs.litellm.ai/docs/providers/vertex"
+                )
 
-        # check if file exists
-        if not os.path.exists(json_file_path):
-            raise ValueError(f"The file {json_file_path} was not found.")
+            # Load the JSON file
+            with open(json_file_path, "r") as file:
+                vertex_credentials = json.load(file)
 
-        # Load the JSON file
-        with open(json_file_path, "r") as file:
-            vertex_credentials = json.load(file)
-
-        # Convert to JSON string
-        self.vertex_credentials_json = json.dumps(vertex_credentials)
+            # Convert to JSON string
+            self.vertex_credentials_json = json.dumps(vertex_credentials)
 
     def get_model_response(self, messages, model_service):
         response = litellm.completion(

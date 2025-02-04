@@ -11,7 +11,7 @@ import factgenie.workflows as workflows
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("factgenie")
 
 
 def generate_example_index(app, campaign):

@@ -2,7 +2,7 @@
 import logging
 import requests
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("factgenie")
 
 from factgenie.datasets.basic import JSONDataset
 from factgenie.datasets.quintd import QuintdDataset

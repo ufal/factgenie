@@ -10,7 +10,7 @@ from factgenie.datasets.dataset import Dataset
 from factgenie.utils import resumable_download
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("factgenie")
 
 
 class QuintdDataset(Dataset):

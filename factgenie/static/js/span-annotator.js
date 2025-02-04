@@ -128,13 +128,14 @@ class SpanAnnotator {
         let currentIndex = 0;
         if (this.granularity === 'words') {
             const parts = text.split(/(\s+)/);
+
             return parts.map((part, arrayIndex) => {
                 if (arrayIndex % 2 === 1) {
                     return ''; // Remove standalone whitespace spans
                 }
 
                 const whitespace = arrayIndex < parts.length - 1 ? parts[arrayIndex + 1] : '';
-                const fullContent = part + whitespace;
+                const fullContent = String(part) + whitespace;
                 const span = `<span class="annotatable" 
                     data-index="${currentIndex}" 
                     data-content="${part}"
@@ -356,10 +357,18 @@ class SpanAnnotator {
         const [min, max] = [Math.min(startIdx, endIdx), Math.max(startIdx, endIdx)];
 
         // Get the actual end position by adding length of the last token
-        const maxWithLength = max + $end.data('content').length - 1;
+        const maxWithLength = max + String($end.data('content')).length - 1;
+
+
+        // Check for exactly matching annotations
+        const isExisting = doc.annotations.some(ann =>
+            ann.start === min &&
+            ann.start + ann.text.length === maxWithLength + 1 &&
+            ann.type === this.currentType
+        );
 
         // Check for overlap if not allowed
-        if (!this.overlapAllowed && this._hasExistingAnnotations(doc, min, maxWithLength)) {
+        if ((!this.overlapAllowed && this._hasExistingAnnotations(doc, min, maxWithLength)) || isExisting) {
             this._renderAnnotations(objectId);
             return;
         }
@@ -409,7 +418,7 @@ class SpanAnnotator {
             $('.whitespace', $span).removeClass('whitespace-hidden');
 
             if (spanAnnotations.length > 0) {
-                const content = $span.data('content');
+                const content = String($span.data('content'));
                 const isLastInAnyAnnotation = spanAnnotations.some(ann =>
                     position + content.length >= ann.start + ann.text.length);
                 const hasMultipleAnnotations = spanAnnotations.length > 1;
