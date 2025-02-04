@@ -5,7 +5,7 @@ import logging
 import os
 import requests
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("factgenie")
 from factgenie.datasets.hf_dataset import HFDataset
 from tinyhtml import h
 

@@ -20,7 +20,7 @@ from factgenie import (
     MAIN_CONFIG_PATH,
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("factgenie")
 
 
 # https://maxhalford.github.io/blog/flask-sse-no-deps/

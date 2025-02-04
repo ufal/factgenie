@@ -15,7 +15,7 @@ from abc import ABC, abstractmethod
 
 from factgenie import INPUT_DIR, OUTPUT_DIR
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("factgenie")
 
 
 def get_dataset_classes():
