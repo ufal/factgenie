@@ -7,6 +7,7 @@ import os
 import logging
 from pydantic import BaseModel, Field, ValidationError
 import json
+import time
 from ast import literal_eval
 from factgenie.campaign import CampaignMode
 
@@ -180,10 +181,7 @@ class LLMMetric(Model):
         annotation_list = []
         current_pos = 0
 
-        logger.info("Annotated text:")
-        logger.info(f"\033[34m{text}\033[0m")
-
-        logger.info(f"Received {len(annotations)} annotations.")
+        logger.info(f"Response contains {len(annotations)} annotations.")
 
         for i, annotation in enumerate(annotations):
             annotated_span = annotation.text.lower()
@@ -287,7 +285,13 @@ class LLMMetric(Model):
 
             logger.debug(f"Prompt: {prompt}")
 
+            logger.info("Annotated text:")
+            logger.info(f"\033[34m{text}\033[0m")
+
+            logger.info(f"Waiting for {model_service}.")
+            start = time.time()
             response = self.get_model_response(prompt, model_service)
+            logger.info(f"Received response in {time.time() - start:.2f} seconds.")
 
             logger.debug(f"Prompt tokens: {response.usage.prompt_tokens}")
             logger.debug(f"Response tokens: {response.usage.completion_tokens}")

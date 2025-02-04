@@ -247,6 +247,9 @@ def create_llm_campaign(
 @app.cli.command("run_llm_campaign")
 @click.argument("campaign_id", type=str)
 def run_llm_campaign(campaign_id: str):
+    """
+    Run a LLM campaign by id.
+    """
     from factgenie.models import ModelFactory
     from factgenie import llm_campaign
     from factgenie.campaign import CampaignStatus
