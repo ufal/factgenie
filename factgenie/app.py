@@ -228,7 +228,7 @@ def browse():
 
     if dataset_id and split and example_idx:
         display_example = {"dataset": dataset_id, "split": split, "example_idx": int(example_idx)}
-        logger.info(f"Browsing {dataset_id} | {split} | {example_idx}")
+        logger.info(f"Serving permalink {dataset_id} / {split} / {example_idx}")
     else:
         display_example = None
 
