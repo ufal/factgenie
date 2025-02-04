@@ -596,21 +596,18 @@ class VertexAIGen(LLMGen):
     def load_google_credentials(self):
         json_file_path = os.environ.get("VERTEXAI_JSON_FULL_PATH")
 
-        if not json_file_path:
-            raise ValueError(
-                "Please set VERTEXAI_JSON_FULL_PATH in your environment or in the config. For more details, see https://docs.litellm.ai/docs/providers/vertex"
-            )
+        if json_file_path:
+            if not os.path.exists(json_file_path):
+                raise ValueError(
+                    "File not found in VERTEXAI_JSON_FULL_PATH. For more details, see https://docs.litellm.ai/docs/providers/vertex"
+                )
 
-        # check if file exists
-        if not os.path.exists(json_file_path):
-            raise ValueError(f"The file {json_file_path} was not found.")
+            # Load the JSON file
+            with open(json_file_path, "r") as file:
+                vertex_credentials = json.load(file)
 
-        # Load the JSON file
-        with open(json_file_path, "r") as file:
-            vertex_credentials = json.load(file)
-
-        # Convert to JSON string
-        self.vertex_credentials_json = json.dumps(vertex_credentials)
+            # Convert to JSON string
+            self.vertex_credentials_json = json.dumps(vertex_credentials)
 
     def get_model_response(self, messages, model_service):
         response = litellm.completion(
