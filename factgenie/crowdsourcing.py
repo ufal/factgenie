@@ -409,8 +409,12 @@ def save_annotations(app, campaign_id, annotation_set, annotator_id):
                 force_reload=False,
             )["output"]
 
+            annotations = ann["annotations"]
+            # remove empty annotations
+            annotations = [a for a in annotations if a["text"]]
+
             res = {
-                "annotations": ann["annotations"],
+                "annotations": annotations,
                 "flags": ann["flags"],
                 "options": ann["options"],
                 "text_fields": ann["textFields"],
