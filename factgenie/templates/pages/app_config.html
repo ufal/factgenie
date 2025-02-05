@@ -39,7 +39,7 @@
         <div class="form-group mt-3">
           <label for="lock_view_pages">Include view pages in password protection</label>
           <div class="mb-2">
-            <small class="form-text text-muted">If disable, the Browse and Analyze pages will not require login even
+            <small class="form-text text-muted">If disabled, the Browse and Analyze pages will not require login even
               when login is active. Useful for publishing results collected with factgenie.</small>
           </div>
           <div class="form-check form-switch">
@@ -117,7 +117,7 @@
         <div class="form-group mt-3">
           <label>OpenAI</label>
           <div class="mb-2">
-            <small class="form-text text-muted">API key for OpenAI models (GPT-3, GPT-4, etc.)</small>
+            <small class="form-text text-muted">API key for OpenAI models</small>
           </div>
           <input type="password" class="form-control" id="openai_api_key" name="openai_api_key" 
             value="{{ app_config.api_keys.OPENAI_API_KEY }}">
