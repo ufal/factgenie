@@ -56,6 +56,10 @@ def generate_span_index(app, campaign):
         # Drop the original annotations column
         span_index = span_index.drop("annotations", axis=1)
 
+        # Remove any annotations that have NaN start or type or empty text
+        span_index = span_index.dropna(subset=["annotation_start", "annotation_type", "annotation_text"])
+        span_index = span_index[span_index["annotation_text"].apply(lambda x: len(x) > 0)]
+
     return span_index
 
 
