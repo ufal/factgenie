@@ -143,7 +143,11 @@ function initAnnotation() {
 
     const annotationSpanCategories = getAnnotationSpanCategories();
 
-    spanAnnotator.init("words", annotationSpanCategories);
+    spanAnnotator.init(
+        "words",
+        true,
+        annotationSpanCategories
+    );
 
     const exampleText = $('#example-text').val();
     const p = $('<p>', { class: 'annotatable-paragraph' }).html(exampleText);
