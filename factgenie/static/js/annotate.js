@@ -325,6 +325,12 @@ $(".btn-eraser").change(function () {
     }
 });
 
+$(".btn-select").change(function () {
+    if (this.checked) {
+        spanAnnotator.setCurrentAnnotationType(-2);
+    }
+});
+
 $('.btn-check').on('change', function () {
     $('.btn-check').each(function () {
         const label = $(`label[for=${this.id}]`);

@@ -1036,6 +1036,13 @@ a:hover {
     user-select: none;
 }
 
+.annotatable-paragraph.select-mode-enabled {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
 .whitespace {
     display: inline;
 }
