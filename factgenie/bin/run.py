@@ -311,6 +311,7 @@ def setup_logging(config):
 
     # Create loggers
     logger = logging.getLogger("factgenie")
+    logger.propagate = False
 
     # Get logging level from config
     logging_level = config.get("logging", {}).get("level", "INFO")
