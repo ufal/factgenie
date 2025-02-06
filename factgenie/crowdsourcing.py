@@ -277,7 +277,7 @@ def select_batch(db, seed, annotator_id):
             assigned_batch = db.loc[
                 (db["annotator_id"] == annotator_id) & (db["status"] == ExampleStatus.ASSIGNED)
             ].iloc[0]
-            logging.info(
+            logger.info(
                 f"Reusing batch {assigned_batch['batch_idx']} (annotator group {assigned_batch['annotator_group']})"
             )
             return assigned_batch["batch_idx"], assigned_batch["annotator_group"]
@@ -299,7 +299,7 @@ def select_batch(db, seed, annotator_id):
             "annotator_group"
         ].min()
 
-        logging.info(f"Selected batch {selected_batch_idx} (annotator group {selected_annotator_group})")
+        logger.info(f"Selected batch {selected_batch_idx} (annotator group {selected_annotator_group})")
         return selected_batch_idx, selected_annotator_group
     else:
         raise ValueError("No available batches")
@@ -333,7 +333,7 @@ def get_annotator_batch(app, campaign, service_ids, batch_idx=None):
     with app.db["lock"]:
         annotator_id = service_ids["annotator_id"]
 
-        logging.info(f"Acquiring lock for {annotator_id}")
+        logger.info(f"Acquiring lock for {annotator_id}")
         start = int(time.time())
         seed = random.seed(str(start) + str(service_ids.values()))
 
@@ -342,7 +342,7 @@ def get_annotator_batch(app, campaign, service_ids, batch_idx=None):
             try:
                 batch_idx, annotator_group = select_batch(db, seed, annotator_id)
             except ValueError as e:
-                logging.info(str(e))
+                logger.info(str(e))
                 # no available batches
                 return []
         else:
@@ -361,7 +361,7 @@ def get_annotator_batch(app, campaign, service_ids, batch_idx=None):
             campaign.update_db(db)
 
         annotator_batch = get_examples_for_batch(db, batch_idx, annotator_group)
-        logging.info(f"Releasing lock for {annotator_id}")
+        logger.info(f"Releasing lock for {annotator_id}")
 
     return annotator_batch
 
@@ -409,8 +409,12 @@ def save_annotations(app, campaign_id, annotation_set, annotator_id):
                 force_reload=False,
             )["output"]
 
+            annotations = ann["annotations"]
+            # remove empty annotations
+            annotations = [a for a in annotations if a["text"]]
+
             res = {
-                "annotations": ann["annotations"],
+                "annotations": annotations,
                 "flags": ann["flags"],
                 "options": ann["options"],
                 "text_fields": ann["textFields"],

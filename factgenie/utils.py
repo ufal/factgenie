@@ -131,7 +131,7 @@ def resumable_download(
     file_exists = os.path.exists(filename)
     if file_exists:
         if force_download:
-            logging.info(f"Removing existing file and downloading from scratch because force_download=True: {filename}")
+            logger.info(f"Removing existing file and downloading from scratch because force_download=True: {filename}")
             os.unlink(filename)
             file_size = 0
         else:
@@ -191,7 +191,7 @@ def resumable_download(
             # "Request Range Not Satisfiable" means the requested range
             # starts after the file ends OR that the server does not support range requests.
             if e.code == 404 and missing_ok:
-                logging.warning(f"{url} does not exist (error 404). Skipping this file.")
+                logger.warning(f"{url} does not exist (error 404). Skipping this file.")
                 if Path(filename).is_file():
                     os.remove(filename)
             elif e.code == 416:
@@ -209,9 +209,9 @@ def resumable_download(
                 if content_range == f"bytes */{file_size}":
                     # If the content-range returned by server also matches the file size,
                     # then the file is already downloaded
-                    logging.info(f"File already downloaded: {filename}")
+                    logger.info(f"File already downloaded: {filename}")
                 else:
-                    logging.info("Server does not support range requests - attempting downloading from scratch")
+                    logger.info("Server does not support range requests - attempting downloading from scratch")
                     _download(urllib.request.Request(url, headers=ua_headers), 0)
             else:
                 raise e

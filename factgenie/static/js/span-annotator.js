@@ -27,18 +27,25 @@ class SpanAnnotator {
         // make sure that type is integer
         this.currentType = parseInt(type);
 
-        // Get all annotatable paragraphs
-        const paragraphs = $('.annotate-box');
+        // Get all annotatable paragraph boxes
+        const paragraphBoxes = $('.annotate-box');
+        const paragraphs = $('.annotatable-paragraph');
 
-        if (type === -1) {
+        if (type === -2) {
+            // Select mode - use text cursor
+            paragraphs.addClass('select-mode-enabled');
+            paragraphBoxes.css('cursor', 'text');
+        } else if (type === -1) {
+            paragraphs.removeClass('select-mode-enabled');
             // Eraser mode - use eraser cursor
-            paragraphs.css('cursor', 'pointer');
+            paragraphBoxes.css('cursor', 'pointer');
         } else if (type != null) {
+            paragraphs.removeClass('select-mode-enabled');
             // Annotation mode - use colored brush cursor based on category
             const color = this.annotationTypes[type]?.color;
             if (color) {
                 // Create colored cursor style
-                paragraphs.css({
+                paragraphBoxes.css({
                     'cursor': `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='25' height='25' viewBox='0 0 328.862 328.862'%3E%3Cg%3E%3Cpath fill='${encodeURIComponent(color)}' d='M251.217,195.25L56.286,69.063c-4.609-2.984-10.48-3.21-15.308-0.591c-4.826,2.62-7.835,7.667-7.844,13.158l-0.375,232.206c-0.01,6.371,4.006,12.054,10.016,14.172c1.633,0.576,3.315,0.854,4.981,0.854c4.464,0,8.802-1.997,11.704-5.617l71.455-89.101l113.645-11.378c6.34-0.635,11.587-5.206,13.085-11.398C259.143,205.176,256.566,198.712,251.217,195.25z'/%3E%3C/g%3E%3C/svg%3E") 7 7, pointer`
                 });
             }
@@ -164,7 +171,10 @@ class SpanAnnotator {
         const $element = $elementPar.parent();
 
         $element.on('selectstart', (e) => {
-            e.preventDefault();
+            // Only prevent selection when not in select mode
+            if (this.currentType !== -2) {
+                e.preventDefault();
+            }
         });
 
         $element.on('contextmenu', (e) => {
@@ -172,6 +182,11 @@ class SpanAnnotator {
         });
 
         $element.on('mousedown', (e) => {
+            // Skip annotation logic in select mode
+            if (this.currentType === -2) {
+                return;
+            }
+
             if (e.button === 2) { // Right click
                 const span = this._findClosestSpan(objectId, e.clientX, e.clientY);
                 if (span) {

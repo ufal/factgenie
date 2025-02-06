@@ -67,11 +67,18 @@
                     {{ category.name }}
                   </label>
                   {% endfor %}
-                  <input type="radio" class="btn-check btn-outline-secondary btn-eraser" name="btnradio"
-                    id="btnradioeraser" autocomplete="off" data-cat-idx="-1">
-                  <label class="btn btn-err-cat-label ms-auto" for="btnradioeraser" style="background-color: #FFF; color: #000 !important;">
-                    Erase mode
-                  </label>
+                  <div class="ms-auto">
+                    <input type="radio" class="btn-check btn-outline-secondary btn-select" name="btnradio"
+                      id="btnradioselect" autocomplete="off" data-cat-idx="-2">
+                    <label class="btn btn-err-cat-label" for="btnradioselect" style="background-color: #FFF; color: #000 !important;">
+                      <i class="fa fa-mouse-pointer" aria-hidden="true"></i> Select mode
+                    </label>
+                    <input type="radio" class="btn-check btn-outline-secondary btn-eraser" name="btnradio"
+                      id="btnradioeraser" autocomplete="off" data-cat-idx="-1">
+                    <label class="btn btn-err-cat-label" for="btnradioeraser" style="background-color: #FFF; color: #000 !important;">
+                      <i class="fa fa-eraser" aria-hidden="true"></i> Erase mode
+                    </label>
+                  </div>
                 </div>
               </div>
               <div id='text-type-info' class='mt-3'>Drag your mouse over the text to highlight the span:
