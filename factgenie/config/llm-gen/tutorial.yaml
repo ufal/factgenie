@@ -1,4 +1,4 @@
-type: ollama_gen
+type: ollama
 model: llama3.1:70b
 prompt_template: |-
   Given the JSON-structured data about a basketball game:
