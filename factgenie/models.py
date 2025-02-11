@@ -247,12 +247,16 @@ class LLMMetric(Model):
         return prompt_template.replace("{data}", str(data_for_prompt)).replace("{text}", text)
 
     def get_model_response(self, prompt, model_service):
+        messages = []
+
+        if self.config.get("system_msg"):
+            messages.append({"role": "system", "content": self.config["system_msg"]})
+
+        messages.append({"role": "user", "content": prompt})
+
         response = litellm.completion(
             model=model_service,
-            messages=[
-                {"role": "system", "content": self.config["system_msg"]},
-                {"role": "user", "content": prompt},
-            ],
+            messages=messages,
             response_format=OutputAnnotations,
             api_base=self._api_url(),
             **self.config.get("model_args", {}),
@@ -459,6 +463,9 @@ class LLMGen(Model):
             if output.endswith(suffix):
                 output = output[: -len(suffix)]
 
+        # remove any multiple spaces
+        output = " ".join(output.split())
+
         output = output.strip()
         return output
 
@@ -505,10 +512,14 @@ class LLMGen(Model):
         try:
             prompt = self.prompt(data)
 
-            messages = [
-                {"role": "system", "content": self.config["system_msg"]},
+            messages = []
+
+            if self.config.get("system_msg"):
+                messages.append({"role": "system", "content": self.config["system_msg"]})
+
+            messages.append(
                 {"role": "user", "content": prompt},
-            ]
+            )
 
             if self.config.get("start_with"):
                 messages.append({"role": "assistant", "content": self.config["start_with"]})
