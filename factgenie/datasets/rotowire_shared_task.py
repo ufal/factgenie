@@ -2,7 +2,7 @@ from factgenie.datasets.dataset import Dataset
 import json
 import markdown
 import textwrap
-
+import datetime
 
 class RotowireSharedTask(Dataset):
     def load_examples(self, split, data_path):
@@ -30,7 +30,7 @@ class RotowireSharedTask(Dataset):
 
         summary_table = textwrap.dedent(
             f"""\
-            #### Game Summary: {away_team} @ {home_team}
+            #### Game Summary: {away_team} (away) @ {home_team} (home)
             | Team        | Quarter 1                            | Quarter 2                            | Quarter 3                            | Quarter 4                            | Final                           |
             | ----------- | ------------------------------------ | ------------------------------------ | ------------------------------------ | ------------------------------------ | ------------------------------- |
             | {away_team} | {data['vis_line']['TEAM-PTS_QTR1']}  | {data['vis_line']['TEAM-PTS_QTR2']}  | {data['vis_line']['TEAM-PTS_QTR3']}  | {data['vis_line']['TEAM-PTS_QTR4']}  | {data['vis_line']['TEAM-PTS']}  |
@@ -46,14 +46,16 @@ class RotowireSharedTask(Dataset):
         team_stats_table = textwrap.dedent(
             f"""\
             #### Team Statistics
-            | Statistic              | {away_team}                         | {home_team}                          |
-            | ---------------------- | ----------------------------------- | ------------------------------------ |
-            | Field Goal Percentage  | {data['vis_line']['TEAM-FG_PCT']}%  | {data['home_line']['TEAM-FG_PCT']}%  |
-            | Three Point Percentage | {data['vis_line']['TEAM-FG3_PCT']}% | {data['home_line']['TEAM-FG3_PCT']}% |
-            | Free Throw Percentage  | {data['vis_line']['TEAM-FT_PCT']}%  | {data['home_line']['TEAM-FT_PCT']}%  |
-            | Rebounds               | {data['vis_line']['TEAM-REB']}      | {data['home_line']['TEAM-REB']}      |
-            | Assists                | {data['vis_line']['TEAM-AST']}      | {data['home_line']['TEAM-AST']}      |
-            | Turnovers              | {data['vis_line']['TEAM-TOV']}      | {data['home_line']['TEAM-TOV']}      |
+            | Statistic                   | {away_team}                         | {home_team}                          |
+            | --------------------------- | ----------------------------------- | ------------------------------------ |
+            | Field Goal Percentage       | {data['vis_line']['TEAM-FG_PCT']}%  | {data['home_line']['TEAM-FG_PCT']}%  |
+            | Three Point Percentage      | {data['vis_line']['TEAM-FG3_PCT']}% | {data['home_line']['TEAM-FG3_PCT']}% |
+            | Free Throw Percentage       | {data['vis_line']['TEAM-FT_PCT']}%  | {data['home_line']['TEAM-FT_PCT']}%  |
+            | Rebounds                    | {data['vis_line']['TEAM-REB']}      | {data['home_line']['TEAM-REB']}      |
+            | Assists                     | {data['vis_line']['TEAM-AST']}      | {data['home_line']['TEAM-AST']}      |
+            | Turnovers                   | {data['vis_line']['TEAM-TOV']}      | {data['home_line']['TEAM-TOV']}      |
+            | Wins in the season so far   | {data['vis_line']['TEAM-WINS']}     | {data['home_line']['TEAM-WINS']}     |
+            | Losses in the season so far | {data['vis_line']['TEAM-LOSSES']}   | {data['home_line']['TEAM-LOSSES']}   |
         """
         )
         return team_stats_table
@@ -88,7 +90,11 @@ class RotowireSharedTask(Dataset):
         return f"{home_table}\n{away_table}"
 
     def json_to_markdown_tables(self, data):
-        markdown = f"## NBA Game Report - {data['day']}\n\n"
+        date = data["day"].split("_")
+        date = datetime.date(2000 + int(date[2]), int(date[0]), int(date[1]))
+        day_of_week = date.strftime("%A")
+        date = date.strftime("%B %d, %Y")
+        markdown = f"## NBA Game Report - {day_of_week}, {date}\n\n"
         markdown += self.create_game_summary_table(data)
         markdown += "\n"
         markdown += self.create_team_stats_table(data)
