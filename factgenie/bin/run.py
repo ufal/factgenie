@@ -287,6 +287,27 @@ def run_llm_campaign(campaign_id: str):
     )
 
 
+@app.cli.command("save_generated_outputs")
+@click.argument("campaign_id", type=str)
+@click.argument("setup_id", type=str)
+def save_generated_outputs(campaign_id: str, setup_id: str):
+    """
+    Save outputs generated from a campaign under a specific setup ID.
+
+    Args:
+        campaign_id: The ID of the campaign containing the generated outputs
+        setup_id: The desired setup ID under which to save the outputs
+    """
+    from factgenie import llm_campaign
+
+    result = llm_campaign.save_generation_outputs(app, campaign_id, setup_id)
+
+    if result.status == "200 OK":
+        print(f"Successfully saved outputs from campaign {campaign_id} under setup ID {setup_id}")
+    else:
+        print(f"Error saving outputs: {result}")
+
+
 def setup_logging(config):
     import logging
     import coloredlogs
