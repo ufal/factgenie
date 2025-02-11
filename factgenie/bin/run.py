@@ -192,15 +192,20 @@ def create_llm_campaign(
     datasets = app.db["datasets_obj"]
     dataset_ids = dataset_ids.split(",")
     splits = splits.split(",")
-    setup_ids = setup_ids.split(",")
 
-    combinations = [
-        (dataset_id, split, setup_id) for dataset_id in dataset_ids for split in splits for setup_id in setup_ids
-    ]
-    dataset_overview = workflows.get_local_dataset_overview(app)
+    if setup_ids:
+        setup_ids = setup_ids.split(",")
+
     if mode == CampaignMode.LLM_EVAL:
+        combinations = [
+            (dataset_id, split, setup_id) for dataset_id in dataset_ids for split in splits for setup_id in setup_ids
+        ]
+        dataset_overview = workflows.get_local_dataset_overview(app)
         available_data = workflows.get_model_outputs_overview(app, dataset_overview)
     elif mode == CampaignMode.LLM_GEN:
+        combinations = [(dataset_id, split) for dataset_id in dataset_ids for split in splits]
+        dataset_overview = workflows.get_local_dataset_overview(app)
+
         available_data = workflows.get_available_data(app, dataset_overview)
 
     # drop the `output_ids` key from the available_data
