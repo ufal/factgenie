@@ -26,37 +26,7 @@ class OpenWeather(QuintdDataset, JSONDataset):
 
         for forecast in forecasts:
             city = forecast["city"]
-            lst_filtered = []
-            timezone_shift_sec = city["timezone"]
-
-            for key in ["sunrise", "sunset", "population", "timezone", "coord", "id"]:
-                city.pop(key, None)
-
-            for i, f in enumerate(forecast["list"]):
-                # 6-hour intervals
-                if i % 2 != 0:
-                    continue
-                f = {k: v for k, v in f.items() if k not in ["dt", "pop", "sys", "visibility"]}
-
-                # remove extra keys
-                f["main"] = {
-                    k: v
-                    for k, v in f["main"].items()
-                    if k not in ["temp_kf", "humidity", "sea_level", "grnd_level", "temp_max", "temp_min"]
-                }
-
-                # convert "dt_txt" to timestamp
-                local_datetime = dateutil.parser.parse(f["dt_txt"])
-                local_datetime = local_datetime.timestamp()
-                # shift timezone
-                local_datetime += timezone_shift_sec
-                # convert back to "2023-11-28 09:00:00"
-                f["dt_txt"] = datetime.fromtimestamp(local_datetime).strftime("%Y-%m-%d %H:%M:%S")
-                f["day_of_week"] = datetime.fromtimestamp(local_datetime).strftime("%A")
-
-                lst_filtered.append(f)
-
-            examples.append({"city": city, "units": units, "list": lst_filtered})
+            examples.append({"city": city, "units": units, "list": forecast["list"]})
 
         return examples
 
