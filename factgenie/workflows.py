@@ -359,7 +359,7 @@ def remove_outputs(app, file_path):
     """Remove outputs from the output index for a specific file"""
     if app.db["output_index"] is not None:
         # Filter out outputs from the specified file
-        app.db["output_index"] = app.db["output_index"][app.db["output_index"]["jsonl_file"] != file_path]
+        app.db["output_index"] = app.db["output_index"][app.db["output_index"].get("jsonl_file") != file_path]
 
 
 def get_output_index(app, force_reload=True):
