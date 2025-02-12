@@ -4,6 +4,7 @@ import markdown
 import textwrap
 import datetime
 
+
 class RotowireSharedTask(Dataset):
     def load_examples(self, split, data_path):
         examples = []
