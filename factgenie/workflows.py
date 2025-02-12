@@ -339,6 +339,10 @@ def load_outputs_from_file(file_path, cols):
                 for key in ["dataset", "split", "setup_id"]:
                     j[key] = slugify(j[key])
 
+                if 'output' not in j:
+                    logger.warning(f"The output record in {file_path} at line {line_num + 1} is missing the 'output' key, skipping. Available keys: {list(j.keys())}")
+                    continue
+
                 # drop any keys that are not in the key set
                 j = {k: v for k, v in j.items() if k in cols}
                 j["jsonl_file"] = file_path
@@ -355,7 +359,7 @@ def remove_outputs(app, file_path):
     """Remove outputs from the output index for a specific file"""
     if app.db["output_index"] is not None:
         # Filter out outputs from the specified file
-        app.db["output_index"] = app.db["output_index"][app.db["output_index"]["jsonl_file"] != file_path]
+        app.db["output_index"] = app.db["output_index"][app.db["output_index"].get("jsonl_file") != file_path]
 
 
 def get_output_index(app, force_reload=True):
