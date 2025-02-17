@@ -184,11 +184,14 @@ def compute_extra_fields_stats(example_index):
     extra_fields_stats = {}
 
     try:
-        for field in ["flags", "options", "text_fields"]:
+        for field in ["flags", "options", "sliders", "text_fields"]:
             # each of `example_index[field]` is a list of dicts
             # each dict contains `label` and `value` keys
             # we want to count the number of occurrences of each `value` for each unique `label`
             # and then assign the dictionary with these counts to extra_fields_stats[label]
+
+            if field not in example_index.columns:
+                continue
 
             # find unique labels
             labels = set()
@@ -348,6 +351,7 @@ def compute_gamma_spans(app, selected_campaigns, campaigns):
             "annotation_overlap_allowed",
             "flags",
             "options",
+            "sliders",
             "text_fields",
             "jsonl_file",
             "annotation_text",

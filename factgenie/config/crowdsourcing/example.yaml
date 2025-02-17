@@ -43,6 +43,7 @@ flags:
 - The text is severely off-topic (seems completely unrelated to the data).
 idle_time: 120
 options: []
+sliders: []
 service: prolific
 sort_order: sort-example-ids-shuffle-setups
 text_fields: []

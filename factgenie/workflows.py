@@ -214,6 +214,7 @@ def create_annotation_example_record(j, jsonl_file):
         "split": slugify(j["split"]),
         "flags": j.get("flags", []),
         "options": j.get("options", []),
+        "sliders": j.get("sliders", []),
         "text_fields": j.get("text_fields", []),
         "jsonl_file": jsonl_file,
     }
@@ -939,6 +940,7 @@ def save_record(mode, campaign, row, result):
         record["annotations"] = result["annotations"]
         record["flags"] = result.get("flags", [])
         record["options"] = result.get("options", [])
+        record["sliders"] = result.get("sliders", [])
         record["text_fields"] = result.get("text_fields", [])
 
     if mode == CampaignMode.LLM_EVAL:

@@ -220,6 +220,7 @@ function gatherConfig() {
         config.annotationSpanCategories = getAnnotationSpanCategories();
         config.flags = getKeys($("#flags"));
         config.options = getOptions();
+        config.sliders = getSliders();
         config.textFields = getKeys($("#textFields"));
     } else if (window.mode == "llm_eval" || window.mode == "llm_gen") {
         config.metricType = $("#metric-type").val();
@@ -531,6 +532,7 @@ function updateCrowdsourcingConfig() {
         $("#annotation-span-categories").empty();
         $("#flags").empty();
         $("#options").empty();
+        $("#sliders").empty();
         $("#textFields").empty();
         return;
     }
@@ -548,6 +550,7 @@ function updateCrowdsourcingConfig() {
     const annotationSpanCategories = cfg.annotation_span_categories;
     const flags = cfg.flags;
     const options = cfg.options;
+    const sliders = cfg.sliders;
     const textFields = cfg.text_fields;
 
     annotatorInstructionsMDE.value(annotatorInstructions);
@@ -578,8 +581,17 @@ function updateCrowdsourcingConfig() {
 
     if (options !== undefined) {
         options.forEach((option) => {
-            const newOption = createOptionElem(option.type, option.label, option.values.join(", "));
+            const newOption = createOptionElem(option.label, option.values.join(", "));
             $("#options").append(newOption);
+        });
+    }
+
+    $("#sliders").empty();
+
+    if (sliders !== undefined) {
+        sliders.forEach((slider) => {
+            const newSlider = createSliderElem(slider.label, slider.min, slider.max, slider.step);
+            $("#sliders").append(newSlider);
         });
     }
 
