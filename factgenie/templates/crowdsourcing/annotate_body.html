@@ -57,7 +57,8 @@
             </div>
             <div id='output-content'>
               <div>
-                <div class="mt-3 mb-4 d-flex flex-wrap gap-1 align-items-center" role="group" aria-label="Basic radio toggle button group">
+                <div class="mt-3 mb-4 d-flex flex-wrap gap-1 align-items-center" role="group"
+                  aria-label="Basic radio toggle button group">
                   {% for category in annotation_span_categories %}
                   <input type="radio" class="btn-check btn-outline-secondary btn-err-cat" name="btnradio"
                     id="btnradio{{ loop.index }}" autocomplete="off" {% if loop.first %}checked{% endif %}
@@ -90,6 +91,8 @@
               {{ flags | safe }}
 
               {{ options | safe }}
+
+              {{ sliders | safe }}
 
               {{ text_fields | safe }}
               <div class="d-flex align-items-center justify-content-center" id="submit-annotation-box">

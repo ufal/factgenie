@@ -78,6 +78,7 @@ def create_crowdsourcing_page(campaign_id, config):
         annotation_span_categories=config.get("annotation_span_categories", []),
         flags=generate_flags(config.get("flags", [])),
         options=generate_options(config.get("options", [])),
+        sliders=generate_sliders(config.get("sliders", [])),
         text_fields=generate_text_fields(config.get("text_fields", [])),
     )
 
@@ -110,41 +111,43 @@ def generate_options(options):
 
     options_segment = "<div class='mt-2 mb-3'>"
     for i, option in enumerate(options):
-        if option["type"] == "select":
-            options_segment += f"""
-                <div class="form-group crowdsourcing-option option-select mb-4">
-                    <div><label for="select-{i}"><b>{option["label"]}</b></label></div>
-                    <select class="form-select select-crowdsourcing mb-1" id="select-crowdsourcing-{i}">
+        options_segment += f"""
+            <div class="form-group crowdsourcing-option option-select mb-4">
+                <div><label for="select-{i}"><b>{option["label"]}</b></label></div>
+                <select class="form-select select-crowdsourcing mb-1" id="select-crowdsourcing-{i}">
+                    <option value="" selected disabled>Select an option...</option>
+        """
+        for j, value in enumerate(option["values"]):
+            options_segment += f"""<option class="select-crowdsourcing-{i}-value" value="{j}">{value}</option>
             """
-            for j, value in enumerate(option["values"]):
-                options_segment += f"""<option class="select-crowdsourcing-{i}-value" value="{j}">{value}</option>
-                """
-            options_segment += """
-                    </select>
-                </div>
-            """
-        elif option["type"] == "slider":
-            # option["values"] are textual values to be displayed below the slider
-            options_segment += f"""
-                <div class="form-group crowdsourcing-option option-slider mb-4">
-                    <div><label for="slider-{i}"><b>{option["label"]}</b></label></div>
-                    <div class="slider-container">
-                    <input type="range" class="form-range slider-crowdsourcing" id="slider-crowdsourcing-{i}" min="0" max="{len(option["values"])-1}" list="slider-crowdsourcing-{i}-values">
-                    </div>
-                    <datalist id="slider-crowdsourcing-{i}-values" class="datalist-crowdsourcing">
-            """
-            for value in option["values"]:
-                options_segment += f"""<option class="slider-crowdsourcing-{i}-value" value="{value}" label="{value}"></option>
-                """
-            options_segment += """
-                    </datalist>
-                </div>
-            """
-        else:
-            raise ValueError(f"Unknown option type {option['type']}")
+        options_segment += """
+                </select>
+            </div>
+        """
 
-    options_segment += """<script src="{{ host_prefix }}/static/js/render-sliders.js"></script>"""
     return options_segment
+
+
+def generate_sliders(sliders):
+    if not sliders:
+        return ""
+
+    sliders_segment = "<div class='mt-2 mb-3'>"
+    for i, slider in enumerate(sliders):
+        sliders_segment += f"""
+            <div class="form-group crowdsourcing-slider mb-4">
+                <label for="slider-{i}"><b>{slider["label"]}</b></label>
+                <input type="range" class="form-range slider-crowdsourcing" id="slider-crowdsourcing-{i}" min="{slider["min"]}" max="{slider["max"]}" step="{slider["step"]}">
+                <div class="d-flex justify-content-between">
+                    <div class="text-muted small"><span>{slider["min"]}</span></div>
+                    <div><span id="slider-crowdsourcing-{i}-value" class="slider-crowdsourcing-value" data-default-value="?"></span></div>
+                    <div class="text-muted small"><span>{slider["max"]}</span></div>
+                </div>
+            </div>
+        """
+    sliders_segment += "</div>"
+    sliders_segment += """<script src="{{ host_prefix }}/static/js/render-sliders.js"></script>"""
+    return sliders_segment
 
 
 def generate_flags(flags):
@@ -264,6 +267,7 @@ def parse_crowdsourcing_config(config):
         "annotation_span_categories": config.get("annotationSpanCategories"),
         "flags": config.get("flags"),
         "options": config.get("options"),
+        "sliders": config.get("sliders"),
         "text_fields": config.get("textFields"),
     }
 
@@ -417,6 +421,7 @@ def save_annotations(app, campaign_id, annotation_set, annotator_id):
                 "annotations": annotations,
                 "flags": ann["flags"],
                 "options": ann["options"],
+                "sliders": ann["sliders"],
                 "text_fields": ann["textFields"],
                 "time_last_saved": ann.get("timeLastSaved"),
                 "time_last_accessed": ann.get("timeLastAccessed"),
