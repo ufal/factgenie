@@ -244,12 +244,10 @@ def compute_statistics(app, campaign):
     return statistics
 
 
-def compute_span_counts(example_index, annotator_count, combinations, cat_columns):
+def compute_span_counts(example_index, combinations):
     # create a list for span counts from each annotator (do this separately for each error category)
     dataset_level_counts = []
     example_level_counts = []
-
-    annotator_group_ids = example_index.iloc[0].annotator_group_id
 
     for dataset, split, setup_id in combinations:
         example_index_subset = example_index[
@@ -258,22 +256,20 @@ def compute_span_counts(example_index, annotator_count, combinations, cat_column
             & (example_index["setup_id"] == setup_id)
         ]
 
-        error_counts = [{"cat_" + str(i): [] for i in range(len(cat_columns))} for _ in range(annotator_count)]
+        cat_columns = [x for x in example_index_subset.columns if x.startswith("cat_")]
 
         for i, row in example_index_subset.iterrows():
-            for a in range(annotator_count):
-                for j, c in enumerate(cat_columns):
-                    error_counts[a]["cat_" + str(j)].append(row[c][a])
-
+            for cat in cat_columns:
+                for cat_count, ann_group in zip(row[cat], row["annotator_group_id"]):
                     example_level_counts.append(
                         {
                             "dataset": dataset,
                             "split": split,
                             "setup_id": setup_id,
                             "example_idx": row["example_idx"],
-                            "annotator_group_id": annotator_group_ids[a],
-                            "annotation_type": c.split("_")[1],
-                            "count": row[c][a],
+                            "annotator_group_id": ann_group,
+                            "annotation_type": cat.split("_")[1],
+                            "count": cat_count,
                         }
                     )
 
@@ -310,10 +306,6 @@ def prepare_example_index(app, combinations, selected_campaigns, campaigns):
         example_index["campaign_id"] + "-anngroup-" + example_index["annotator_group"].astype(str)
     )
 
-    # get the number of annotators we are considering
-    annotator_group_ids = list(example_index["annotator_group_id"].unique())
-    annotator_count = len(annotator_group_ids)
-
     # group examples by dataset, split, setup_id, example_idx
     # aggregate annotations, annotator_ids, and counts for each category into a list
     aggregations = {"annotations": list, "annotator_group_id": list}
@@ -325,10 +317,7 @@ def prepare_example_index(app, combinations, selected_campaigns, campaigns):
     example_index = (
         example_index.groupby(["dataset", "split", "setup_id", "example_idx"]).agg(aggregations).reset_index()
     )
-    # remove all examples that do not have annotations from all annotators
-    example_index = example_index[example_index["annotator_group_id"].apply(lambda x: len(x) == annotator_count)]
-
-    return example_index, annotator_count, annotator_group_ids, cat_columns
+    return example_index
 
 
 def compute_gamma_spans(app, selected_campaigns, campaigns):
@@ -343,20 +332,22 @@ def compute_gamma_spans(app, selected_campaigns, campaigns):
 
     span_index = pd.concat(span_index, ignore_index=True)
 
-    span_index = span_index.drop(
-        columns=[
-            "annotation_span_categories",
-            "annotator_id",
-            "annotation_granularity",
-            "annotation_overlap_allowed",
-            "flags",
-            "options",
-            "sliders",
-            "text_fields",
-            "jsonl_file",
-            "annotation_text",
-        ]
-    )
+    columns_to_drop = [
+        "annotation_span_categories",
+        "annotator_id",
+        "annotation_granularity",
+        "annotation_overlap_allowed",
+        "flags",
+        "options",
+        "sliders",
+        "text_fields",
+        "jsonl_file",
+        "annotation_text",
+    ]
+
+    # Only drop columns that exist in the DataFrame
+    existing_columns = [col for col in columns_to_drop if col in span_index.columns]
+    span_index = span_index.drop(columns=existing_columns)
 
     return span_index
 
@@ -364,12 +355,12 @@ def compute_gamma_spans(app, selected_campaigns, campaigns):
 def generate_iaa_files(app, selected_campaigns, combinations, campaigns, temp_dir):
     combinations = [(c["dataset"], c["split"], c["setup_id"]) for c in combinations]
 
-    example_index, annotator_count, annotator_group_ids, cat_columns = prepare_example_index(
+    example_index = prepare_example_index(
         app, combinations=combinations, selected_campaigns=selected_campaigns, campaigns=campaigns
     )
 
     dataset_level_counts, example_level_counts = compute_span_counts(
-        example_index=example_index, annotator_count=annotator_count, combinations=combinations, cat_columns=cat_columns
+        example_index=example_index, combinations=combinations
     )
 
     gamma_spans = compute_gamma_spans(app, selected_campaigns, campaigns)
