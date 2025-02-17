@@ -241,6 +241,7 @@ function getExampleLevelFields(annotations) {
     // show `outputs.flags`, `outputs.options`, and `outputs.textFields`
     var flags = annotations.flags;
     var options = annotations.options;
+    var sliders = annotations.sliders;
     var textFields = annotations.text_fields;
 
     var html = $('<div>', { class: "p-2 extra-fields" });
@@ -269,6 +270,19 @@ function getExampleLevelFields(annotations) {
             optionsDiv.append(valueDiv);
         }
         html.append(optionsDiv);
+    }
+
+    if (sliders !== undefined && sliders.length > 0) {
+        var slidersDiv = $('<div>', { class: "small" });
+
+        for (const slider of sliders) {
+            var labelDiv = $('<div>', { class: "small text-muted" }).text(`${slider.label}`);
+            var valueDiv = $('<div>', { class: "small mb-1 fw-bold" }).text(`${slider.value}`);
+
+            slidersDiv.append(labelDiv);
+            slidersDiv.append(valueDiv);
+        }
+        html.append(slidersDiv);
     }
 
     if (textFields !== undefined && textFields.length > 0) {

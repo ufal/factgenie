@@ -47,5 +47,6 @@ flags: []
 idle_time: 60
 options: []
 service: local
+sliders: []
 sort_order: shuffle-all
 text_fields: []
