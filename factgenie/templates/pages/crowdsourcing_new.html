@@ -150,10 +150,12 @@
               <div class="form-group mt-4">
                 <label for="annotationOverlapAllowed">Allow overlapping annotations</label>
                 <div class="mb-2">
-                  <small class="form-text text-muted">Whether annotators can annotate the same part of the text multiple times</small>
+                  <small class="form-text text-muted">Whether annotators can annotate the same part of the text multiple
+                    times</small>
                 </div>
                 <div class="form-check form-switch">
-                  <input type="checkbox" class="form-check-input" id="annotationOverlapAllowed" name="annotationOverlapAllowed">
+                  <input type="checkbox" class="form-check-input" id="annotationOverlapAllowed"
+                    name="annotationOverlapAllowed">
                 </div>
               </div>
               <div class="form-group mt-4">
@@ -212,7 +214,7 @@
                           <span style="margin-left: 5px; margin-right: 10px;">List of options</span>
                           <div class="mb-2">
                             <small class="form-text text-muted">Options that the annotators can choose from for each
-                              example. <b>Note that sliders are currently not working in the Safari browser.</b></small>
+                              example.</small>
                           </div>
                         </div>
                         <div id="options"></div>
@@ -220,24 +222,42 @@
                           <button type="button" class="btn btn-outline-secondary btn-sm"
                             onclick="addOption();">+</button>
                         </div>
-                        <!-- text fields -->
-                        <div class="row mt-3 mb-1 align-items-center">
-                          <div class="col-auto">
-                            <i class="fa fa-file-text-o"></i>
-                            <span style="margin-left: 5px; margin-right: 10px;">Text fields</span>
-                            <div class="mb-2">
-                              <small class="form-text text-muted">Text fields that the annotators can fill for each
-                                example.</small>
-                            </div>
-                          </div>
-                          <div id="textFields"></div>
-                          <div class="col-auto mt-1">
-                            <button type="button" class="btn btn-outline-secondary btn-sm"
-                              onclick="addTextField();">+</button>
+                      </div>
+                      <!-- sliders -->
+                      <div class="row mb-3 mt-3 align-items-center">
+                        <div class="col-auto">
+                          <i class="fa fa-sliders"></i>
+                          <span style="margin-left: 5px; margin-right: 10px;">Sliders</span>
+                          <div class="mb-2">
+                            <small class="form-text text-muted">Slider with values that the annotators can select for
+                              each
+                              example.</small>
                           </div>
                         </div>
-
+                        <div id="sliders"></div>
+                        <div class="col-auto mt-1">
+                          <button type="button" class="btn btn-outline-secondary btn-sm"
+                            onclick="addSlider();">+</button>
+                        </div>
                       </div>
+
+                      <!-- text fields -->
+                      <div class="row mt-3 mb-1 align-items-center">
+                        <div class="col-auto">
+                          <i class="fa fa-file-text-o"></i>
+                          <span style="margin-left: 5px; margin-right: 10px;">Text fields</span>
+                          <div class="mb-2">
+                            <small class="form-text text-muted">Text fields that the annotators can fill for each
+                              example.</small>
+                          </div>
+                        </div>
+                        <div id="textFields"></div>
+                        <div class="col-auto mt-1">
+                          <button type="button" class="btn btn-outline-secondary btn-sm"
+                            onclick="addTextField();">+</button>
+                        </div>
+                      </div>
+
                     </div>
                   </div>
                 </div>

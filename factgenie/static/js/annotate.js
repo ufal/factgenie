@@ -12,13 +12,6 @@ var examples_cached = {};
 var splitInstance = Split(['#centerpanel', '#rightpanel'], {
     sizes: sizes,
     gutterSize: 1,
-    onDrag: function () {
-        // trigger a resize update on slider inputs when the handle is dragged
-        // not a perfect solution, but it works
-        $('.slider-crowdsourcing').each(function () {
-            $(this).css('width', "80%");
-        });
-    }
 });
 
 function clearExampleLevelFields() {
@@ -26,8 +19,15 @@ function clearExampleLevelFields() {
     $(".crowdsourcing-flag input[type='checkbox']").prop("checked", false);
 
     // reset all options to the first value
-    $(".crowdsourcing-option select").val(0);
-    $(".crowdsourcing-option input[type='range']").val(0);
+    $(".crowdsourcing-option select").val("");
+
+
+    $(".crowdsourcing-slider input[type='range']").each(function () {
+        $(this).val($(this).attr('min') || 0);
+    });
+    $(".slider-crowdsourcing-value").each(function () {
+        $(this).text($(this).attr('data-default-value'));
+    });
 
     // clear the values in text inputs
     $(".crowdsourcing-text input[type='text']").val("");
@@ -51,17 +51,8 @@ function collectOptions() {
     const options = [];
 
     $(".crowdsourcing-option").each(function (x) {
-        if ($(this).hasClass("option-select")) {
-            const type = "select";
-            const label = $(this).find("label").text().trim();
-            const index = $(this).find("select").val();
-            const value = $(this).find("select option:selected").text();
-
-            const optionList = $(this).find("select option").map(function () {
-                return $(this).text();
-            }).get();
-            options.push({ type: type, label: label, index: index, value: value, optionList: optionList });
-        } else if ($(this).hasClass("option-slider")) {
+        // backwards compatibility with old sliders
+        if ($(this).hasClass("option-slider")) {
             const type = "slider";
             const label = $(this).find("label").text();
             const index = $(this).find("input[type='range']").val();
@@ -70,9 +61,40 @@ function collectOptions() {
                 return $(this).val();
             }).get();
             options.push({ type: type, label: label, index: index, value: value, optionList: optionList });
+        } else {
+            const label = $(this).find("label").text().trim();
+            const index = $(this).find("select").val();
+            const value = $(this).find("select option:selected").text();
+
+            const optionList = $(this).find("select option").map(function () {
+                return $(this).text();
+            }).get();
+            options.push({ label: label, index: index, value: value, optionList: optionList });
         }
     });
     return options;
+}
+
+function collectSliders() {
+    const sliders = [];
+
+    $(".crowdsourcing-slider").each(function (x) {
+        const myId = $(this).find("input[type='range']").attr('id');
+        const sliderValueId = `${myId}-value`;
+
+        if ($(`#${sliderValueId}`).text() == $(`#${sliderValueId}`).attr('data-default-value')) {
+            return;
+        }
+
+        const label = $(this).find("label").text();
+        const value = $(this).find("input[type='range']").val();
+        const min = $(this).find("input[type='range']").attr('min');
+        const max = $(this).find("input[type='range']").attr('max');
+        const step = $(this).find("input[type='range']").attr('step');
+
+        sliders.push({ label: label, value: value, min: min, max: max, step: step });
+    });
+    return sliders;
 }
 
 function collectTextFields() {
@@ -136,6 +158,7 @@ function goToAnnotation(example_idx) {
 
     const flags = annotation_set[example_idx].flags;
     const options = annotation_set[example_idx].options;
+    const sliders = annotation_set[example_idx].sliders;
     const textFields = annotation_set[example_idx].textFields;
 
     annotation_set[example_idx]["timeLastAccessed"] = Math.floor(Date.now() / 1000);
@@ -153,12 +176,19 @@ function goToAnnotation(example_idx) {
             const div = $(`.crowdsourcing-option:eq(${i})`);
             // we can have either a select or a slider (we can tell by `type`)
             // we need to set the option defined by `index`
-            if (option.type == "select") {
-                div.find("select").val(option.index);
-            }
+            div.find("select").val(option.index);
+
+            // backwards compatibility with old sliders
             if (option.type == "slider") {
                 div.find("input[type='range']").val(option.index);
             }
+        }
+    }
+
+    if (sliders !== undefined) {
+        for (const [i, slider] of Object.entries(sliders)) {
+            $(`.crowdsourcing-slider input:eq(${i})`).val(slider.value);
+            $(`.slider-crowdsourcing-value:eq(${i})`).text(slider.value);
         }
     }
 
@@ -241,6 +271,22 @@ function loadAnnotations() {
 }
 
 function markAnnotationAsComplete() {
+    // check whether all the selects have been filled (the default value is not selected)
+    const allSelectsFilled = $(".crowdsourcing-option").find("select option:selected").filter(function () { return $(this).val() == ""; }).length == 0;
+
+    if (!allSelectsFilled) {
+        alert("Please select all the options before marking the annotation as complete.");
+        return;
+    }
+
+    // check whether no .slider-crowdsourcing-value contains its data-default-value
+    const allSlidersFilled = $(".slider-crowdsourcing-value").filter(function () { return $(this).text() == $(this).attr('data-default-value'); }).length == 0;
+
+    if (!allSlidersFilled) {
+        alert("Please set all the sliders before marking the annotation as complete.");
+        return;
+    }
+
     $('#page-link-' + current_example_idx).removeClass("bg-incomplete");
     $('#page-link-' + current_example_idx).addClass("bg-complete");
 
@@ -268,6 +314,7 @@ function saveCurrentAnnotations(example_idx) {
     annotation_set[example_idx]["annotations"] = annotations;
     annotation_set[example_idx]["flags"] = collectFlags();
     annotation_set[example_idx]["options"] = collectOptions();
+    annotation_set[example_idx]["sliders"] = collectSliders();
     annotation_set[example_idx]["textFields"] = collectTextFields();
     annotation_set[example_idx]["timeLastSaved"] = Math.floor(Date.now() / 1000);
 }

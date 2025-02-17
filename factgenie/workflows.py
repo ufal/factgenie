@@ -214,6 +214,7 @@ def create_annotation_example_record(j, jsonl_file):
         "split": slugify(j["split"]),
         "flags": j.get("flags", []),
         "options": j.get("options", []),
+        "sliders": j.get("sliders", []),
         "text_fields": j.get("text_fields", []),
         "jsonl_file": jsonl_file,
     }
@@ -339,6 +340,12 @@ def load_outputs_from_file(file_path, cols):
                 for key in ["dataset", "split", "setup_id"]:
                     j[key] = slugify(j[key])
 
+                if "output" not in j:
+                    logger.warning(
+                        f"The output record in {file_path} at line {line_num + 1} is missing the 'output' key, skipping. Available keys: {list(j.keys())}"
+                    )
+                    continue
+
                 # drop any keys that are not in the key set
                 j = {k: v for k, v in j.items() if k in cols}
                 j["jsonl_file"] = file_path
@@ -355,7 +362,7 @@ def remove_outputs(app, file_path):
     """Remove outputs from the output index for a specific file"""
     if app.db["output_index"] is not None:
         # Filter out outputs from the specified file
-        app.db["output_index"] = app.db["output_index"][app.db["output_index"]["jsonl_file"] != file_path]
+        app.db["output_index"] = app.db["output_index"][app.db["output_index"].get("jsonl_file") != file_path]
 
 
 def get_output_index(app, force_reload=True):
@@ -933,6 +940,7 @@ def save_record(mode, campaign, row, result):
         record["annotations"] = result["annotations"]
         record["flags"] = result.get("flags", [])
         record["options"] = result.get("options", [])
+        record["sliders"] = result.get("sliders", [])
         record["text_fields"] = result.get("text_fields", [])
 
     if mode == CampaignMode.LLM_EVAL:

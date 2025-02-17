@@ -54,8 +54,14 @@ function addFlag() {
 
 function addOption() {
     const options = $("#options");
-    const newOption = createOptionElem("select", "", "");
+    const newOption = createOptionElem("", "");
     options.append(newOption);
+}
+
+function addSlider() {
+    const sliders = $("#sliders");
+    const newSlider = createSliderElem("", "", "", "");
+    sliders.append(newSlider);
 }
 
 function addTextField() {
@@ -84,20 +90,14 @@ function createFlagElem(key) {
     return newFlag;
 }
 
-function createOptionElem(type, label, values) {
+function createOptionElem(label, values) {
     // three columns: option type (selectbox, slider) text input for the label, and text input for comma-separated values
     const newOption = $(`
         <div class="row mt-1">
-        <div class="col-3">
-        <select class="form-select" name="optionType">
-            <option value="select" ${type === 'select' ? 'selected' : ''}>Select box</option>
-            <option value="slider" ${type === 'slider' ? 'selected' : ''}>Slider</option>
-        </select>
-        </div>
-        <div class="col-3">
+        <div class="col-4">
         <input type="text" class="form-control" name="optionLabel" value="${label}" placeholder="Label">
         </div>
-        <div class="col-5">
+        <div class="col-7">
         <input type="text" class="form-control" name="optionValues" value="${values}" placeholder="Comma-separated values">
         </div>
         <div class="col-1">
@@ -105,6 +105,30 @@ function createOptionElem(type, label, values) {
         </div>
         `);
     return newOption;
+}
+
+function createSliderElem(key, min, max, step) {
+    // three columns: option type (selectbox, slider) text input for the label, and text input for comma-separated values
+    const newSlider = $(`
+        <div class="row mt-1">
+        <div class="col-5">
+        <input type="text" class="form-control" name="sliderLabel" value="${key}" placeholder="Label">
+        </div>
+        <div class="col-2">
+        <input type="number" class="form-control" name="sliderMin" value="${min}" placeholder="Min">
+        </div>
+        <div class="col-2">
+        <input type="number" class="form-control" name="sliderMax" value="${max}" placeholder="Max">
+        </div>
+        <div class="col-2">
+        <input type="number" class="form-control" name="sliderStep" value="${step}" placeholder="Step">
+        </div>
+        <div class="col-1">
+        <button type="button" class="btn btn-danger" onclick="deleteRow(this);">x</button>
+        </div>
+        </div>
+    `);
+    return newSlider;
 }
 
 function createTextFieldElem(key) {
@@ -249,13 +273,27 @@ function getOptions() {
     var options = [];
 
     $("#options").children().each(function () {
-        const type = $(this).find("select[name='optionType']").val();
         const label = $(this).find("input[name='optionLabel']").val();
         const values = $(this).find("input[name='optionValues']").val().split(",").map(v => v.trim());
-        options.push({ type: type, label: label, values: values });
+        options.push({ label: label, values: values });
     });
     return options;
 }
+
+function getSliders() {
+    var sliders = [];
+
+    $("#sliders").children().each(function () {
+        const label = $(this).find("input[name='sliderLabel']").val();
+        const min = $(this).find("input[name='sliderMin']").val();
+        const max = $(this).find("input[name='sliderMax']").val();
+        const step = $(this).find("input[name='sliderStep']").val();
+
+        sliders.push({ label: label, min: min, max: max, step: step });
+    });
+    return sliders;
+}
+
 
 function mod(n, m) {
     return ((n % m) + m) % m;
