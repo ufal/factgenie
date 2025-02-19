@@ -118,6 +118,81 @@ def show_campaign_info(app, campaign_id: str):
     pp({"metadata": campaign.metadata, "stats": campaign.get_stats()})
 
 
+@app.cli.command("iaa")
+@click.argument("first_campaign", type=str)
+@click.argument("first_ann_group", type=int)
+@click.argument("second_campaign", type=str)
+@click.argument("second_ann_group", type=int)
+@click.argument("method", type=click.Choice(["ann_cnt_pearson", "gamma_score"]))
+def compute_iaa(first_campaign, first_ann_group, second_campaign, second_ann_group, method):
+    """Compute inter-annotator agreement between two annotator groups."""
+    from factgenie.workflows import load_campaign, generate_campaign_index
+    from factgenie import analysis
+
+    # Load campaigns
+    campaigns = generate_campaign_index(app, force_reload=True)
+
+    if first_campaign not in campaigns or second_campaign not in campaigns:
+        print("Campaign not found. Available campaigns:")
+        for c in campaigns:
+            print(f"  {c}")
+        return
+
+    first_camp = load_campaign(app, first_campaign)
+    second_camp = load_campaign(app, second_campaign)
+
+    # Get available annotator groups
+    first_groups = first_camp.db.annotator_group.unique()
+    second_groups = second_camp.db.annotator_group.unique()
+
+    if first_ann_group not in first_groups or second_ann_group not in second_groups:
+        print(f"Invalid annotator group. Available groups:")
+        print(f"Campaign {first_campaign}: {first_groups}")
+        print(f"Campaign {second_campaign}: {second_groups}")
+        return
+
+    # Find common examples
+    combinations = analysis.get_common_examples(first_camp.db, second_camp.db, first_ann_group, second_ann_group)
+
+    if not combinations:
+        print("No common examples found between the selected annotator groups")
+        return
+
+    selected_campaigns = [first_campaign, second_campaign]
+
+    dfs = analysis.compute_iaa_dfs(app, selected_campaigns, combinations, campaigns)
+
+    first_group_id = analysis.format_group_id(first_campaign, first_ann_group)
+    second_group_id = analysis.format_group_id(second_campaign, second_ann_group)
+
+    if method == "ann_cnt_pearson":
+        dataset_level_counts = dfs["dataset_level_counts"]
+        example_level_counts = dfs["example_level_counts"]
+
+        # Compute Pearson correlation for both levels
+        for level, counts_df in [("example", example_level_counts), ("dataset", dataset_level_counts)]:
+            correlations = analysis.compute_pearson_r(counts_df, first_group_id, second_group_id)
+
+            print(f"\n{level.title()}-level correlations between {first_group_id} and {second_group_id}")
+            print("==============================================")
+            print(f"Micro Pearson-r: {correlations['micro']:.3f}")
+            print("==============================================")
+
+            for i, corr in enumerate(correlations["category_correlations"]):
+                print(f"Category {i}: {corr:.3f}")
+            print("----------------------------------------------")
+            print(f"Macro Pearson-r: {correlations['macro']:.3f}")
+            print("==============================================")
+
+    elif method == "gamma_score":
+        span_index = dfs["span_index"]
+        gamma = analysis.compute_gamma_score(span_index, [first_group_id, second_group_id])
+
+        print("==============================================")
+        print(f"Gamma score: {gamma:.3f}")
+        print("==============================================")
+
+
 @app.cli.command("info")
 @click.option("-d", "--dataset", type=str, help="Show information about a dataset.")
 @click.option("-c", "--campaign", type=str, help="Show information about a campaign.")

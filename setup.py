@@ -23,6 +23,7 @@ install_requires = [
     "pydantic>=2.10.6",
     "google-api-python-client>=2.16.0",
     "google-cloud-aiplatform>=1.38",
+    "pygamma-agreement==0.5.9",
 ]
 
 setup(
