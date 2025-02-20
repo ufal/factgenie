@@ -125,7 +125,7 @@ class Campaign:
                     if not (
                         data["dataset"] == dataset
                         and data["split"] == split
-                        and data["setup_id"] == setup_id
+                        and data.get("setup_id") == setup_id
                         and data["example_idx"] == example_idx
                         and data["metadata"].get("annotator_group", 0) == self.db.loc[db_idx, "annotator_group"]
                     ):
@@ -161,7 +161,7 @@ class HumanCampaign(Campaign):
 
     def get_stats(self):
         # group by batch_idx, keep the first row of each group
-        batch_stats = self.db.groupby(["batch_idx", "annotator_group"]).first()
+        batch_stats = self.db.groupby(["batch_idx"]).first()
 
         return {
             "total": len(batch_stats),
@@ -170,9 +170,9 @@ class HumanCampaign(Campaign):
             "free": len(batch_stats[batch_stats["status"] == ExampleStatus.FREE]),
         }
 
-    def clear_output(self, idx, annotator_group):
+    def clear_output(self, idx):
         self.load_db()
-        examples_for_batch = self.db[(self.db["batch_idx"] == idx) & (self.db["annotator_group"] == annotator_group)]
+        examples_for_batch = self.db[self.db["batch_idx"] == idx]
 
         for _, example in examples_for_batch.iterrows():
             db_index = example.name
@@ -185,7 +185,7 @@ class HumanCampaign(Campaign):
         df = df.where(pd.notnull(df), "")
 
         # Group by batch_idx and annotator_group
-        grouped = df.groupby(["batch_idx", "annotator_group"])
+        grouped = df.groupby(["batch_idx"])
 
         # Aggregate the necessary columns
         overview_df = grouped.agg(
@@ -197,6 +197,7 @@ class HumanCampaign(Campaign):
                         "split": df.at[idx, "split"],
                         "setup_id": df.at[idx, "setup_id"],
                         "example_idx": df.at[idx, "example_idx"],
+                        "annotator_group": df.at[idx, "annotator_group"],
                     }
                 ).tolist(),
             ),
@@ -221,8 +222,8 @@ class LLMCampaign(Campaign):
             "free": len(self.db[self.db["status"] == ExampleStatus.FREE]),
         }
 
-    def clear_output(self, idx, annotator_group):
-        example_row = self.db[(self.db["example_idx"] == idx) & (self.db["annotator_group"] == annotator_group)].iloc[0]
+    def clear_output(self, idx):
+        example_row = self.db[self.db["example_idx"] == idx].iloc[0]
         db_idx = example_row.name
         self.clear_output_by_idx(db_idx)
 

@@ -131,7 +131,7 @@
                   </td>
                   <td>
                     <a class="btn btn-sm btn-outline-secondary"
-                      onclick="clearOutput('{{ metadata.id }}', '{{ mode }}', '{{ example.example_idx }}', {{ example.annotator_group }})"
+                      onclick="clearOutput('{{ metadata.id }}', '{{ mode }}', '{{ example.example_idx }}')"
                       data-bs-toggle="tooltip" title="Clear outputs" id="clearOutput{{ rowId }}"
                       aria-controls="collapseExample" {% if example.status !='finished' %} style="display: none;" {%
                       endif %}>

@@ -211,16 +211,23 @@ def generate_crowdsourcing_campaign_db(app, campaign_data, config):
 
     # create a column for batch index and assign each example to a batch
     df["batch_idx"] = df.index // examples_per_batch
+
+    # Create multiple copies of the dataframe for each annotator group
+    dfs = []
+    for annotator_group in range(annotators_per_example):
+        df_copy = df.copy()
+        df_copy["annotator_group"] = annotator_group
+        # Adjust batch_idx for subsequent groups by adding offset
+        df_copy["batch_idx"] += annotator_group * (len(df) // examples_per_batch + 1)
+        dfs.append(df_copy)
+
+    # Combine all dataframes
+    df = pd.concat(dfs, ignore_index=True)
+
     df["annotator_id"] = ""
     df["status"] = ExampleStatus.FREE
     df["start"] = None
     df["end"] = None
-
-    # if we have multiple `annotators_per_example`, repeat the dataframe `annotators_per_example` times, assigning an increasing index of `annotator_group` to each repeating dataframe
-    if annotators_per_example > 1:
-        df = pd.concat([df] * annotators_per_example, ignore_index=True)
-
-    df["annotator_group"] = df.index // len(all_examples)
 
     return df
 
@@ -289,6 +296,7 @@ def select_batch(db, seed, annotator_id):
     # Choose from the batches with the lowest annotator group
     free_batches = db[db["status"] == ExampleStatus.FREE]
     eligible_batches = free_batches.groupby("batch_idx")["annotator_group"].min()
+
     eligible_batches = eligible_batches[eligible_batches == eligible_batches.min()]
 
     eligible_examples = free_batches[free_batches["batch_idx"].isin(eligible_batches.index)]
@@ -298,22 +306,17 @@ def select_batch(db, seed, annotator_id):
         selected_example = eligible_examples.sample(n=1, random_state=seed).iloc[0]
         selected_batch_idx = selected_example["batch_idx"]
 
-        # Get the lowest annotator group for the selected batch which is free
-        selected_annotator_group = db[(db["batch_idx"] == selected_batch_idx) & (db["status"] == ExampleStatus.FREE)][
-            "annotator_group"
-        ].min()
-
-        logging.info(f"Selected batch {selected_batch_idx} (annotator group {selected_annotator_group})")
-        return selected_batch_idx, selected_annotator_group
+        logging.info(f"Selected batch {selected_batch_idx}")
+        return selected_batch_idx
     else:
         raise ValueError("No available batches")
 
 
-def get_examples_for_batch(db, batch_idx, annotator_group):
+def get_examples_for_batch(db, batch_idx):
     annotator_batch = []
 
     # find all examples for this batch and annotator group
-    batch_examples = db[(db["batch_idx"] == batch_idx) & (db["annotator_group"] == annotator_group)]
+    batch_examples = db[db["batch_idx"] == batch_idx]
 
     for _, row in batch_examples.iterrows():
         annotator_batch.append(
@@ -344,7 +347,7 @@ def get_annotator_batch(app, campaign, service_ids, batch_idx=None):
         if not batch_idx:
             # usual case: an annotator opened the annotation page, we need to select the batch
             try:
-                batch_idx, annotator_group = select_batch(db, seed, annotator_id)
+                batch_idx = select_batch(db, seed, annotator_id)
             except ValueError as e:
                 logging.info(str(e))
                 # no available batches
@@ -352,9 +355,8 @@ def get_annotator_batch(app, campaign, service_ids, batch_idx=None):
         else:
             # preview mode with the specific batch
             batch_idx = int(batch_idx)
-            annotator_group = 0
 
-        mask = (db["batch_idx"] == batch_idx) & (db["annotator_group"] == annotator_group)
+        mask = db["batch_idx"] == batch_idx
 
         # we do not block the example if we are in preview mode
         if annotator_id != PREVIEW_STUDY_ID:
@@ -364,7 +366,7 @@ def get_annotator_batch(app, campaign, service_ids, batch_idx=None):
 
             campaign.update_db(db)
 
-        annotator_batch = get_examples_for_batch(db, batch_idx, annotator_group)
+        annotator_batch = get_examples_for_batch(db, batch_idx)
         logging.info(f"Releasing lock for {annotator_id}")
 
     return annotator_batch

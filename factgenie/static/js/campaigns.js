@@ -19,9 +19,9 @@ function clearCampaign(campaignId) {
     });
 }
 
-function clearOutput(campaignId, mode, idx, annotatorGroup) {
+function clearOutput(campaignId, mode, idx) {
     // ask for confirmation
-    if (!confirm(`Are you sure you want to free the batch id ${idx} (annotator group ${annotatorGroup})? All related outputs will be deleted.`)) {
+    if (!confirm(`Are you sure you want to free the batch id ${idx}? All related outputs will be deleted.`)) {
         return;
     }
     $.post({
@@ -31,7 +31,6 @@ function clearOutput(campaignId, mode, idx, annotatorGroup) {
             campaignId: campaignId,
             mode: mode,
             idx: idx,
-            annotatorGroup: annotatorGroup
         }),
         success: function (response) {
             console.log(response);
