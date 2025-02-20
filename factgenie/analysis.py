@@ -2,12 +2,17 @@
 
 import os
 import pandas as pd
-from collections import defaultdict
 import sys
 import logging
 import traceback
 import zipfile
 import factgenie.workflows as workflows
+import pygamma_agreement as pa
+import numpy as np
+from collections import defaultdict
+from scipy.stats import pearsonr
+from tqdm import tqdm
+from pyannote.core import Segment
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -302,8 +307,9 @@ def prepare_example_index(app, combinations, selected_campaigns, campaigns):
     ]
 
     # add a column "annotator_group_id" to example_index, concatenating the campaign_id with str(annotator_group)
-    example_index["annotator_group_id"] = (
-        example_index["campaign_id"] + "-anngroup-" + example_index["annotator_group"].astype(str)
+    # apply it separately for each row
+    example_index["annotator_group_id"] = example_index.apply(
+        lambda x: format_group_id(x["campaign_id"], str(x["annotator_group"])), axis=1
     )
 
     # group examples by dataset, split, setup_id, example_idx
@@ -320,14 +326,16 @@ def prepare_example_index(app, combinations, selected_campaigns, campaigns):
     return example_index
 
 
-def compute_gamma_spans(app, selected_campaigns, campaigns):
+def compute_span_index(app, selected_campaigns, campaigns):
     span_index = []
 
     for campaign_id in selected_campaigns:
         df = generate_span_index(app, campaigns[campaign_id])
 
         df["annotation_end"] = df["annotation_start"] + df["annotation_text"].str.len()
-        df["annotator_group_id"] = df["campaign_id"] + "-anngroup-" + df["annotator_group"].astype(str)
+        df["annotator_group_id"] = df.apply(
+            lambda x: format_group_id(x["campaign_id"], str(x["annotator_group"])), axis=1
+        )
         span_index.append(df)
 
     span_index = pd.concat(span_index, ignore_index=True)
@@ -352,24 +360,28 @@ def compute_gamma_spans(app, selected_campaigns, campaigns):
     return span_index
 
 
-def generate_iaa_files(app, selected_campaigns, combinations, campaigns, temp_dir):
-    combinations = [(c["dataset"], c["split"], c["setup_id"]) for c in combinations]
-
+def compute_iaa_dfs(app, selected_campaigns, combinations, campaigns):
     example_index = prepare_example_index(
         app, combinations=combinations, selected_campaigns=selected_campaigns, campaigns=campaigns
     )
-
     dataset_level_counts, example_level_counts = compute_span_counts(
         example_index=example_index, combinations=combinations
     )
 
-    gamma_spans = compute_gamma_spans(app, selected_campaigns, campaigns)
+    span_index = compute_span_index(app, selected_campaigns, campaigns)
 
     results = {
         "dataset_level_counts": dataset_level_counts,
         "example_level_counts": example_level_counts,
-        "gamma_spans": gamma_spans,
+        "span_index": span_index,
     }
+    return results
+
+
+def generate_iaa_files(app, selected_campaigns, combinations, campaigns, temp_dir):
+    combinations = [(c["dataset"], c["split"], c["setup_id"]) for c in combinations]
+
+    results = compute_iaa_dfs(app, selected_campaigns, combinations, campaigns)
 
     # Save each dataframe as CSV
     for name, df in results.items():
@@ -389,3 +401,153 @@ def generate_iaa_files(app, selected_campaigns, combinations, campaigns, temp_di
             zipf.write(csv_path, os.path.basename(csv_path))
 
     return zip_path
+
+
+def format_group_id(campaign_id, group):
+    """Format annotator group ID."""
+    return f"{campaign_id}-anngroup-{group}"
+
+
+# --------------------------------------------------------------
+# the following methods are used only in CLI for now
+
+
+def get_common_examples(first_campaign_data, second_campaign_data, first_group, second_group):
+    """Find common examples between two annotator groups."""
+    # Filter finished examples for first group
+    first_examples = first_campaign_data[
+        (first_campaign_data["annotator_group"] == first_group) & (first_campaign_data["status"] == "finished")
+    ][["dataset", "split", "setup_id"]].drop_duplicates()
+
+    # Filter finished examples for second group
+    second_examples = second_campaign_data[
+        (second_campaign_data["annotator_group"] == second_group) & (second_campaign_data["status"] == "finished")
+    ][["dataset", "split", "setup_id"]].drop_duplicates()
+
+    # Find intersection using merge
+    common = pd.merge(first_examples, second_examples, how="inner")
+
+    # Convert to list of tuples
+    return list(map(tuple, common.values))
+
+
+def compute_pearson_r(df, group1, group2):
+    """Compute Pearson correlation between two annotator groups."""
+    group1_data = df[df["annotator_group_id"] == group1]
+    group2_data = df[df["annotator_group_id"] == group2]
+
+    group1_counts = list(group1_data["count"])
+    group2_counts = list(group2_data["count"])
+
+    # Micro correlation - correlation of counts
+    micro_corr = pearsonr(group1_counts, group2_counts)[0]
+
+    # Macro correlation - average of per-type correlations
+    type_corrs = []
+    for ann_type in df["annotation_type"].unique():
+        g1_type = list(group1_data[group1_data["annotation_type"] == ann_type]["count"])
+        g2_type = list(group2_data[group2_data["annotation_type"] == ann_type]["count"])
+
+        type_corrs.append(pearsonr(g1_type, g2_type)[0])
+
+    return {"micro": micro_corr, "macro": np.mean(type_corrs), "category_correlations": type_corrs}
+
+
+# `alpha`: coefficient weighting the *positional* dissimilarity value, defaults to 1
+# `beta`: coefficient weighting the *categorical* dissimilarity value, defaults to 1
+# `delta_empty`: empty dissimilarity value, defaults to 1
+def compute_gamma_score(
+    span_index, example_level_counts, alpha, beta, delta_empty, soft, save_plots, handle_empty_annotations
+):
+    dissim = pa.CombinedCategoricalDissimilarity(alpha=alpha, beta=beta, delta_empty=delta_empty)
+
+    gamma_scores = []
+    running_avg = 0
+
+    # Group by same fields as in example_level_counts
+    examples = example_level_counts.groupby(["dataset", "split", "setup_id", "example_idx"])
+
+    # Create progress bar
+    pbar = tqdm(total=len(examples), desc="Computing gamma score")
+
+    if save_plots:
+        import matplotlib.pyplot as plt
+
+        ntb = pa.notebook.Notebook()
+        os.makedirs(save_plots, exist_ok=True)
+
+    for (dataset, split, setup_id, example_idx), example_group in examples:
+        # Get corresponding spans for this example
+        example_spans = span_index[
+            (span_index["dataset"] == dataset)
+            & (span_index["split"] == split)
+            & (span_index["setup_id"] == setup_id)
+            & (span_index["example_idx"] == example_idx)
+        ]
+
+        # Remove empty segments
+        example_spans = example_spans[example_spans["annotation_start"] != example_spans["annotation_end"]]
+
+        # Check number of unique annotator groups
+        unique_annotators = example_spans["annotator_group_id"].unique()
+
+        if len(unique_annotators) < 2:
+            if handle_empty_annotations:
+                # One or both annotators did not add any annotation
+                # Compute score as 1 / (1 + annotation_cnt) to promote better matching in annotation count
+                ann_count = example_spans.shape[0]
+                aux_gamma_score = 1 / (1 + ann_count)
+                gamma_scores.append(aux_gamma_score)
+            else:
+                # Skip this example
+                logger.warning(
+                    f"Skipping example {dataset}/{split}/{setup_id}/{example_idx} as it has less than 2 annotators. Consider using --gamma_handle_empty_annotations."
+                )
+                pbar.update(1)
+                continue
+        else:
+            # Add each annotation to continuum
+            continuum = pa.Continuum()
+
+            for _, row in example_spans.iterrows():
+                continuum.add(
+                    str(row["annotator_group_id"]),
+                    Segment(row["annotation_start"], row["annotation_end"]),
+                    str(row["annotation_type"]),
+                )
+
+            # Compute gamma score
+            logging.getLogger().setLevel(logging.WARNING)
+            try:
+                gamma_results = continuum.compute_gamma(dissim, soft=soft)
+                gamma_scores.append(gamma_results.gamma)
+
+                if save_plots:
+                    fig, ax = plt.subplots(figsize=(10, 2))
+                    ntb.plot_alignment(gamma_results.best_alignment, ax)
+                    plt.tight_layout()
+
+                    # Save the plot
+                    plt.savefig(
+                        os.path.join(save_plots, f"{dataset}_{split}_{setup_id}_{example_idx}.png"),
+                        dpi=300,
+                        bbox_inches="tight",
+                    )
+                    plt.close(fig)
+
+            except Exception as e:
+                traceback.print_exc()
+                print(f"Error computing gamma for example {dataset}/{split}/{setup_id}/{example_idx}: {e}")
+                gamma_scores.append(0.0)
+
+            logging.getLogger().setLevel(logging.INFO)
+
+        running_avg = np.mean(gamma_scores)
+        pbar.set_postfix({"avg_gamma": f"{running_avg:.3f}"})
+        pbar.update(1)
+
+    pbar.close()
+    return float(np.mean(gamma_scores)) if gamma_scores else 0.0
+
+
+# --------------------------------------------------------------
