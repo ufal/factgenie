@@ -288,10 +288,8 @@ def select_batch(db, seed, annotator_id):
             assigned_batch = db.loc[
                 (db["annotator_id"] == annotator_id) & (db["status"] == ExampleStatus.ASSIGNED)
             ].iloc[0]
-            logging.info(
-                f"Reusing batch {assigned_batch['batch_idx']} (annotator group {assigned_batch['annotator_group']})"
-            )
-            return assigned_batch["batch_idx"], assigned_batch["annotator_group"]
+            logging.info(f"Reusing batch {assigned_batch['batch_idx']}")
+            return assigned_batch["batch_idx"]
 
     # Choose from the batches with the lowest annotator group
     free_batches = db[db["status"] == ExampleStatus.FREE]
