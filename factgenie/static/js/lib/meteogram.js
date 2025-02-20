@@ -200,7 +200,8 @@ Meteogram.prototype.getChartOptions = function (cityName) {
             maxPadding: 0.3,
             minRange: 8,
             tickInterval: 1,
-            gridLineColor: 'rgba(128, 128, 128, 0.1)'
+            gridLineColor: 'rgba(128, 128, 128, 0.1)',
+            max: 50
 
         }, { // precipitation axis
             title: {
@@ -345,7 +346,7 @@ Meteogram.prototype.getChartOptions = function (cityName) {
             data: this.clouds,
             type: 'line',
             visible: true, // Keep visible so its points get mouse events
-            enableMouseTracking: true,
+            // enableMouseTracking: true,
             showInLegend: false,
             lineWidth: 0, // Do not draw a line
             marker: {
