@@ -338,7 +338,7 @@ def get_annotator_batch(app, campaign, service_ids, batch_idx=None):
     with app.db["lock"]:
         annotator_id = service_ids["annotator_id"]
 
-        logging.info(f"Acquiring lock for {annotator_id}")
+        logger.info(f"Acquiring lock for {annotator_id}")
         start = int(time.time())
         seed = random.seed(str(start) + str(service_ids.values()))
 
@@ -347,7 +347,7 @@ def get_annotator_batch(app, campaign, service_ids, batch_idx=None):
             try:
                 batch_idx = select_batch(db, seed, annotator_id)
             except ValueError as e:
-                logging.info(str(e))
+                logger.info(str(e))
                 # no available batches
                 return []
         else:
@@ -380,10 +380,9 @@ def save_annotations(app, campaign_id, annotation_set, annotator_id):
     with app.db["lock"]:
         db = campaign.db
         batch_idx = annotation_set[0]["batch_idx"]
-        annotator_group = annotation_set[0]["annotator_group"]
 
         # select the examples for this batch and annotator group
-        mask = (db["batch_idx"] == batch_idx) & (db["annotator_group"] == annotator_group)
+        mask = db["batch_idx"] == batch_idx
 
         # if the batch is not assigned to this annotator, return an error
         batch_annotator_id = db.loc[mask].iloc[0]["annotator_id"]
@@ -434,9 +433,7 @@ def save_annotations(app, campaign_id, annotation_set, annotator_id):
                 row=row,
                 result=res,
             )
-        logger.info(
-            f"Annotations for {campaign_id} (batch {batch_idx}, annotator group {annotator_group}, annotator {annotator_id}) saved."
-        )
+        logger.info(f"Annotations for {campaign_id} (batch {batch_idx}, annotator {annotator_id}) saved.")
 
     final_message_html = markdown.markdown(campaign.metadata["config"]["final_message"])
 
