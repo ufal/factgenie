@@ -286,10 +286,10 @@ def select_batch(db, seed, annotator_id):
             )
             return assigned_batch["batch_idx"], assigned_batch["annotator_group"]
 
-    # Choose from the batches with the most available annotators
+    # Choose from the batches with the lowest annotator group
     free_batches = db[db["status"] == ExampleStatus.FREE]
-    annotator_groups_per_batch = free_batches.groupby("batch_idx")["annotator_group"].nunique()
-    eligible_batches = annotator_groups_per_batch[annotator_groups_per_batch == annotator_groups_per_batch.max()]
+    eligible_batches = free_batches.groupby("batch_idx")["annotator_group"].min()
+    eligible_batches = eligible_batches[eligible_batches == eligible_batches.min()]
 
     eligible_examples = free_batches[free_batches["batch_idx"].isin(eligible_batches.index)]
 

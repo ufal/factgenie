@@ -934,6 +934,9 @@ def save_record(mode, campaign, row, result):
         "metadata": campaign.metadata["config"].copy(),
     }
 
+    record["metadata"].pop("annotator_instructions", None)
+    record["metadata"].pop("final_message", None)
+
     if mode == CampaignMode.LLM_EVAL or mode == CampaignMode.CROWDSOURCING:
         setup_id = str(row["setup_id"])
         record["setup_id"] = setup_id
