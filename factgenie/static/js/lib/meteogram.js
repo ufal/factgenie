@@ -8,6 +8,7 @@ function Meteogram(json, container) {
     this.winds = [];
     this.temperatures = [];
     this.pressures = [];
+    this.clouds = [];
 
     this.json = json;
     this.container = container;
@@ -334,7 +335,28 @@ Meteogram.prototype.getChartOptions = function (cityName) {
             },
             dashStyle: 'shortdot',
             yAxis: 2
-        }, {
+        },
+        {
+            name: 'Cloud coverage',
+            color: Highcharts.getOptions().colors[3],
+            data: this.clouds,
+            type: 'line',
+            visible: true, // Keep visible so its points get mouse events
+            enableMouseTracking: true,
+            showInLegend: false,
+            lineWidth: 0, // Do not draw a line
+            marker: {
+                enabled: true,
+                radius: 4,
+                fillColor: 'rgba(0,0,0,0)', // Transparent markers
+                lineWidth: 0
+            },
+            tooltip: {
+                pointFormat: '<span style="color:{point.color}">\u25CF</span> ' +
+                    '{series.name}: <b>{point.y}%</b><br/>'
+            }
+        },
+        {
             name: 'Wind',
             type: 'windbarb',
             id: 'windbarbs',
@@ -426,6 +448,16 @@ Meteogram.prototype.parseData = function () {
         this.pressures.push({
             x,
             y: data.main.pressure
+        });
+
+        // Add cloud coverage data
+        this.clouds.push({
+            x,
+            y: data.clouds.all,
+            // Make it invisible in the graph but keep data for tooltip
+            marker: {
+                enabled: false
+            }
         });
 
         if (i === 0) {
