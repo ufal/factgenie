@@ -21,7 +21,7 @@ function clearCampaign(campaignId) {
 
 function clearOutput(campaignId, mode, idx, annotatorGroup) {
     // ask for confirmation
-    if (!confirm(`Are you sure you want to free the row id ${idx}? Any collected outputs will be deleted.`)) {
+    if (!confirm(`Are you sure you want to free the batch id ${idx} (annotator group ${annotatorGroup})? All related outputs will be deleted.`)) {
         return;
     }
     $.post({
