@@ -9,7 +9,6 @@ import zipfile
 import factgenie.workflows as workflows
 import pygamma_agreement as pa
 import numpy as np
-
 from collections import defaultdict
 from scipy.stats import pearsonr
 from tqdm import tqdm
@@ -457,65 +456,95 @@ def compute_pearson_r(df, group1, group2):
 # `alpha`: coefficient weighting the *positional* dissimilarity value, defaults to 1
 # `beta`: coefficient weighting the *categorical* dissimilarity value, defaults to 1
 # `delta_empty`: empty dissimilarity value, defaults to 1
-def compute_gamma_score(span_index, annotator_groups, alpha=1, beta=1, delta_empty=1):
-    span_index = span_index[span_index["annotator_group_id"].isin(annotator_groups)]
-
+def compute_gamma_score(
+    span_index, example_level_counts, alpha, beta, delta_empty, soft, save_plots, handle_empty_annotations
+):
     dissim = pa.CombinedCategoricalDissimilarity(alpha=alpha, beta=beta, delta_empty=delta_empty)
 
     gamma_scores = []
     running_avg = 0
 
-    # Group examples
-    groups = list(span_index.groupby(["dataset", "split", "setup_id", "example_idx"]))
+    # Group by same fields as in example_level_counts
+    examples = example_level_counts.groupby(["dataset", "split", "setup_id", "example_idx"])
 
     # Create progress bar
-    pbar = tqdm(total=len(groups), desc="Computing gamma score")
+    pbar = tqdm(total=len(examples), desc="Computing gamma score")
 
-    for idx, (i, group) in enumerate(groups, 1):
-        try:
+    if save_plots:
+        import matplotlib.pyplot as plt
+
+        ntb = pa.notebook.Notebook()
+        os.makedirs(save_plots, exist_ok=True)
+
+    for (dataset, split, setup_id, example_idx), example_group in examples:
+        # Get corresponding spans for this example
+        example_spans = span_index[
+            (span_index["dataset"] == dataset)
+            & (span_index["split"] == split)
+            & (span_index["setup_id"] == setup_id)
+            & (span_index["example_idx"] == example_idx)
+        ]
+
+        # Remove empty segments
+        example_spans = example_spans[example_spans["annotation_start"] != example_spans["annotation_end"]]
+
+        # Check number of unique annotator groups
+        unique_annotators = example_spans["annotator_group_id"].unique()
+
+        if len(unique_annotators) < 2:
+            if handle_empty_annotations:
+                # One or both annotators did not add any annotation
+                # Compute score as 1 / (1 + annotation_cnt) to promote better matching in annotation count
+                ann_count = example_spans.shape[0]
+                aux_gamma_score = 1 / (1 + ann_count)
+                gamma_scores.append(aux_gamma_score)
+            else:
+                # Skip this example
+                logger.warning(
+                    f"Skipping example {dataset}/{split}/{setup_id}/{example_idx} as it has less than 2 annotators. Consider using --gamma_handle_empty_annotations."
+                )
+                pbar.update(1)
+                continue
+        else:
             # Add each annotation to continuum
             continuum = pa.Continuum()
 
-            if group.annotator_group_id.unique().shape[0] < 2:
-                # One of the annotators did not add any annotation -> gamma = 0
-                print(f"Example {idx} has annotations from only one annotator group")
-                gamma_scores.append(0.0)
-                running_avg = np.mean(gamma_scores)
-                pbar.set_postfix({"avg_gamma": f"{running_avg:.3f}"})
-                pbar.update(1)
-                continue
-
-            for j, row in group.iterrows():
-                # make sure we do not add empty segments
-                if row["annotation_start"] == row["annotation_end"]:
-                    continue
-
+            for _, row in example_spans.iterrows():
                 continuum.add(
                     str(row["annotator_group_id"]),
                     Segment(row["annotation_start"], row["annotation_end"]),
                     str(row["annotation_type"]),
                 )
 
-            # Temporarily increase logging level to suppress output
+            # Compute gamma score
             logging.getLogger().setLevel(logging.WARNING)
-            gamma_results = continuum.compute_gamma(dissim, soft=True)
+            try:
+                gamma_results = continuum.compute_gamma(dissim, soft=soft)
+                gamma_scores.append(gamma_results.gamma)
+
+                if save_plots:
+                    fig, ax = plt.subplots(figsize=(10, 2))
+                    ntb.plot_alignment(gamma_results.best_alignment, ax)
+                    plt.tight_layout()
+
+                    # Save the plot
+                    plt.savefig(
+                        os.path.join(save_plots, f"{dataset}_{split}_{setup_id}_{example_idx}.png"),
+                        dpi=300,
+                        bbox_inches="tight",
+                    )
+                    plt.close(fig)
+
+            except Exception as e:
+                traceback.print_exc()
+                print(f"Error computing gamma for example {dataset}/{split}/{setup_id}/{example_idx}: {e}")
+                gamma_scores.append(0.0)
+
             logging.getLogger().setLevel(logging.INFO)
 
-            # gamma_results.best_alignment
-
-            gamma_scores.append(gamma_results.gamma)
-            running_avg = np.mean(gamma_scores)
-
-            # Update progress bar with current average
-            pbar.set_postfix({"avg_gamma": f"{running_avg:.3f}"})
-            pbar.update(1)
-        except Exception as e:
-            traceback.print_exc()
-            print(f"Error computing gamma for example {idx}")
-            gamma_scores.append(0.0)
-            running_avg = np.mean(gamma_scores)
-            pbar.set_postfix({"avg_gamma": f"{running_avg:.3f}"})
-            pbar.update(1)
+        running_avg = np.mean(gamma_scores)
+        pbar.set_postfix({"avg_gamma": f"{running_avg:.3f}"})
+        pbar.update(1)
 
     pbar.close()
     return float(np.mean(gamma_scores)) if gamma_scores else 0.0

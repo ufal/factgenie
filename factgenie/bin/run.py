@@ -124,7 +124,36 @@ def show_campaign_info(app, campaign_id: str):
 @click.argument("second_campaign", type=str)
 @click.argument("second_ann_group", type=int)
 @click.argument("method", type=click.Choice(["ann_cnt_pearson", "gamma_score"]))
-def compute_iaa(first_campaign, first_ann_group, second_campaign, second_ann_group, method):
+@click.option(
+    "--gamma_score_alpha",
+    default=1,
+    show_default=True,
+    type=float,
+    help="Coefficient weighting the positional dissimilarity value for gamma score (default: 1)",
+)
+@click.option(
+    "--gamma_score_beta",
+    default=1,
+    show_default=True,
+    type=float,
+    help="Coefficient weighting the categorical dissimilarity value for gamma score(default: 1)",
+)
+@click.option(
+    "--gamma_score_delta",
+    default=1,
+    show_default=True,
+    type=float,
+    help="Empty dissimilarity value for gamma score (default: 1)",
+)
+@click.option("--gamma_score_soft", is_flag=True, default=False, help="Use soft gamma score")
+@click.option("--gamma_save_plots", type=str, help="Save gamma best alignment plots to the specified directory")
+@click.option(
+    "--gamma_handle_empty_annotations",
+    is_flag=True,
+    default=False,
+    help="Computes a modified gamma score that handles cases where annotations from one or both annotators are missing. Score is computed as 1 / (1 + ann_count), where ann_count is the number of annotations from the existing annotator.",
+)
+def compute_iaa(first_campaign, first_ann_group, second_campaign, second_ann_group, method, **args):
     """Compute inter-annotator agreement between two annotator groups."""
     from factgenie.workflows import load_campaign, generate_campaign_index
     from factgenie import analysis
@@ -162,13 +191,19 @@ def compute_iaa(first_campaign, first_ann_group, second_campaign, second_ann_gro
 
     dfs = analysis.compute_iaa_dfs(app, selected_campaigns, combinations, campaigns)
 
+    dataset_level_counts = dfs["dataset_level_counts"]
+    example_level_counts = dfs["example_level_counts"]
+    span_index = dfs["span_index"]
+
     first_group_id = analysis.format_group_id(first_campaign, first_ann_group)
     second_group_id = analysis.format_group_id(second_campaign, second_ann_group)
 
-    if method == "ann_cnt_pearson":
-        dataset_level_counts = dfs["dataset_level_counts"]
-        example_level_counts = dfs["example_level_counts"]
+    # filter the selected annotator groups
+    for df in [dataset_level_counts, example_level_counts, span_index]:
+        df = df[df["annotator_group_id"].isin([first_group_id, second_group_id])]
+        df.reset_index(drop=True, inplace=True)
 
+    if method == "ann_cnt_pearson":
         # Compute Pearson correlation for both levels
         for level, counts_df in [("example", example_level_counts), ("dataset", dataset_level_counts)]:
             correlations = analysis.compute_pearson_r(counts_df, first_group_id, second_group_id)
@@ -185,8 +220,16 @@ def compute_iaa(first_campaign, first_ann_group, second_campaign, second_ann_gro
             print("==============================================")
 
     elif method == "gamma_score":
-        span_index = dfs["span_index"]
-        gamma = analysis.compute_gamma_score(span_index, [first_group_id, second_group_id])
+        gamma = analysis.compute_gamma_score(
+            span_index,
+            example_level_counts,
+            alpha=args["gamma_score_alpha"],
+            beta=args["gamma_score_beta"],
+            delta_empty=args["gamma_score_delta"],
+            soft=args["gamma_score_soft"],
+            save_plots=args["gamma_save_plots"],
+            handle_empty_annotations=args["gamma_handle_empty_annotations"],
+        )
 
         print("==============================================")
         print(f"Gamma score: {gamma:.3f}")

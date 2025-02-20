@@ -24,6 +24,7 @@ install_requires = [
     "google-api-python-client>=2.16.0",
     "google-cloud-aiplatform>=1.38",
     "pygamma-agreement==0.5.9",
+    "matplotlib>=3.10.0",
 ]
 
 setup(
