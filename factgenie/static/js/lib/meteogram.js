@@ -268,6 +268,7 @@ Meteogram.prototype.getChartOptions = function (cityName) {
                 pointFormat: '<span style="color:{point.color}">\u25CF</span> ' +
                     '{series.name}: <b>{point.y}°C</b> (feels like {point.feelslike}°C)<br/>'
             },
+            pointPlacement: 0.25,
             zIndex: 1,
             color: '#FF3333',
             negativeColor: '#48AFE8'
@@ -305,6 +306,7 @@ Meteogram.prototype.getChartOptions = function (cityName) {
             yAxis: 1,
             groupPadding: 0,
             pointPadding: 0,
+            pointPlacement: 0.5,
             grouping: false,
             dataLabels: {
                 enabled: !this.hasPrecipitationError,
@@ -329,6 +331,7 @@ Meteogram.prototype.getChartOptions = function (cityName) {
                 enabled: false
             },
             shadow: false,
+            pointPlacement: 0.375,
             tooltip: {
                 valueSuffix: ' hPa'
             },
@@ -411,7 +414,7 @@ Meteogram.prototype.parseData = function () {
 
         this.precipitations.push({
             x,
-            y: data.rain ? data.rain['3h'] : 0
+            y: data.rain ? data.rain : 0
         });
 
         // if (i % 2 === 0) {

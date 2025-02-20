@@ -20,7 +20,7 @@ class OpenWeather(QuintdDataset, JSONDataset):
             "temp": "°C",
             "wind": "m/s",
             "pressure": "hPa",
-            "rain": "mm",
+            "rain": "mm/h (6h)",
             "snow": "mm",
         }
 
