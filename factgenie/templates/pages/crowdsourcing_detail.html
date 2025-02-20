@@ -97,7 +97,6 @@
           <thead>
             <tr>
               <th scope="col" data-sortable="true">Batch id</th>
-              <th scope="col" data-sortable="true">Ann. group</th>
               <th scope="col" data-sortable="true">Examples</th>
               <th scope="col" data-sortable="true">Status</th>
               <th scope="col" data-sortable="true">Annotator id</th>
@@ -112,7 +111,6 @@
             {% set rowId = (batch.batch_idx|string) %}
             <tr>
               <td>{{ batch.batch_idx }}</td>
-              <td>{{ batch.annotator_group }}</td>
               <td>{{ batch.example_cnt }}</td>
               <td><span id="statusBtn{{ rowId }}" class="badge bg-{{ batch.status }}">{{ batch.status }}</span>
               </td>
@@ -126,7 +124,7 @@
                   <i class="fa fa-eye"></i>
                 </a>
                 <a class="btn btn-sm btn-outline-secondary"
-                  onclick="clearOutput('{{ metadata.id }}', '{{ mode }}', '{{ batch.batch_idx }}', {{ batch.annotator_group }})"
+                  onclick="clearOutput('{{ metadata.id }}', '{{ mode }}', '{{ batch.batch_idx }}')"
                   data-bs-toggle="tooltip" title="Clear outputs and set free" id="clearOutput{{ rowId }}"
                   aria-controls="collapseExample" {% if batch.status=='free' %} style="display: none;" {% endif %}>
                   <i class="fa fa-recycle"></i>
@@ -141,6 +139,7 @@
                         <th>Split</th>
                         <th>Setup id</th>
                         <th>Example idx</th>
+                        <th>Ann. group</th>
                         <th>Link</th>
                       </tr>
                     </thead>
@@ -151,6 +150,7 @@
                         <td>{{ e.split }}</td>
                         <td>{{ e.setup_id }}</td>
                         <td>{{ e.example_idx }}</td>
+                        <td>{{ e.annotator_group }}</td>
                         <td><a
                             href="{{ host_prefix }}/browse?dataset={{ e.dataset }}&split={{ e.split }}&example_idx={{ e.example_idx }}&setup_id={{ e.setup_id }}"
                             class="blue-link" target="_blank">

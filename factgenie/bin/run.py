@@ -388,7 +388,9 @@ def run_llm_campaign(campaign_id: str):
         raise ValueError(f"Campaign {campaign_id} not found.")
 
     if campaign.metadata["status"] == CampaignStatus.FINISHED:
-        raise ValueError(f"Campaign {campaign_id} is already finished.")
+        print(f"Campaign {campaign_id} is already finished.")
+        return
+        # raise ValueError(f"Campaign {campaign_id} is already finished.")
 
     if campaign.metadata["status"] == CampaignStatus.RUNNING:
         raise ValueError(f"Campaign {campaign_id} is already running.")

@@ -268,10 +268,9 @@ def clear_output():
     data = request.get_json()
     campaign_id = data.get("campaignId")
     idx = int(data.get("idx"))
-    annotator_group = int(data.get("annotatorGroup"))
 
     campaign = workflows.load_campaign(app, campaign_id=campaign_id)
-    campaign.clear_output(idx, annotator_group)
+    campaign.clear_output(idx)
 
     return utils.success()
 
