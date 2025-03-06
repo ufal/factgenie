@@ -20,6 +20,7 @@ Annotate LLM outputs with a lightweight, self-hosted web application 🌈
 </div>
 
 ## 📢  News
+- **2025-03-06** - Release 1.1.0 is out and comes with many significant improvements! See the 👉️ [changelog](https://github.com/ufal/factgenie/releases/tag/v1.1.0).
 - **2024-11-13** - We released version 1.0.1: our first official release! 🎉
 
 ## 👉️ How can factgenie help you?
