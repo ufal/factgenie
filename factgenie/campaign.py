@@ -63,8 +63,8 @@ class Campaign:
         db.to_csv(self.db_path, index=False)
 
     def load_db(self):
-        # no db for external campaigns
-        if self.metadata.get("mode") == CampaignMode.EXTERNAL:
+        # do not assume db for external campaigns
+        if self.metadata.get("mode") == CampaignMode.EXTERNAL and not os.path.exists(self.db_path):
             self.db = pd.DataFrame()
             return
 
