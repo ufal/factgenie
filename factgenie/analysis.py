@@ -342,7 +342,7 @@ def compute_span_index(app, selected_campaigns, campaigns):
 
     columns_to_drop = [
         "annotation_span_categories",
-        "annotator_id",
+        # "annotator_id",
         "annotation_granularity",
         "annotation_overlap_allowed",
         "flags",
