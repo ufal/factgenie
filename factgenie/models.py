@@ -239,7 +239,8 @@ class LLMMetric(Model):
         return data
 
     def prompt(self, data, text):
-        assert isinstance(text, str) and len(text) > 0, f"Text must be a non-empty string, got {text=}"
+        if not isinstance(text, str) or len(text) == 0:
+            logger.warning(f"Text must be a non-empty string, got {text=}")
         data_for_prompt = self.preprocess_data_for_prompt(data)
 
         prompt_template = self.config["prompt_template"]
