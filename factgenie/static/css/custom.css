@@ -1062,3 +1062,30 @@ a:hover {
     min-height: 40px;
     max-width: 40px;
 }
+
+#annotations-select {
+    overflow-x: auto;
+    white-space: nowrap;
+    max-width: 100%;
+    padding-bottom: 5px; /* Space for scrollbar */
+    scrollbar-width: thin; /* For Firefox */
+}
+  
+/* Styling for webkit browsers */
+#annotations-select::-webkit-scrollbar {
+    height: 5px;
+}
+  
+#annotations-select::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+  
+#annotations-select::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+  
+/* Ensure buttons stay on a single line */
+#annotations-select .btn {
+    flex-shrink: 0;
+}
