@@ -244,6 +244,10 @@ class LLMMetric(Model):
 
         prompt_template = self.config["prompt_template"]
 
+        if type(data_for_prompt) == dict:
+            for key in data.keys():
+                prompt_templte = prompt_template.replace(f"{{data[{key}]}}", str(data_for_prompt[key]))
+
         return prompt_template.replace("{data}", str(data_for_prompt)).replace("{text}", text)
 
     def get_model_response(self, prompt, model_service):
@@ -477,6 +481,10 @@ class LLMGen(Model):
         # to support existing prompts, we replace any double braces with single braces
         # this should not do much harm, as the prompts usually do contain double braces (but remove this in the future?)
         prompt_template = prompt_template.replace("{{", "{").replace("}}", "}")
+
+        if type(data) == dict:
+            for key in data.keys():
+                prompt_templte = prompt_template.replace(f"{{data[{key}]}}", str(data[key]))
 
         return prompt_template.replace("{data}", str(data))
 
