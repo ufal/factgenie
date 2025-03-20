@@ -54,6 +54,7 @@ class ModelFactory:
                 "anthropic": AnthropicGen,
                 "gemini": GeminiGen,
                 "vertexai": VertexAIGen,
+                "passthru": PassThroughGen,
             },
         }
 
@@ -423,7 +424,6 @@ class VertexAIMetric(LLMMetric):
 
         return response
 
-
 class LLMGen(Model):
     def get_required_fields(self):
         return {
@@ -636,3 +636,17 @@ class VertexAIGen(LLMGen):
 
     def _service_prefix(self):
         return "vertex_ai/"
+
+class PassThroughGen(LLMGen):
+    def __init__(self, config, **kwargs):
+        super().__init__(config)
+
+    def generate_output(self, data):
+        try:
+            prompt = self.prompt(data)
+            return {"prompt": prompt, "output": prompt}
+
+        except Exception as e:
+            traceback.print_exc()
+            logger.error(e)
+            raise e
