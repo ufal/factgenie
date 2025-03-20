@@ -1,0 +1,24 @@
+type: passthru
+model: 
+system_msg: 
+start_with: 
+prompt_template: |
+  Given the data:
+  ```
+  {data}
+  ```
+  Generate a summary in plain text, describing facts and values contained in the input:
+
+  *Example:*
+  data:
+  ```
+  Nokia 3310
+  -----
+  - **color**: black, blue, grey
+  - **display**: 320x240px
+  ```
+  output (product description):
+  ```
+  Nokia 3310 features a 320x240 display. It is available in black, blue and grey color.
+  ```
+  Do not add or fabricate any detail not reflected in the data. Also do not be too strict: some facts can be less specific than in the data (rounded values, shortened or abbreviated text, etc.).
