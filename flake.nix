@@ -1,5 +1,5 @@
 {
-  description = "Factgenie flake";
+  description = "Factgenie devenv flake.";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-24.11";
@@ -116,7 +116,7 @@
           echo "installing dependencies... ('pip install -r requirements.txt')"
           ${venvDir}/bin/pip install -r requirements.txt
         fi
-        if test -f setup.py; then
+        if [ test -f setup.py ] || [ test -f pyproject.toml ]; then
           echo "installing dependencies... ('pip install -e .')"
           ${venvDir}/bin/pip install -e .
         fi

@@ -1,0 +1,25 @@
+quintd1-openweather:
+  class: openweather.OpenWeather
+  description: '<p>The <code>openweather</code> subset of the <a href="https://github.com/kasnerz/quintd/">quintd-1
+    dataset</a>.  Contains weather forecasts from <a href="https://openweathermap.org/forecast5">OpenWeather</a>.</p><p><i>Note:
+    annotations and GPT-3.5 outputs are available only for the test set.</i></p>'
+  enabled: true
+  name: quintd1-openweather
+  splits:
+  - dev
+  - test
+time-series-dataset:
+  class: time_series_dataset.TimeSeriesDataset
+  description: Time series data
+  enabled: true
+  name: tsd
+  splits:
+  - test
+xsum-debug:
+  class: basic.PlainTextDataset
+  description: Sample of 5 examples from the <a href="https://github.com/EdinburghNLP/XSum">XSum</a>
+    dataset.
+  enabled: true
+  name: xsum-debug
+  splits:
+  - test

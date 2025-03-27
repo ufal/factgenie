@@ -247,7 +247,7 @@ class LLMMetric(Model):
 
         if type(data_for_prompt) == dict:
             for key in data.keys():
-                prompt_templte = prompt_template.replace(f"{{data[{key}]}}", str(data_for_prompt[key]))
+                prompt_template = prompt_template.replace(f"{{data[{key}]}}", str(data_for_prompt[key]))
 
         return prompt_template.replace("{data}", str(data_for_prompt)).replace("{text}", text)
 
@@ -484,7 +484,7 @@ class LLMGen(Model):
 
         if type(data) == dict:
             for key in data.keys():
-                prompt_templte = prompt_template.replace(f"{{data[{key}]}}", str(data[key]))
+                prompt_template = prompt_template.replace(f"{{data[{key}]}}", str(data[key]))
 
         return prompt_template.replace("{data}", str(data))
 
