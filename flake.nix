@@ -26,7 +26,7 @@
 
     python-packages = pkgs.python311Packages;
 
-    venvDir = "venv";
+    venvDir = ".venv";
 
     make-pypi = {pname, version, hash}: python-packages.buildPythonPackage {
       inherit pname version;
@@ -116,7 +116,7 @@
           echo "installing dependencies... ('pip install -r requirements.txt')"
           ${venvDir}/bin/pip install -r requirements.txt
         fi
-        if [ test -f setup.py ] || [ test -f pyproject.toml ]; then
+        if test -f setup.py || test -f pyproject.toml; then
           echo "installing dependencies... ('pip install -e .')"
           ${venvDir}/bin/pip install -e .
         fi
