@@ -459,27 +459,14 @@ def setup_logging(config):
     logging_level = config.get("logging", {}).get("level", "INFO")
     logger.setLevel(logging_level)
 
-    # File handler for errors and warnings
-    error_handler = logging.FileHandler(f"{ROOT_DIR}/logs/{datetime_str}_error.log")
-    error_handler.setLevel(logging.WARNING)
-    error_handler.setFormatter(PlainTextFormatter(log_format))
-
     # File handler for info messages only
-    info_handler = logging.FileHandler(f"{ROOT_DIR}/logs/{datetime_str}_info.log")
-    info_handler.setLevel(logging.INFO)
-    info_handler.addFilter(lambda record: record.levelno == logging.INFO)
+    info_handler = logging.FileHandler(f"{ROOT_DIR}/logs/{datetime_str}.log")
     info_handler.setFormatter(PlainTextFormatter(log_format))
 
-    # # Console handler with colored output
-    # console_handler = logging.StreamHandler()
-    # console_handler.setLevel(logging_level)
     coloredlogs.install(level=logging_level, logger=logger, fmt=log_format)
-    # console_handler.setFormatter(logging.Formatter(log_format))  # ANSI codes preserved
 
     # Add handlers to logger
-    logger.addHandler(error_handler)
     logger.addHandler(info_handler)
-    # logger.addHandler(console_handler)
 
     return logger
 
