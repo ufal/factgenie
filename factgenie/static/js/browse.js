@@ -76,7 +76,7 @@ function generateAnnotatorShortId(campaign_id, annotator_group) {
     return ann_id;
 }
 
-function createOutputBoxes(generated_outputs, highlight_setup_id) {
+function createOutputBoxes(generated_outputs) {
     // clear the output area
     $("#outputarea").empty();
 
@@ -138,12 +138,42 @@ function createOutputBoxes(generated_outputs, highlight_setup_id) {
             card.appendTo(groupDiv);
             card.hide();
         }
+    }
+}
 
-        // Highlight the output box if highlight_setup_id matches
-        if (highlight_setup_id && highlight_setup_id === output.setup_id) {
-            card.addClass('border border-primary border-2');
-            groupDiv.css({ animation: 'jump-out 0.5s ease' });
+function highlightSetup() {
+    // Remove any previous highlighting
+    $(".output-box").removeClass('border border-primary border-2');
+    $(".output-group").css({ animation: 'none' });
+
+    // If no highlight parameters are set, exit early
+    if (!window.highlight_setup_id) {
+        return;
+    }
+
+    // Get all output groups that match the highlighted setup_id
+    const matchingGroups = $(`.output-group.box-${window.highlight_setup_id}`);
+
+    // Apply animation to matching groups
+    matchingGroups.css({ animation: 'jump-out 0.5s ease' });
+
+    if (window.highlight_ann_campaign) {
+        // If both setup_id and campaign are highlighted, highlight that specific box
+        const specificBox = $(`.output-box.box-${window.highlight_setup_id}-${window.highlight_ann_campaign}`);
+        specificBox.addClass('border border-primary border-2');
+
+        // Make sure the highlighted campaign is visible if not already
+        if (!specificBox.is(":visible")) {
+            // Add this campaign to selected campaigns if not already there
+            if (!selected_campaigns.includes(window.highlight_ann_campaign)) {
+                $(`.btn-ann-select[data-ann="${window.highlight_ann_campaign}"]`).addClass("active");
+                selected_campaigns.push(window.highlight_ann_campaign);
+                updateDisplayedAnnotations();
+            }
         }
+    } else {
+        // If only setup_id is highlighted, highlight all boxes with that setup_id that are currently visible
+        $(`.output-box.box-${window.highlight_setup_id}:visible`).addClass('border border-primary border-2');
     }
 }
 
@@ -190,10 +220,13 @@ function fetchExample(dataset, split, example_idx) {
 
         window.generated_outputs = data.generated_outputs;
 
-        createOutputBoxes(data.generated_outputs, window.highlight_setup_id);
+        createOutputBoxes(data.generated_outputs);
         showSelectedCampaigns();
         updateDisplayedAnnotations();
+        highlightSetup();
 
+
+        window.highlight_ann_campaign = null;
         window.highlight_setup_id = null;
     }).fail(function (response) {
         console.log(response);
@@ -335,8 +368,13 @@ function showSelectedCampaigns() {
         }
     });
 
+    // if window.highlight_ann_campaign is set, select the corresponding campaign
+    if (window.highlight_ann_campaign) {
+        $(`.btn-ann-select[data-ann="${window.highlight_ann_campaign}"]`).addClass("active").trigger("change");
+    }
+
     // if no campaigns were selected, select the first one
-    if (selected_campaigns.length == 0) {
+    if (!window.highlight_ann_campaign && selected_campaigns.length == 0) {
         $(".btn-ann-select").first().addClass("active").trigger("change");
     }
 }
@@ -380,7 +418,7 @@ $("#dataset-select").on("change", changeDataset);
 $("#split-select").on("change", changeSplit);
 
 $("#badgesSwitch").on("change", function () {
-    createOutputBoxes(window.generated_outputs, window.highlight_setup_id);
+    createOutputBoxes(window.generated_outputs);
     showSelectedCampaigns();
     updateDisplayedAnnotations();
 });
