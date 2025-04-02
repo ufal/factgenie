@@ -349,9 +349,7 @@ def compute_span_index(app, selected_campaigns, campaigns, combinations=None):
 
         # filter out examples that are not in the selected combinations (dataset, split, setup_id)
         if combinations:
-            df = df[
-                df.apply(lambda x: (x["dataset"], x["split"], x["setup_id"]) in combinations, axis=1)
-            ]
+            df = df[df.apply(lambda x: (x["dataset"], x["split"], x["setup_id"]) in combinations, axis=1)]
 
         df["annotation_end"] = df["annotation_start"] + df["annotation_text"].str.len()
         df["annotator_group_id"] = df.apply(
@@ -444,9 +442,9 @@ def get_common_examples(first_campaign_data, second_campaign_data, first_group=N
             ["dataset", "split", "setup_id"]
         ].drop_duplicates()
     else:
-    first_examples = first_campaign_data[
-        (first_campaign_data["annotator_group"] == first_group) & (first_campaign_data["status"] == "finished")
-    ][["dataset", "split", "setup_id"]].drop_duplicates()
+        first_examples = first_campaign_data[
+            (first_campaign_data["annotator_group"] == first_group) & (first_campaign_data["status"] == "finished")
+        ][["dataset", "split", "setup_id"]].drop_duplicates()
 
     # Filter examples for second group (or all if second_group is None)
     if second_group is None:
@@ -454,9 +452,9 @@ def get_common_examples(first_campaign_data, second_campaign_data, first_group=N
             ["dataset", "split", "setup_id"]
         ].drop_duplicates()
     else:
-    second_examples = second_campaign_data[
-        (second_campaign_data["annotator_group"] == second_group) & (second_campaign_data["status"] == "finished")
-    ][["dataset", "split", "setup_id"]].drop_duplicates()
+        second_examples = second_campaign_data[
+            (second_campaign_data["annotator_group"] == second_group) & (second_campaign_data["status"] == "finished")
+        ][["dataset", "split", "setup_id"]].drop_duplicates()
 
     # Find intersection using merge
     common = pd.merge(first_examples, second_examples, how="inner")
