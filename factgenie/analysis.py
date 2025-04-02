@@ -433,14 +433,27 @@ def format_group_id(campaign_id, group):
 # the following methods are used only in CLI for now
 
 
-def get_common_examples(first_campaign_data, second_campaign_data, first_group, second_group):
-    """Find common examples between two annotator groups."""
-    # Filter finished examples for first group
+def get_common_examples(first_campaign_data, second_campaign_data, first_group=None, second_group=None):
+    """Find common examples between two annotator groups.
+
+    If a group is None, all examples from that campaign are considered regardless of group.
+    """
+    # Filter examples for first group (or all if first_group is None)
+    if first_group is None:
+        first_examples = first_campaign_data[first_campaign_data["status"] == "finished"][
+            ["dataset", "split", "setup_id"]
+        ].drop_duplicates()
+    else:
     first_examples = first_campaign_data[
         (first_campaign_data["annotator_group"] == first_group) & (first_campaign_data["status"] == "finished")
     ][["dataset", "split", "setup_id"]].drop_duplicates()
 
-    # Filter finished examples for second group
+    # Filter examples for second group (or all if second_group is None)
+    if second_group is None:
+        second_examples = second_campaign_data[second_campaign_data["status"] == "finished"][
+            ["dataset", "split", "setup_id"]
+        ].drop_duplicates()
+    else:
     second_examples = second_campaign_data[
         (second_campaign_data["annotator_group"] == second_group) & (second_campaign_data["status"] == "finished")
     ][["dataset", "split", "setup_id"]].drop_duplicates()
