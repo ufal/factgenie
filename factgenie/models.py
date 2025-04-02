@@ -7,6 +7,8 @@ import os
 import logging
 from pydantic import BaseModel, Field, ValidationError
 import json
+import re
+import random
 import time
 from ast import literal_eval
 from factgenie.campaign import CampaignMode
@@ -47,6 +49,7 @@ class ModelFactory:
                 "anthropic": AnthropicMetric,
                 "gemini": GeminiMetric,
                 "vertexai": VertexAIMetric,
+                "vertexai_reasoning": VertexAIReasoningMetric,
             },
             CampaignMode.LLM_GEN: {
                 "openai": OpenAIGen,
@@ -85,8 +88,20 @@ class SpanAnnotation(BaseModel):
     )
 
 
+class SpanAnnotationNoReason(BaseModel):
+    text: str = Field(description="The text which is annotated.")
+    # Do not name it type since it is a reserved keyword in JSON schema
+    annotation_type: int = Field(
+        description="Index to the list of span annotation types defined for the annotation campaign."
+    )
+
+
 class OutputAnnotations(BaseModel):
     annotations: list[SpanAnnotation] = Field(description="The list of annotations.")
+
+
+class OutputAnnotationsNoReason(BaseModel):
+    annotations: list[SpanAnnotationNoReason] = Field(description="The list of annotations.")
 
 
 class Model:
@@ -164,8 +179,15 @@ class LLMMetric(Model):
         }
 
     def parse_annotations(self, text, annotations_json):
+        extra_args = self.config.get("extra_args", {})
+
+        if extra_args.get("no_reason"):
+            out_cls = OutputAnnotationsNoReason
+        else:
+            out_cls = OutputAnnotations
+
         try:
-            annotations_obj = OutputAnnotations.model_validate_json(annotations_json)
+            annotations_obj = out_cls.model_validate_json(annotations_json)
             annotations = annotations_obj.annotations
         except ValidationError as e:
             logger.error("Parsing error: ", json.loads(e.json())[0]["msg"])
@@ -180,27 +202,35 @@ class LLMMetric(Model):
             return []
 
         annotation_list = []
-        current_pos = 0
 
         logger.info(f"Response contains {len(annotations)} annotations.")
 
         for i, annotation in enumerate(annotations):
-            annotated_span = annotation.text.lower()
+            annotated_span = annotation.text.lower().strip()
 
             if len(text) == 0:
                 logger.warning(f"❌ Span EMPTY.")
                 continue
 
             # find the `start` index of the error in the text
-            start_pos = text.lower().find(annotated_span, current_pos)
+            start_pos = text.lower().find(annotated_span)
+
+            overlap_allowed = self.config.get("annotation_overlap_allowed", False)
+
+            if not overlap_allowed and start_pos != -1:
+                # check if the annotation overlaps with any other annotation
+                for other_annotation in annotation_list:
+                    other_start = other_annotation["start"]
+                    other_end = other_start + len(other_annotation["text"])
+
+                    if start_pos < other_end and start_pos + len(annotated_span) > other_start:
+                        logger.warning(
+                            f"❌ Span OVERLAP: {annotated_span} ({start_pos}:{start_pos + len(annotated_span)}) overlaps with {other_annotation['text']} ({other_start}:{other_end})"
+                        )
+                        continue
 
             if start_pos == -1:
-                if text.lower().find(annotated_span) != -1:
-                    # The annotation was found earlier in the text. That may be an accident, therefore we ignore it. The model should be instructed to order the annotation sequentially.
-                    logger.warning(f'❌ Span OUT OF ORDER: "{annotated_span}"')
-                else:
-                    # The annotation was not found in the text.
-                    logger.warning(f'❌ Span NOT FOUND: "{annotated_span}"')
+                logger.warning(f'❌ Span NOT FOUND: "{annotated_span}"')
                 continue
 
             annotation_d = annotation.model_dump()
@@ -218,20 +248,15 @@ class LLMMetric(Model):
                 logger.error(f"Annotation type {annotation_d['type']} not found in the annotation_span_categories.")
                 continue
 
+            if start_pos == 0 and start_pos + len(annotated_span) == 0:
+                logger.warning(f"❌ Span EMPTY.")
+                continue
+
             logger.info(
                 f'[\033[32m\033[1m{annotation_type_str}\033[0m] "\033[32m{annotation.text}\033[0m" ({start_pos}:{start_pos + len(annotation.text)})'
             )
 
             annotation_list.append(annotation_d)
-
-            overlap_allowed = self.config.get("annotation_overlap_allowed", False)
-
-            if overlap_allowed:
-                # move the current position to the start of the annotation
-                current_pos = start_pos
-            else:
-                # move the current position to the end of the annotation
-                current_pos = start_pos + len(annotation.text)
 
         return annotation_list
 
@@ -348,12 +373,13 @@ class OllamaMetric(LLMMetric):
         return api_url
 
 
-class OllamaReasoningMetric(OllamaMetric):
+class ReasoningMetric(LLMMetric):
     """
-    Specialized Ollama metric for reasoning models that use <think> tags for thinking traces.
+    Specialized Ollama metric for CoT and reasoning models that use <think> tags for thinking traces.
     This class handles outputs where the model produces content with format:
     <think> ... thinking trace ... </think> JSON output
     """
+
     def __init__(self, config):
         super().__init__(config)
 
@@ -401,7 +427,7 @@ class OllamaReasoningMetric(OllamaMetric):
             logger.debug(f"Response tokens: {response.usage.completion_tokens}")
 
             raw_response = response.choices[0].message.content
-            
+
             # Extract content after thinking trace
             annotation_str = self._extract_final_output(raw_response)
             logger.debug(f"Extracted output: {annotation_str}")
@@ -420,24 +446,51 @@ class OllamaReasoningMetric(OllamaMetric):
         Extract final JSON output from reasoning model response by:
         1. Removing <think>...</think> blocks
         2. Finding and extracting the JSON object
-        
+
         If multiple <think> blocks exist, handles them all.
         """
-        # Remove all <think>...</think> sections
         import re
 
-        output = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL)
-        
-        # Try to find the JSON object by looking for matching curly braces
-        json_start = output.find('{')
-        json_end = output.rfind('}')
+        think_blocks = re.findall(r"<think>(.*?)</think>", content, flags=re.DOTALL)
+        for block in think_blocks:
+            logger.info(f"\033[90m[THINKING] {block.strip()}\033[0m")  # Grey color
 
-        # Check if JSON object was found
-        if json_start == -1 or json_end == -1:
-            logger.error("Failed to find JSON object in response.")
+        # Remove all <think>...</think> sections
+
+        output = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL)
+
+        # Try to find the JSON object by looking for matching curly braces
+        # Find all potential JSON objects in the output by tracking balanced braces
+        potential_jsons = []
+        stack = []
+        start_indices = []
+
+        for i, char in enumerate(output):
+            if char == "{":
+                if not stack:  # If this is a new potential JSON object
+                    start_indices.append(i)
+                stack.append("{")
+            elif char == "}" and stack:
+                stack.pop()
+                if not stack:  # If we've found a complete balanced JSON
+                    start = start_indices.pop()
+                    potential_jsons.append(output[start : i + 1])
+
+        # Try to validate each potential JSON, prioritizing the last valid one
+        valid_jsons = []
+        for json_str in potential_jsons:
+            try:
+                json.loads(json_str)  # Validate JSON
+                valid_jsons.append(json_str)
+            except json.JSONDecodeError:
+                continue
+
+        if not valid_jsons:
+            logger.error("Failed to find valid JSON object in response.")
             return ""
-        
-        return output[json_start:json_end+1]
+
+        # Return the last valid JSON (most likely to be the final output)
+        return valid_jsons[-1]
 
     def parse_annotations(self, text, annotations_json):
         """
@@ -446,23 +499,43 @@ class OllamaReasoningMetric(OllamaMetric):
         try:
             # First attempt to parse as JSON
             json_obj = json.loads(annotations_json)
-            
+
             # Create proper structure for Pydantic validation
             if isinstance(json_obj, dict) and "annotations" in json_obj:
                 annotations_json = json.dumps(json_obj)
             else:
                 # If the JSON doesn't have the expected structure, wrap it
                 annotations_json = json.dumps({"annotations": json_obj if isinstance(json_obj, list) else []})
-                
+
             # Now use the parent class method to validate and process
             return super().parse_annotations(text, annotations_json)
-            
+
         except json.JSONDecodeError:
             logger.error(f"Failed to parse response as JSON: {annotations_json}")
             return []
         except Exception as e:
             logger.error(f"Error parsing annotations: {str(e)}")
             return []
+
+
+class OllamaReasoningMetric(OllamaMetric, ReasoningMetric):
+    """
+    Specialized Ollama metric for CoT and reasoning models that use <think> tags for thinking traces.
+    This class handles outputs where the model produces content with format:
+    <think> ... thinking trace ... </think> JSON output
+    """
+
+    def __init__(self, config):
+        super().__init__(config)
+
+    def annotate_example(self, data, text):
+        return ReasoningMetric.annotate_example(self, data, text)
+
+    def _extract_final_output(self, content):
+        return ReasoningMetric._extract_final_output(self, content)
+
+    def parse_annotations(self, text, annotations_json):
+        return ReasoningMetric.parse_annotations(self, text, annotations_json)
 
 
 class VLLMMetric(LLMMetric):
@@ -487,6 +560,61 @@ class AnthropicMetric(LLMMetric):
 
     def _service_prefix(self):
         return "anthropic/"
+
+    def _get_model_response_with_retries(self, prompt, model_service):
+        """Handle rate limits and overload errors with exponential backoff and retry logic"""
+        max_retries = 15
+        initial_retry_delay = 2  # seconds
+
+        messages = []
+        if self.config.get("system_msg"):
+            messages.append({"role": "system", "content": self.config["system_msg"]})
+
+        messages.append({"role": "user", "content": prompt})
+
+        for attempt in range(max_retries):
+            try:
+                # Use regular completion
+                response = litellm.completion(
+                    model=model_service,
+                    messages=messages,
+                    response_format=OutputAnnotations,
+                    api_base=self._api_url(),
+                    **self.config.get("model_args", {}),
+                )
+                return response
+
+            except (litellm.exceptions.RateLimitError, litellm.exceptions.InternalServerError) as e:
+                # Check if InternalServerError is specifically an "Overloaded" error
+                is_overloaded = isinstance(e, litellm.exceptions.InternalServerError) and "Overloaded" in str(e)
+
+                # Check if we've reached max retries
+                if attempt == max_retries - 1:
+                    error_type = "Rate limit" if isinstance(e, litellm.exceptions.RateLimitError) else "Server overload"
+                    logger.error(f"{error_type} exceeded after {max_retries} attempts. Giving up.")
+                    raise e
+
+                # Only retry for rate limits or overloaded errors
+                if not (isinstance(e, litellm.exceptions.RateLimitError) or is_overloaded):
+                    logger.error(f"Non-retryable InternalServerError: {str(e)}")
+                    raise e
+
+                # Calculate exponential backoff with jitter
+                retry_delay = initial_retry_delay * (2**attempt) + (random.uniform(0, 1))
+                error_type = "Rate limit" if isinstance(e, litellm.exceptions.RateLimitError) else "Server overload"
+                logger.warning(
+                    f"{error_type} hit. Retrying in {retry_delay:.2f} seconds (attempt {attempt+1}/{max_retries})..."
+                )
+                time.sleep(retry_delay)
+
+            except Exception as e:
+                # For other exceptions, don't retry
+                logger.error(f"Error calling Anthropic: {str(e)}")
+                raise e
+
+    def get_model_response(self, prompt, model_service):
+        """Override to use retry mechanism for rate limits"""
+        return self._get_model_response_with_retries(prompt, model_service)
 
 
 class GeminiMetric(LLMMetric):
@@ -540,6 +668,74 @@ class VertexAIMetric(LLMMetric):
             **self.config.get("model_args", {}),
         )
 
+        return response
+
+
+class VertexAIReasoningMetric(VertexAIMetric, ReasoningMetric):
+    """
+    Specialized VertexAI metric for CoT and reasoning models that use <think> tags for thinking traces.
+    This class handles outputs where the model produces content with format:
+    <think> ... thinking trace ... </think> JSON output
+    """
+
+    def __init__(self, config):
+        super().__init__(config)
+
+    def annotate_example(self, data, text):
+        return ReasoningMetric.annotate_example(self, data, text)
+
+    def _extract_final_output(self, content):
+        return ReasoningMetric._extract_final_output(self, content)
+
+    def parse_annotations(self, text, annotations_json):
+        return ReasoningMetric.parse_annotations(self, text, annotations_json)
+
+    def _get_model_response_with_retries(self, messages, model_service):
+        max_retries = 15
+        initial_retry_delay = 2  # seconds
+
+        for attempt in range(max_retries):
+            try:
+                # Use regular completion without response_format
+                response = litellm.completion(
+                    model=model_service,
+                    messages=messages,
+                    vertex_credentials=self.vertex_credentials_json,
+                    **self.config.get("model_args", {}),
+                )
+
+                return response
+
+            except litellm.exceptions.RateLimitError as e:
+                # Check if we've reached max retries
+                if attempt == max_retries - 1:
+                    logger.error(f"Rate limit exceeded after {max_retries} attempts. Giving up.")
+                    raise e
+
+                # Calculate exponential backoff with jitter
+                retry_delay = initial_retry_delay * (2**attempt) + (random.uniform(0, 1))
+                logger.warning(
+                    f"Rate limit hit. Retrying in {retry_delay:.2f} seconds (attempt {attempt+1}/{max_retries})..."
+                )
+                time.sleep(retry_delay)
+
+            except Exception as e:
+                # For other exceptions, don't retry
+                logger.error(f"Error calling LLM: {str(e)}")
+                raise e
+
+    def get_model_response(self, prompt, model_service):
+        """
+        Override to get unstructured response without Pydantic schema enforcement
+        """
+        messages = []
+
+        if self.config.get("system_msg"):
+            messages.append({"role": "system", "content": self.config["system_msg"]})
+
+        messages.append({"role": "user", "content": prompt})
+
+        response = self._get_model_response_with_retries(messages, model_service)
         return response
 
 

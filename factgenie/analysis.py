@@ -57,12 +57,15 @@ def generate_span_index(app, campaign):
         span_index["annotation_type"] = span_index["annotations"].apply(lambda x: x["type"])
         span_index["annotation_start"] = span_index["annotations"].apply(lambda x: x["start"])
         span_index["annotation_text"] = span_index["annotations"].apply(lambda x: x["text"])
+        span_index["annotation_reason"] = span_index["annotations"].apply(lambda x: x.get("reason", ""))
 
         # Drop the original annotations column
         span_index = span_index.drop("annotations", axis=1)
 
         # Remove any annotations that have NaN start or type or empty text
-        span_index = span_index.dropna(subset=["annotation_start", "annotation_type", "annotation_text"])
+        span_index = span_index.dropna(
+            subset=["annotation_start", "annotation_type", "annotation_text", "annotation_reason"]
+        )
         span_index = span_index[span_index["annotation_text"].apply(lambda x: len(x) > 0)]
 
     return span_index
@@ -265,6 +268,12 @@ def compute_span_counts(example_index, combinations):
 
         for i, row in example_index_subset.iterrows():
             for cat in cat_columns:
+                # if there are less than 2 annotators, skip this example and print warning
+                if len(row["annotator_group_id"]) < 2:
+                    logger.warning(
+                        f"Skipping example {dataset}/{split}/{setup_id}/{row['example_idx']} as it has less than 2 annotators."
+                    )
+                    continue
                 for cat_count, ann_group in zip(row[cat], row["annotator_group_id"]):
                     example_level_counts.append(
                         {
@@ -293,6 +302,9 @@ def compute_span_counts(example_index, combinations):
 def prepare_example_index(app, combinations, selected_campaigns, campaigns):
     # gather a list of all examples with some annotations
     example_index = pd.DataFrame()
+
+    # deduplicate
+    selected_campaigns = list(set(selected_campaigns))
 
     for campaign_id in selected_campaigns:
         campaign = campaigns[campaign_id]
@@ -326,11 +338,18 @@ def prepare_example_index(app, combinations, selected_campaigns, campaigns):
     return example_index
 
 
-def compute_span_index(app, selected_campaigns, campaigns):
+def compute_span_index(app, selected_campaigns, campaigns, combinations=None):
     span_index = []
+
+    # deduplicate
+    selected_campaigns = list(set(selected_campaigns))
 
     for campaign_id in selected_campaigns:
         df = generate_span_index(app, campaigns[campaign_id])
+
+        # filter out examples that are not in the selected combinations (dataset, split, setup_id)
+        if combinations:
+            df = df[df.apply(lambda x: (x["dataset"], x["split"], x["setup_id"]) in combinations, axis=1)]
 
         df["annotation_end"] = df["annotation_start"] + df["annotation_text"].str.len()
         df["annotator_group_id"] = df.apply(
@@ -350,7 +369,7 @@ def compute_span_index(app, selected_campaigns, campaigns):
         "sliders",
         "text_fields",
         "jsonl_file",
-        "annotation_text",
+        # "annotation_text",
     ]
 
     # Only drop columns that exist in the DataFrame
@@ -368,7 +387,7 @@ def compute_iaa_dfs(app, selected_campaigns, combinations, campaigns):
         example_index=example_index, combinations=combinations
     )
 
-    span_index = compute_span_index(app, selected_campaigns, campaigns)
+    span_index = compute_span_index(app, selected_campaigns, campaigns, combinations=combinations)
 
     results = {
         "dataset_level_counts": dataset_level_counts,
@@ -412,17 +431,30 @@ def format_group_id(campaign_id, group):
 # the following methods are used only in CLI for now
 
 
-def get_common_examples(first_campaign_data, second_campaign_data, first_group, second_group):
-    """Find common examples between two annotator groups."""
-    # Filter finished examples for first group
-    first_examples = first_campaign_data[
-        (first_campaign_data["annotator_group"] == first_group) & (first_campaign_data["status"] == "finished")
-    ][["dataset", "split", "setup_id"]].drop_duplicates()
+def get_common_examples(first_campaign_data, second_campaign_data, first_group=None, second_group=None):
+    """Find common examples between two annotator groups.
 
-    # Filter finished examples for second group
-    second_examples = second_campaign_data[
-        (second_campaign_data["annotator_group"] == second_group) & (second_campaign_data["status"] == "finished")
-    ][["dataset", "split", "setup_id"]].drop_duplicates()
+    If a group is None, all examples from that campaign are considered regardless of group.
+    """
+    # Filter examples for first group (or all if first_group is None)
+    if first_group is None:
+        first_examples = first_campaign_data[first_campaign_data["status"] == "finished"][
+            ["dataset", "split", "setup_id"]
+        ].drop_duplicates()
+    else:
+        first_examples = first_campaign_data[
+            (first_campaign_data["annotator_group"] == first_group) & (first_campaign_data["status"] == "finished")
+        ][["dataset", "split", "setup_id"]].drop_duplicates()
+
+    # Filter examples for second group (or all if second_group is None)
+    if second_group is None:
+        second_examples = second_campaign_data[second_campaign_data["status"] == "finished"][
+            ["dataset", "split", "setup_id"]
+        ].drop_duplicates()
+    else:
+        second_examples = second_campaign_data[
+            (second_campaign_data["annotator_group"] == second_group) & (second_campaign_data["status"] == "finished")
+        ][["dataset", "split", "setup_id"]].drop_duplicates()
 
     # Find intersection using merge
     common = pd.merge(first_examples, second_examples, how="inner")
@@ -456,12 +488,11 @@ def compute_pearson_r(df, group1, group2):
 # `alpha`: coefficient weighting the *positional* dissimilarity value, defaults to 1
 # `beta`: coefficient weighting the *categorical* dissimilarity value, defaults to 1
 # `delta_empty`: empty dissimilarity value, defaults to 1
-def compute_gamma_score(
-    span_index, example_level_counts, alpha, beta, delta_empty, soft, save_plots, handle_empty_annotations
-):
+def compute_gamma_score(span_index, example_level_counts, alpha, beta, delta_empty, soft, save_plots):
     dissim = pa.CombinedCategoricalDissimilarity(alpha=alpha, beta=beta, delta_empty=delta_empty)
 
     gamma_scores = []
+    s_empty_scores = []
     running_avg = 0
 
     # Group by same fields as in example_level_counts
@@ -492,19 +523,13 @@ def compute_gamma_score(
         unique_annotators = example_spans["annotator_group_id"].unique()
 
         if len(unique_annotators) < 2:
-            if handle_empty_annotations:
-                # One or both annotators did not add any annotation
-                # Compute score as 1 / (1 + annotation_cnt) to promote better matching in annotation count
-                ann_count = example_spans.shape[0]
-                aux_gamma_score = 1 / (1 + ann_count)
-                gamma_scores.append(aux_gamma_score)
-            else:
-                # Skip this example
-                logger.warning(
-                    f"Skipping example {dataset}/{split}/{setup_id}/{example_idx} as it has less than 2 annotators. Consider using --gamma_handle_empty_annotations."
-                )
-                pbar.update(1)
-                continue
+            # One or both annotators did not add any annotation
+            # Compute s_empty score as 1 / (1 + annotation_cnt)
+            ann_count = example_spans.shape[0]
+            s_empty_score = 1 / (1 + ann_count)
+            s_empty_scores.append(s_empty_score)
+            pbar.update(1)
+            continue
         else:
             # Add each annotation to continuum
             continuum = pa.Continuum()
@@ -516,29 +541,31 @@ def compute_gamma_score(
                     str(row["annotation_type"]),
                 )
 
-            # Compute gamma score
-            logging.getLogger().setLevel(logging.WARNING)
-            try:
-                gamma_results = continuum.compute_gamma(dissim, soft=soft)
-                gamma_scores.append(gamma_results.gamma)
+        # Compute gamma score
+        logging.getLogger().setLevel(logging.WARNING)
+        try:
+            np.random.seed(42)
 
-                if save_plots:
-                    fig, ax = plt.subplots(figsize=(10, 2))
-                    ntb.plot_alignment(gamma_results.best_alignment, ax)
-                    plt.tight_layout()
+            gamma_results = continuum.compute_gamma(dissim, soft=soft)
+            gamma_scores.append(gamma_results.gamma)
 
-                    # Save the plot
-                    plt.savefig(
-                        os.path.join(save_plots, f"{dataset}_{split}_{setup_id}_{example_idx}.png"),
-                        dpi=300,
-                        bbox_inches="tight",
-                    )
-                    plt.close(fig)
+            if save_plots:
+                fig, ax = plt.subplots(figsize=(10, 2))
+                ntb.plot_alignment(gamma_results.best_alignment, ax)
+                plt.tight_layout()
 
-            except Exception as e:
-                traceback.print_exc()
-                print(f"Error computing gamma for example {dataset}/{split}/{setup_id}/{example_idx}: {e}")
-                gamma_scores.append(0.0)
+                # Save the plot
+                plt.savefig(
+                    os.path.join(save_plots, f"{dataset}_{split}_{setup_id}_{example_idx}.png"),
+                    dpi=300,
+                    bbox_inches="tight",
+                )
+                plt.close(fig)
+
+        except Exception as e:
+            traceback.print_exc()
+            print(f"Error computing gamma for example {dataset}/{split}/{setup_id}/{example_idx}: {e}")
+            gamma_scores.append(0.0)
 
             logging.getLogger().setLevel(logging.INFO)
 
@@ -547,7 +574,15 @@ def compute_gamma_score(
         pbar.update(1)
 
     pbar.close()
-    return float(np.mean(gamma_scores)) if gamma_scores else 0.0
+
+    gamma_score = float(np.mean(gamma_scores)) if gamma_scores else 0.0
+    s_empty_score = float(np.mean(s_empty_scores)) if s_empty_scores else 0.0
+
+    out = {
+        "gamma": gamma_score,
+        "s_empty": s_empty_score,
+    }
+    return out
 
 
 # --------------------------------------------------------------
