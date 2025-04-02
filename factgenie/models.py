@@ -202,27 +202,35 @@ class LLMMetric(Model):
             return []
 
         annotation_list = []
-        current_pos = 0
 
         logger.info(f"Response contains {len(annotations)} annotations.")
 
         for i, annotation in enumerate(annotations):
-            annotated_span = annotation.text.lower()
+            annotated_span = annotation.text.lower().strip()
 
             if len(text) == 0:
                 logger.warning(f"❌ Span EMPTY.")
                 continue
 
             # find the `start` index of the error in the text
-            start_pos = text.lower().find(annotated_span, current_pos)
+            start_pos = text.lower().find(annotated_span)
+
+            overlap_allowed = self.config.get("annotation_overlap_allowed", False)
+
+            if not overlap_allowed and start_pos != -1:
+                # check if the annotation overlaps with any other annotation
+                for other_annotation in annotation_list:
+                    other_start = other_annotation["start"]
+                    other_end = other_start + len(other_annotation["text"])
+
+                    if start_pos < other_end and start_pos + len(annotated_span) > other_start:
+                        logger.warning(
+                            f"❌ Span OVERLAP: {annotated_span} ({start_pos}:{start_pos + len(annotated_span)}) overlaps with {other_annotation['text']} ({other_start}:{other_end})"
+                        )
+                        continue
 
             if start_pos == -1:
-                if text.lower().find(annotated_span) != -1:
-                    # The annotation was found earlier in the text. That may be an accident, therefore we ignore it. The model should be instructed to order the annotation sequentially.
-                    logger.warning(f'❌ Span OUT OF ORDER: "{annotated_span}"')
-                else:
-                    # The annotation was not found in the text.
-                    logger.warning(f'❌ Span NOT FOUND: "{annotated_span}"')
+                logger.warning(f'❌ Span NOT FOUND: "{annotated_span}"')
                 continue
 
             annotation_d = annotation.model_dump()
@@ -240,20 +248,15 @@ class LLMMetric(Model):
                 logger.error(f"Annotation type {annotation_d['type']} not found in the annotation_span_categories.")
                 continue
 
+            if start_pos == 0 and start_pos + len(annotated_span) == 0:
+                logger.warning(f"❌ Span EMPTY.")
+                continue
+
             logger.info(
                 f'[\033[32m\033[1m{annotation_type_str}\033[0m] "\033[32m{annotation.text}\033[0m" ({start_pos}:{start_pos + len(annotation.text)})'
             )
 
             annotation_list.append(annotation_d)
-
-            overlap_allowed = self.config.get("annotation_overlap_allowed", False)
-
-            if overlap_allowed:
-                # move the current position to the start of the annotation
-                current_pos = start_pos
-            else:
-                # move the current position to the end of the annotation
-                current_pos = start_pos + len(annotation.text)
 
         return annotation_list
 
