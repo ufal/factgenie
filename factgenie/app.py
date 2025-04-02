@@ -225,6 +225,7 @@ def browse():
     split = request.args.get("split")
     example_idx = request.args.get("example_idx")
     setup_id = request.args.get("setup_id")
+    ann_campaign = request.args.get("ann_campaign")
 
     if dataset_id and split and example_idx:
         display_example = {"dataset": dataset_id, "split": split, "example_idx": int(example_idx)}
@@ -245,6 +246,7 @@ def browse():
         "pages/browse.html",
         display_example=display_example,
         highlight_setup_id=setup_id,
+        highlight_ann_campaign=ann_campaign,
         datasets=datasets,
         host_prefix=app.config["host_prefix"],
     )
