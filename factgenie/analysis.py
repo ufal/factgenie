@@ -338,7 +338,7 @@ def prepare_example_index(app, combinations, selected_campaigns, campaigns):
     return example_index
 
 
-def compute_span_index(app, selected_campaigns, campaigns):
+def compute_span_index(app, selected_campaigns, campaigns, combinations=None):
     span_index = []
 
     # deduplicate
@@ -346,6 +346,12 @@ def compute_span_index(app, selected_campaigns, campaigns):
 
     for campaign_id in selected_campaigns:
         df = generate_span_index(app, campaigns[campaign_id])
+
+        # filter out examples that are not in the selected combinations (dataset, split, setup_id)
+        if combinations:
+            df = df[
+                df.apply(lambda x: (x["dataset"], x["split"], x["setup_id"]) in combinations, axis=1)
+            ]
 
         df["annotation_end"] = df["annotation_start"] + df["annotation_text"].str.len()
         df["annotator_group_id"] = df.apply(
@@ -383,7 +389,7 @@ def compute_iaa_dfs(app, selected_campaigns, combinations, campaigns):
         example_index=example_index, combinations=combinations
     )
 
-    span_index = compute_span_index(app, selected_campaigns, campaigns)
+    span_index = compute_span_index(app, selected_campaigns, campaigns, combinations=combinations)
 
     results = {
         "dataset_level_counts": dataset_level_counts,
