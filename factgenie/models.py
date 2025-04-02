@@ -44,10 +44,12 @@ class ModelFactory:
             CampaignMode.LLM_EVAL: {
                 "openai": OpenAIMetric,
                 "ollama": OllamaMetric,
+                "ollama_reasoning": OllamaReasoningMetric,
                 "vllm": VLLMMetric,
                 "anthropic": AnthropicMetric,
                 "gemini": GeminiMetric,
                 "vertexai": VertexAIMetric,
+                "vertexai_reasoning": VertexAIReasoningMetric,
             },
             CampaignMode.LLM_GEN: {
                 "openai": OpenAIGen,
@@ -365,6 +367,171 @@ class OllamaMetric(LLMMetric):
             raise ValueError(f"The API URL {api_url} is not valid. Use only the base URL, e.g. http://localhost:11434.")
 
         return api_url
+
+
+class ReasoningMetric(LLMMetric):
+    """
+    Specialized Ollama metric for CoT and reasoning models that use <think> tags for thinking traces.
+    This class handles outputs where the model produces content with format:
+    <think> ... thinking trace ... </think> JSON output
+    """
+
+    def __init__(self, config):
+        super().__init__(config)
+
+    def get_model_response(self, prompt, model_service):
+        """
+        Override to get unstructured response without Pydantic schema enforcement
+        """
+        messages = []
+
+        if self.config.get("system_msg"):
+            messages.append({"role": "system", "content": self.config["system_msg"]})
+
+        messages.append({"role": "user", "content": prompt})
+
+        # Use regular completion without response_format
+        response = litellm.completion(
+            model=model_service,
+            messages=messages,
+            api_base=self._api_url(),
+            **self.config.get("model_args", {}),
+        )
+
+        return response
+
+    def annotate_example(self, data, text):
+        model = self.config["model"]
+        model_service = self._service_prefix() + model
+
+        self.validate_environment(model_service)
+
+        try:
+            prompt = self.prompt(data, text)
+
+            logger.debug(f"Prompt: {prompt}")
+
+            logger.info("Annotated text:")
+            logger.info(f"\033[34m{text}\033[0m")
+
+            logger.info(f"Waiting for {model_service}.")
+            start = time.time()
+            response = self.get_model_response(prompt, model_service)
+            logger.info(f"Received response in {time.time() - start:.2f} seconds.")
+
+            logger.debug(f"Prompt tokens: {response.usage.prompt_tokens}")
+            logger.debug(f"Response tokens: {response.usage.completion_tokens}")
+
+            raw_response = response.choices[0].message.content
+
+            # Extract content after thinking trace
+            annotation_str = self._extract_final_output(raw_response)
+            logger.debug(f"Extracted output: {annotation_str}")
+
+            return {
+                "prompt": prompt,
+                "annotations": self.parse_annotations(text=text, annotations_json=annotation_str),
+            }
+        except Exception as e:
+            traceback.print_exc()
+            logger.error(e)
+            raise e
+
+    def _extract_final_output(self, content):
+        """
+        Extract final JSON output from reasoning model response by:
+        1. Removing <think>...</think> blocks
+        2. Finding and extracting the JSON object
+
+        If multiple <think> blocks exist, handles them all.
+        """
+        import re
+
+        think_blocks = re.findall(r"<think>(.*?)</think>", content, flags=re.DOTALL)
+        for block in think_blocks:
+            logger.info(f"\033[90m[THINKING] {block.strip()}\033[0m")  # Grey color
+
+        # Remove all <think>...</think> sections
+
+        output = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL)
+
+        # Try to find the JSON object by looking for matching curly braces
+        # Find all potential JSON objects in the output by tracking balanced braces
+        potential_jsons = []
+        stack = []
+        start_indices = []
+
+        for i, char in enumerate(output):
+            if char == "{":
+                if not stack:  # If this is a new potential JSON object
+                    start_indices.append(i)
+                stack.append("{")
+            elif char == "}" and stack:
+                stack.pop()
+                if not stack:  # If we've found a complete balanced JSON
+                    start = start_indices.pop()
+                    potential_jsons.append(output[start : i + 1])
+
+        # Try to validate each potential JSON, prioritizing the last valid one
+        valid_jsons = []
+        for json_str in potential_jsons:
+            try:
+                json.loads(json_str)  # Validate JSON
+                valid_jsons.append(json_str)
+            except json.JSONDecodeError:
+                continue
+
+        if not valid_jsons:
+            logger.error("Failed to find valid JSON object in response.")
+            return ""
+
+        # Return the last valid JSON (most likely to be the final output)
+        return valid_jsons[-1]
+
+    def parse_annotations(self, text, annotations_json):
+        """
+        Override parse_annotations to handle potentially invalid JSON
+        """
+        try:
+            # First attempt to parse as JSON
+            json_obj = json.loads(annotations_json)
+
+            # Create proper structure for Pydantic validation
+            if isinstance(json_obj, dict) and "annotations" in json_obj:
+                annotations_json = json.dumps(json_obj)
+            else:
+                # If the JSON doesn't have the expected structure, wrap it
+                annotations_json = json.dumps({"annotations": json_obj if isinstance(json_obj, list) else []})
+
+            # Now use the parent class method to validate and process
+            return super().parse_annotations(text, annotations_json)
+
+        except json.JSONDecodeError:
+            logger.error(f"Failed to parse response as JSON: {annotations_json}")
+            return []
+        except Exception as e:
+            logger.error(f"Error parsing annotations: {str(e)}")
+            return []
+
+
+class OllamaReasoningMetric(OllamaMetric, ReasoningMetric):
+    """
+    Specialized Ollama metric for CoT and reasoning models that use <think> tags for thinking traces.
+    This class handles outputs where the model produces content with format:
+    <think> ... thinking trace ... </think> JSON output
+    """
+
+    def __init__(self, config):
+        super().__init__(config)
+
+    def annotate_example(self, data, text):
+        return ReasoningMetric.annotate_example(self, data, text)
+
+    def _extract_final_output(self, content):
+        return ReasoningMetric._extract_final_output(self, content)
+
+    def parse_annotations(self, text, annotations_json):
+        return ReasoningMetric.parse_annotations(self, text, annotations_json)
 
 
 class VLLMMetric(LLMMetric):
