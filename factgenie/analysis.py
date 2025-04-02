@@ -369,7 +369,7 @@ def compute_span_index(app, selected_campaigns, campaigns, combinations=None):
         "sliders",
         "text_fields",
         "jsonl_file",
-        "annotation_text",
+        # "annotation_text",
     ]
 
     # Only drop columns that exist in the DataFrame
