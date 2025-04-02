@@ -44,12 +44,10 @@ class ModelFactory:
             CampaignMode.LLM_EVAL: {
                 "openai": OpenAIMetric,
                 "ollama": OllamaMetric,
-                "ollama_reasoning": OllamaReasoningMetric,
                 "vllm": VLLMMetric,
                 "anthropic": AnthropicMetric,
                 "gemini": GeminiMetric,
                 "vertexai": VertexAIMetric,
-                "vertexai_reasoning": VertexAIReasoningMetric,
             },
             CampaignMode.LLM_GEN: {
                 "openai": OpenAIGen,
@@ -280,15 +278,71 @@ class LLMMetric(Model):
 
         messages.append({"role": "user", "content": prompt})
 
-        response = litellm.completion(
-            model=model_service,
-            messages=messages,
-            response_format=OutputAnnotations,
-            api_base=self._api_url(),
-            **self.config.get("model_args", {}),
-        )
+        # Check if we should parse raw output or use structured output
+        extra_args = self.config.get("extra_args", {})
+        if extra_args.get("parse_mode") == "raw":
+            response = litellm.completion(
+                model=model_service,
+                messages=messages,
+                api_base=self._api_url(),
+                **self.config.get("model_args", {}),
+            )
+        else:
+            response = litellm.completion(
+                model=model_service,
+                messages=messages,
+                response_format=OutputAnnotations,
+                api_base=self._api_url(),
+                **self.config.get("model_args", {}),
+            )
 
         return response
+
+    def extract_json_from_raw(self, content):
+        """
+        Extract JSON object from raw model output, handling potential thinking traces.
+        """
+        import re
+
+        # First, if the response contains <think> tags, log them and remove them
+        think_blocks = re.findall(r"<think>(.*?)</think>", content, flags=re.DOTALL)
+        for block in think_blocks:
+            logger.info(f"\033[90m[THINKING] {block.strip()}\033[0m")  # Grey color
+
+        # Remove all <think>...</think> sections
+        output = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL)
+
+        # Try to find the JSON object by looking for matching curly braces
+        potential_jsons = []
+        stack = []
+        start_indices = []
+
+        for i, char in enumerate(output):
+            if char == "{":
+                if not stack:  # If this is a new potential JSON object
+                    start_indices.append(i)
+                stack.append("{")
+            elif char == "}" and stack:
+                stack.pop()
+                if not stack:  # If we've found a complete balanced JSON
+                    start = start_indices.pop()
+                    potential_jsons.append(output[start : i + 1])
+
+        # Try to validate each potential JSON, prioritizing the last valid one
+        valid_jsons = []
+        for json_str in potential_jsons:
+            try:
+                json.loads(json_str)  # Validate JSON
+                valid_jsons.append(json_str)
+            except json.JSONDecodeError:
+                continue
+
+        if not valid_jsons:
+            logger.error("Failed to find valid JSON object in response.")
+            return ""
+
+        # Return the last valid JSON (most likely to be the final output)
+        return valid_jsons[-1]
 
     def validate_environment(self, model_service):
         response = litellm.validate_environment(model=model_service)
@@ -326,7 +380,13 @@ class LLMMetric(Model):
             logger.debug(f"Prompt tokens: {response.usage.prompt_tokens}")
             logger.debug(f"Response tokens: {response.usage.completion_tokens}")
 
+            # Get the content from the response
             annotation_str = response.choices[0].message.content
+
+            # If parse_mode is "raw", extract JSON from the raw output
+            extra_args = self.config.get("extra_args", {})
+            if extra_args.get("parse_mode") == "raw":
+                annotation_str = self.extract_json_from_raw(annotation_str)
 
             return {
                 "prompt": prompt,
@@ -372,171 +432,6 @@ class OllamaMetric(LLMMetric):
         return api_url
 
 
-class ReasoningMetric(LLMMetric):
-    """
-    Specialized Ollama metric for CoT and reasoning models that use <think> tags for thinking traces.
-    This class handles outputs where the model produces content with format:
-    <think> ... thinking trace ... </think> JSON output
-    """
-
-    def __init__(self, config):
-        super().__init__(config)
-
-    def get_model_response(self, prompt, model_service):
-        """
-        Override to get unstructured response without Pydantic schema enforcement
-        """
-        messages = []
-
-        if self.config.get("system_msg"):
-            messages.append({"role": "system", "content": self.config["system_msg"]})
-
-        messages.append({"role": "user", "content": prompt})
-
-        # Use regular completion without response_format
-        response = litellm.completion(
-            model=model_service,
-            messages=messages,
-            api_base=self._api_url(),
-            **self.config.get("model_args", {}),
-        )
-
-        return response
-
-    def annotate_example(self, data, text):
-        model = self.config["model"]
-        model_service = self._service_prefix() + model
-
-        self.validate_environment(model_service)
-
-        try:
-            prompt = self.prompt(data, text)
-
-            logger.debug(f"Prompt: {prompt}")
-
-            logger.info("Annotated text:")
-            logger.info(f"\033[34m{text}\033[0m")
-
-            logger.info(f"Waiting for {model_service}.")
-            start = time.time()
-            response = self.get_model_response(prompt, model_service)
-            logger.info(f"Received response in {time.time() - start:.2f} seconds.")
-
-            logger.debug(f"Prompt tokens: {response.usage.prompt_tokens}")
-            logger.debug(f"Response tokens: {response.usage.completion_tokens}")
-
-            raw_response = response.choices[0].message.content
-
-            # Extract content after thinking trace
-            annotation_str = self._extract_final_output(raw_response)
-            logger.debug(f"Extracted output: {annotation_str}")
-
-            return {
-                "prompt": prompt,
-                "annotations": self.parse_annotations(text=text, annotations_json=annotation_str),
-            }
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(e)
-            raise e
-
-    def _extract_final_output(self, content):
-        """
-        Extract final JSON output from reasoning model response by:
-        1. Removing <think>...</think> blocks
-        2. Finding and extracting the JSON object
-
-        If multiple <think> blocks exist, handles them all.
-        """
-        import re
-
-        think_blocks = re.findall(r"<think>(.*?)</think>", content, flags=re.DOTALL)
-        for block in think_blocks:
-            logger.info(f"\033[90m[THINKING] {block.strip()}\033[0m")  # Grey color
-
-        # Remove all <think>...</think> sections
-
-        output = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL)
-
-        # Try to find the JSON object by looking for matching curly braces
-        # Find all potential JSON objects in the output by tracking balanced braces
-        potential_jsons = []
-        stack = []
-        start_indices = []
-
-        for i, char in enumerate(output):
-            if char == "{":
-                if not stack:  # If this is a new potential JSON object
-                    start_indices.append(i)
-                stack.append("{")
-            elif char == "}" and stack:
-                stack.pop()
-                if not stack:  # If we've found a complete balanced JSON
-                    start = start_indices.pop()
-                    potential_jsons.append(output[start : i + 1])
-
-        # Try to validate each potential JSON, prioritizing the last valid one
-        valid_jsons = []
-        for json_str in potential_jsons:
-            try:
-                json.loads(json_str)  # Validate JSON
-                valid_jsons.append(json_str)
-            except json.JSONDecodeError:
-                continue
-
-        if not valid_jsons:
-            logger.error("Failed to find valid JSON object in response.")
-            return ""
-
-        # Return the last valid JSON (most likely to be the final output)
-        return valid_jsons[-1]
-
-    def parse_annotations(self, text, annotations_json):
-        """
-        Override parse_annotations to handle potentially invalid JSON
-        """
-        try:
-            # First attempt to parse as JSON
-            json_obj = json.loads(annotations_json)
-
-            # Create proper structure for Pydantic validation
-            if isinstance(json_obj, dict) and "annotations" in json_obj:
-                annotations_json = json.dumps(json_obj)
-            else:
-                # If the JSON doesn't have the expected structure, wrap it
-                annotations_json = json.dumps({"annotations": json_obj if isinstance(json_obj, list) else []})
-
-            # Now use the parent class method to validate and process
-            return super().parse_annotations(text, annotations_json)
-
-        except json.JSONDecodeError:
-            logger.error(f"Failed to parse response as JSON: {annotations_json}")
-            return []
-        except Exception as e:
-            logger.error(f"Error parsing annotations: {str(e)}")
-            return []
-
-
-class OllamaReasoningMetric(OllamaMetric, ReasoningMetric):
-    """
-    Specialized Ollama metric for CoT and reasoning models that use <think> tags for thinking traces.
-    This class handles outputs where the model produces content with format:
-    <think> ... thinking trace ... </think> JSON output
-    """
-
-    def __init__(self, config):
-        super().__init__(config)
-
-    def annotate_example(self, data, text):
-        return ReasoningMetric.annotate_example(self, data, text)
-
-    def _extract_final_output(self, content):
-        return ReasoningMetric._extract_final_output(self, content)
-
-    def parse_annotations(self, text, annotations_json):
-        return ReasoningMetric.parse_annotations(self, text, annotations_json)
-
-
 class VLLMMetric(LLMMetric):
     # https://docs.litellm.ai/docs/providers/vllm
     def __init__(self, config):
@@ -571,16 +466,24 @@ class AnthropicMetric(LLMMetric):
 
         messages.append({"role": "user", "content": prompt})
 
+        # Check if we should parse raw output
+        extra_args = self.config.get("extra_args", {})
+        use_response_format = extra_args.get("parse_mode") != "raw"
+
         for attempt in range(max_retries):
             try:
-                # Use regular completion
-                response = litellm.completion(
-                    model=model_service,
-                    messages=messages,
-                    response_format=OutputAnnotations,
-                    api_base=self._api_url(),
+                # Use regular completion with or without response_format based on parse_mode setting
+                kwargs = {
+                    "model": model_service,
+                    "messages": messages,
+                    "api_base": self._api_url(),
                     **self.config.get("model_args", {}),
-                )
+                }
+
+                if use_response_format:
+                    kwargs["response_format"] = OutputAnnotations
+
+                response = litellm.completion(**kwargs)
                 return response
 
             except (litellm.exceptions.RateLimitError, litellm.exceptions.InternalServerError) as e:
@@ -655,86 +558,24 @@ class VertexAIMetric(LLMMetric):
         return "vertex_ai/"
 
     def get_model_response(self, prompt, model_service):
-        response = litellm.completion(
-            model=model_service,
-            messages=[
+        extra_args = self.config.get("extra_args", {})
+        kwargs = {
+            "model": model_service,
+            "messages": [
                 {"role": "system", "content": self.config["system_msg"]},
                 {"role": "user", "content": prompt},
             ],
-            response_format=OutputAnnotations,
-            api_base=self._api_url(),
-            vertex_credentials=self.vertex_credentials_json,
+            "api_base": self._api_url(),
+            "vertex_credentials": self.vertex_credentials_json,
             **self.config.get("model_args", {}),
-        )
+        }
 
-        return response
+        # Only add response_format if parse_mode is not "raw"
+        if extra_args.get("parse_mode") != "raw":
+            kwargs["response_format"] = OutputAnnotations
 
+        response = litellm.completion(**kwargs)
 
-class VertexAIReasoningMetric(VertexAIMetric, ReasoningMetric):
-    """
-    Specialized VertexAI metric for CoT and reasoning models that use <think> tags for thinking traces.
-    This class handles outputs where the model produces content with format:
-    <think> ... thinking trace ... </think> JSON output
-    """
-
-    def __init__(self, config):
-        super().__init__(config)
-
-    def annotate_example(self, data, text):
-        return ReasoningMetric.annotate_example(self, data, text)
-
-    def _extract_final_output(self, content):
-        return ReasoningMetric._extract_final_output(self, content)
-
-    def parse_annotations(self, text, annotations_json):
-        return ReasoningMetric.parse_annotations(self, text, annotations_json)
-
-    def _get_model_response_with_retries(self, messages, model_service):
-        max_retries = 15
-        initial_retry_delay = 2  # seconds
-
-        for attempt in range(max_retries):
-            try:
-                # Use regular completion without response_format
-                response = litellm.completion(
-                    model=model_service,
-                    messages=messages,
-                    vertex_credentials=self.vertex_credentials_json,
-                    **self.config.get("model_args", {}),
-                )
-
-                return response
-
-            except litellm.exceptions.RateLimitError as e:
-                # Check if we've reached max retries
-                if attempt == max_retries - 1:
-                    logger.error(f"Rate limit exceeded after {max_retries} attempts. Giving up.")
-                    raise e
-
-                # Calculate exponential backoff with jitter
-                retry_delay = initial_retry_delay * (2**attempt) + (random.uniform(0, 1))
-                logger.warning(
-                    f"Rate limit hit. Retrying in {retry_delay:.2f} seconds (attempt {attempt+1}/{max_retries})..."
-                )
-                time.sleep(retry_delay)
-
-            except Exception as e:
-                # For other exceptions, don't retry
-                logger.error(f"Error calling LLM: {str(e)}")
-                raise e
-
-    def get_model_response(self, prompt, model_service):
-        """
-        Override to get unstructured response without Pydantic schema enforcement
-        """
-        messages = []
-
-        if self.config.get("system_msg"):
-            messages.append({"role": "system", "content": self.config["system_msg"]})
-
-        messages.append({"role": "user", "content": prompt})
-
-        response = self._get_model_response_with_retries(messages, model_service)
         return response
 
 
