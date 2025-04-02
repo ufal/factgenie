@@ -57,12 +57,15 @@ def generate_span_index(app, campaign):
         span_index["annotation_type"] = span_index["annotations"].apply(lambda x: x["type"])
         span_index["annotation_start"] = span_index["annotations"].apply(lambda x: x["start"])
         span_index["annotation_text"] = span_index["annotations"].apply(lambda x: x["text"])
+        span_index["annotation_reason"] = span_index["annotations"].apply(lambda x: x.get("reason", ""))
 
         # Drop the original annotations column
         span_index = span_index.drop("annotations", axis=1)
 
         # Remove any annotations that have NaN start or type or empty text
-        span_index = span_index.dropna(subset=["annotation_start", "annotation_type", "annotation_text"])
+        span_index = span_index.dropna(
+            subset=["annotation_start", "annotation_type", "annotation_text", "annotation_reason"]
+        )
         span_index = span_index[span_index["annotation_text"].apply(lambda x: len(x) > 0)]
 
     return span_index
@@ -265,6 +268,12 @@ def compute_span_counts(example_index, combinations):
 
         for i, row in example_index_subset.iterrows():
             for cat in cat_columns:
+                # if there are less than 2 annotators, skip this example and print warning
+                if len(row["annotator_group_id"]) < 2:
+                    logger.warning(
+                        f"Skipping example {dataset}/{split}/{setup_id}/{row['example_idx']} as it has less than 2 annotators."
+                    )
+                    continue
                 for cat_count, ann_group in zip(row[cat], row["annotator_group_id"]):
                     example_level_counts.append(
                         {
@@ -293,6 +302,9 @@ def compute_span_counts(example_index, combinations):
 def prepare_example_index(app, combinations, selected_campaigns, campaigns):
     # gather a list of all examples with some annotations
     example_index = pd.DataFrame()
+
+    # deduplicate
+    selected_campaigns = list(set(selected_campaigns))
 
     for campaign_id in selected_campaigns:
         campaign = campaigns[campaign_id]
@@ -326,11 +338,18 @@ def prepare_example_index(app, combinations, selected_campaigns, campaigns):
     return example_index
 
 
-def compute_span_index(app, selected_campaigns, campaigns):
+def compute_span_index(app, selected_campaigns, campaigns, combinations=None):
     span_index = []
+
+    # deduplicate
+    selected_campaigns = list(set(selected_campaigns))
 
     for campaign_id in selected_campaigns:
         df = generate_span_index(app, campaigns[campaign_id])
+
+        # filter out examples that are not in the selected combinations (dataset, split, setup_id)
+        if combinations:
+            df = df[df.apply(lambda x: (x["dataset"], x["split"], x["setup_id"]) in combinations, axis=1)]
 
         df["annotation_end"] = df["annotation_start"] + df["annotation_text"].str.len()
         df["annotator_group_id"] = df.apply(
@@ -350,7 +369,7 @@ def compute_span_index(app, selected_campaigns, campaigns):
         "sliders",
         "text_fields",
         "jsonl_file",
-        "annotation_text",
+        # "annotation_text",
     ]
 
     # Only drop columns that exist in the DataFrame
@@ -368,7 +387,7 @@ def compute_iaa_dfs(app, selected_campaigns, combinations, campaigns):
         example_index=example_index, combinations=combinations
     )
 
-    span_index = compute_span_index(app, selected_campaigns, campaigns)
+    span_index = compute_span_index(app, selected_campaigns, campaigns, combinations=combinations)
 
     results = {
         "dataset_level_counts": dataset_level_counts,
@@ -412,17 +431,30 @@ def format_group_id(campaign_id, group):
 # the following methods are used only in CLI for now
 
 
-def get_common_examples(first_campaign_data, second_campaign_data, first_group, second_group):
-    """Find common examples between two annotator groups."""
-    # Filter finished examples for first group
-    first_examples = first_campaign_data[
-        (first_campaign_data["annotator_group"] == first_group) & (first_campaign_data["status"] == "finished")
-    ][["dataset", "split", "setup_id"]].drop_duplicates()
+def get_common_examples(first_campaign_data, second_campaign_data, first_group=None, second_group=None):
+    """Find common examples between two annotator groups.
 
-    # Filter finished examples for second group
-    second_examples = second_campaign_data[
-        (second_campaign_data["annotator_group"] == second_group) & (second_campaign_data["status"] == "finished")
-    ][["dataset", "split", "setup_id"]].drop_duplicates()
+    If a group is None, all examples from that campaign are considered regardless of group.
+    """
+    # Filter examples for first group (or all if first_group is None)
+    if first_group is None:
+        first_examples = first_campaign_data[first_campaign_data["status"] == "finished"][
+            ["dataset", "split", "setup_id"]
+        ].drop_duplicates()
+    else:
+        first_examples = first_campaign_data[
+            (first_campaign_data["annotator_group"] == first_group) & (first_campaign_data["status"] == "finished")
+        ][["dataset", "split", "setup_id"]].drop_duplicates()
+
+    # Filter examples for second group (or all if second_group is None)
+    if second_group is None:
+        second_examples = second_campaign_data[second_campaign_data["status"] == "finished"][
+            ["dataset", "split", "setup_id"]
+        ].drop_duplicates()
+    else:
+        second_examples = second_campaign_data[
+            (second_campaign_data["annotator_group"] == second_group) & (second_campaign_data["status"] == "finished")
+        ][["dataset", "split", "setup_id"]].drop_duplicates()
 
     # Find intersection using merge
     common = pd.merge(first_examples, second_examples, how="inner")
