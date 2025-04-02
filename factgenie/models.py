@@ -84,8 +84,20 @@ class SpanAnnotation(BaseModel):
     )
 
 
+class SpanAnnotationNoReason(BaseModel):
+    text: str = Field(description="The text which is annotated.")
+    # Do not name it type since it is a reserved keyword in JSON schema
+    annotation_type: int = Field(
+        description="Index to the list of span annotation types defined for the annotation campaign."
+    )
+
+
 class OutputAnnotations(BaseModel):
     annotations: list[SpanAnnotation] = Field(description="The list of annotations.")
+
+
+class OutputAnnotationsNoReason(BaseModel):
+    annotations: list[SpanAnnotationNoReason] = Field(description="The list of annotations.")
 
 
 class Model:
@@ -163,8 +175,15 @@ class LLMMetric(Model):
         }
 
     def parse_annotations(self, text, annotations_json):
+        extra_args = self.config.get("extra_args", {})
+
+        if extra_args.get("no_reason"):
+            out_cls = OutputAnnotationsNoReason
+        else:
+            out_cls = OutputAnnotations
+
         try:
-            annotations_obj = OutputAnnotations.model_validate_json(annotations_json)
+            annotations_obj = out_cls.model_validate_json(annotations_json)
             annotations = annotations_obj.annotations
         except ValidationError as e:
             logger.error("Parsing error: ", json.loads(e.json())[0]["msg"])
