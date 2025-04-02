@@ -228,7 +228,6 @@ def compute_iaa(first_campaign, first_ann_group, second_campaign, second_ann_gro
             delta_empty=args["gamma_score_delta"],
             soft=args["gamma_score_soft"],
             save_plots=args["gamma_save_plots"],
-            handle_empty_annotations=args["gamma_handle_empty_annotations"],
         )
 
         print("==============================================")
