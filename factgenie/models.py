@@ -7,6 +7,8 @@ import os
 import logging
 from pydantic import BaseModel, Field, ValidationError
 import json
+import re
+import random
 import time
 from ast import literal_eval
 from factgenie.campaign import CampaignMode
@@ -388,6 +390,61 @@ class AnthropicMetric(LLMMetric):
     def _service_prefix(self):
         return "anthropic/"
 
+    def _get_model_response_with_retries(self, prompt, model_service):
+        """Handle rate limits and overload errors with exponential backoff and retry logic"""
+        max_retries = 15
+        initial_retry_delay = 2  # seconds
+
+        messages = []
+        if self.config.get("system_msg"):
+            messages.append({"role": "system", "content": self.config["system_msg"]})
+
+        messages.append({"role": "user", "content": prompt})
+
+        for attempt in range(max_retries):
+            try:
+                # Use regular completion
+                response = litellm.completion(
+                    model=model_service,
+                    messages=messages,
+                    response_format=OutputAnnotations,
+                    api_base=self._api_url(),
+                    **self.config.get("model_args", {}),
+                )
+                return response
+
+            except (litellm.exceptions.RateLimitError, litellm.exceptions.InternalServerError) as e:
+                # Check if InternalServerError is specifically an "Overloaded" error
+                is_overloaded = isinstance(e, litellm.exceptions.InternalServerError) and "Overloaded" in str(e)
+
+                # Check if we've reached max retries
+                if attempt == max_retries - 1:
+                    error_type = "Rate limit" if isinstance(e, litellm.exceptions.RateLimitError) else "Server overload"
+                    logger.error(f"{error_type} exceeded after {max_retries} attempts. Giving up.")
+                    raise e
+
+                # Only retry for rate limits or overloaded errors
+                if not (isinstance(e, litellm.exceptions.RateLimitError) or is_overloaded):
+                    logger.error(f"Non-retryable InternalServerError: {str(e)}")
+                    raise e
+
+                # Calculate exponential backoff with jitter
+                retry_delay = initial_retry_delay * (2**attempt) + (random.uniform(0, 1))
+                error_type = "Rate limit" if isinstance(e, litellm.exceptions.RateLimitError) else "Server overload"
+                logger.warning(
+                    f"{error_type} hit. Retrying in {retry_delay:.2f} seconds (attempt {attempt+1}/{max_retries})..."
+                )
+                time.sleep(retry_delay)
+
+            except Exception as e:
+                # For other exceptions, don't retry
+                logger.error(f"Error calling Anthropic: {str(e)}")
+                raise e
+
+    def get_model_response(self, prompt, model_service):
+        """Override to use retry mechanism for rate limits"""
+        return self._get_model_response_with_retries(prompt, model_service)
+
 
 class GeminiMetric(LLMMetric):
     # https://docs.litellm.ai/docs/providers/gemini
@@ -440,6 +497,74 @@ class VertexAIMetric(LLMMetric):
             **self.config.get("model_args", {}),
         )
 
+        return response
+
+
+class VertexAIReasoningMetric(VertexAIMetric, ReasoningMetric):
+    """
+    Specialized VertexAI metric for CoT and reasoning models that use <think> tags for thinking traces.
+    This class handles outputs where the model produces content with format:
+    <think> ... thinking trace ... </think> JSON output
+    """
+
+    def __init__(self, config):
+        super().__init__(config)
+
+    def annotate_example(self, data, text):
+        return ReasoningMetric.annotate_example(self, data, text)
+
+    def _extract_final_output(self, content):
+        return ReasoningMetric._extract_final_output(self, content)
+
+    def parse_annotations(self, text, annotations_json):
+        return ReasoningMetric.parse_annotations(self, text, annotations_json)
+
+    def _get_model_response_with_retries(self, messages, model_service):
+        max_retries = 15
+        initial_retry_delay = 2  # seconds
+
+        for attempt in range(max_retries):
+            try:
+                # Use regular completion without response_format
+                response = litellm.completion(
+                    model=model_service,
+                    messages=messages,
+                    vertex_credentials=self.vertex_credentials_json,
+                    **self.config.get("model_args", {}),
+                )
+
+                return response
+
+            except litellm.exceptions.RateLimitError as e:
+                # Check if we've reached max retries
+                if attempt == max_retries - 1:
+                    logger.error(f"Rate limit exceeded after {max_retries} attempts. Giving up.")
+                    raise e
+
+                # Calculate exponential backoff with jitter
+                retry_delay = initial_retry_delay * (2**attempt) + (random.uniform(0, 1))
+                logger.warning(
+                    f"Rate limit hit. Retrying in {retry_delay:.2f} seconds (attempt {attempt+1}/{max_retries})..."
+                )
+                time.sleep(retry_delay)
+
+            except Exception as e:
+                # For other exceptions, don't retry
+                logger.error(f"Error calling LLM: {str(e)}")
+                raise e
+
+    def get_model_response(self, prompt, model_service):
+        """
+        Override to get unstructured response without Pydantic schema enforcement
+        """
+        messages = []
+
+        if self.config.get("system_msg"):
+            messages.append({"role": "system", "content": self.config["system_msg"]})
+
+        messages.append({"role": "user", "content": prompt})
+
+        response = self._get_model_response_with_retries(messages, model_service)
         return response
 
 
