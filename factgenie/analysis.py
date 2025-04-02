@@ -297,6 +297,9 @@ def prepare_example_index(app, combinations, selected_campaigns, campaigns):
     # gather a list of all examples with some annotations
     example_index = pd.DataFrame()
 
+    # deduplicate
+    selected_campaigns = list(set(selected_campaigns))
+
     for campaign_id in selected_campaigns:
         campaign = campaigns[campaign_id]
 
@@ -331,6 +334,9 @@ def prepare_example_index(app, combinations, selected_campaigns, campaigns):
 
 def compute_span_index(app, selected_campaigns, campaigns):
     span_index = []
+
+    # deduplicate
+    selected_campaigns = list(set(selected_campaigns))
 
     for campaign_id in selected_campaigns:
         df = generate_span_index(app, campaigns[campaign_id])
