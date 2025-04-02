@@ -268,6 +268,12 @@ def compute_span_counts(example_index, combinations):
 
         for i, row in example_index_subset.iterrows():
             for cat in cat_columns:
+                # if there are less than 2 annotators, skip this example and print warning
+                if len(row["annotator_group_id"]) < 2:
+                    logger.warning(
+                        f"Skipping example {dataset}/{split}/{setup_id}/{row['example_idx']} as it has less than 2 annotators."
+                    )
+                    continue
                 for cat_count, ann_group in zip(row[cat], row["annotator_group_id"]):
                     example_level_counts.append(
                         {
