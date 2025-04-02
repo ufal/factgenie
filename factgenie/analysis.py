@@ -488,12 +488,11 @@ def compute_pearson_r(df, group1, group2):
 # `alpha`: coefficient weighting the *positional* dissimilarity value, defaults to 1
 # `beta`: coefficient weighting the *categorical* dissimilarity value, defaults to 1
 # `delta_empty`: empty dissimilarity value, defaults to 1
-def compute_gamma_score(
-    span_index, example_level_counts, alpha, beta, delta_empty, soft, save_plots, handle_empty_annotations
-):
+def compute_gamma_score(span_index, example_level_counts, alpha, beta, delta_empty, soft, save_plots):
     dissim = pa.CombinedCategoricalDissimilarity(alpha=alpha, beta=beta, delta_empty=delta_empty)
 
     gamma_scores = []
+    s_empty_scores = []
     running_avg = 0
 
     # Group by same fields as in example_level_counts
@@ -524,19 +523,13 @@ def compute_gamma_score(
         unique_annotators = example_spans["annotator_group_id"].unique()
 
         if len(unique_annotators) < 2:
-            if handle_empty_annotations:
-                # One or both annotators did not add any annotation
-                # Compute score as 1 / (1 + annotation_cnt) to promote better matching in annotation count
-                ann_count = example_spans.shape[0]
-                aux_gamma_score = 1 / (1 + ann_count)
-                gamma_scores.append(aux_gamma_score)
-            else:
-                # Skip this example
-                logger.warning(
-                    f"Skipping example {dataset}/{split}/{setup_id}/{example_idx} as it has less than 2 annotators. Consider using --gamma_handle_empty_annotations."
-                )
-                pbar.update(1)
-                continue
+            # One or both annotators did not add any annotation
+            # Compute s_empty score as 1 / (1 + annotation_cnt)
+            ann_count = example_spans.shape[0]
+            s_empty_score = 1 / (1 + ann_count)
+            s_empty_scores.append(s_empty_score)
+            pbar.update(1)
+            continue
         else:
             # Add each annotation to continuum
             continuum = pa.Continuum()
@@ -548,29 +541,31 @@ def compute_gamma_score(
                     str(row["annotation_type"]),
                 )
 
-            # Compute gamma score
-            logging.getLogger().setLevel(logging.WARNING)
-            try:
-                gamma_results = continuum.compute_gamma(dissim, soft=soft)
-                gamma_scores.append(gamma_results.gamma)
+        # Compute gamma score
+        logging.getLogger().setLevel(logging.WARNING)
+        try:
+            np.random.seed(42)
 
-                if save_plots:
-                    fig, ax = plt.subplots(figsize=(10, 2))
-                    ntb.plot_alignment(gamma_results.best_alignment, ax)
-                    plt.tight_layout()
+            gamma_results = continuum.compute_gamma(dissim, soft=soft)
+            gamma_scores.append(gamma_results.gamma)
 
-                    # Save the plot
-                    plt.savefig(
-                        os.path.join(save_plots, f"{dataset}_{split}_{setup_id}_{example_idx}.png"),
-                        dpi=300,
-                        bbox_inches="tight",
-                    )
-                    plt.close(fig)
+            if save_plots:
+                fig, ax = plt.subplots(figsize=(10, 2))
+                ntb.plot_alignment(gamma_results.best_alignment, ax)
+                plt.tight_layout()
 
-            except Exception as e:
-                traceback.print_exc()
-                print(f"Error computing gamma for example {dataset}/{split}/{setup_id}/{example_idx}: {e}")
-                gamma_scores.append(0.0)
+                # Save the plot
+                plt.savefig(
+                    os.path.join(save_plots, f"{dataset}_{split}_{setup_id}_{example_idx}.png"),
+                    dpi=300,
+                    bbox_inches="tight",
+                )
+                plt.close(fig)
+
+        except Exception as e:
+            traceback.print_exc()
+            print(f"Error computing gamma for example {dataset}/{split}/{setup_id}/{example_idx}: {e}")
+            gamma_scores.append(0.0)
 
             logging.getLogger().setLevel(logging.INFO)
 
@@ -579,7 +574,15 @@ def compute_gamma_score(
         pbar.update(1)
 
     pbar.close()
-    return float(np.mean(gamma_scores)) if gamma_scores else 0.0
+
+    gamma_score = float(np.mean(gamma_scores)) if gamma_scores else 0.0
+    s_empty_score = float(np.mean(s_empty_scores)) if s_empty_scores else 0.0
+
+    out = {
+        "gamma": gamma_score,
+        "s_empty": s_empty_score,
+    }
+    return out
 
 
 # --------------------------------------------------------------
