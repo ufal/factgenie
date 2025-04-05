@@ -42,6 +42,7 @@ class ModelFactory:
             CampaignMode.LLM_EVAL: {
                 "openai": OpenAIMetric,
                 "ollama": OllamaMetric,
+                "ollama-sequential": OllamaSequentialMetric,
                 "vllm": VLLMMetric,
                 "anthropic": AnthropicMetric,
                 "gemini": GeminiMetric,
@@ -350,6 +351,68 @@ class OllamaMetric(LLMMetric):
 
         return api_url
 
+class OllamaSequentialMetric(OllamaMetric):
+    # https://docs.litellm.ai/docs/providers/ollama
+    def __init__(self, config):
+        super().__init__(config)
+
+    # Default
+    def prompt(self, data, text):
+        assert isinstance(text, str) and len(text) > 0, f"Text must be a non-empty string, got {text=}"
+        data_for_prompt = self.preprocess_data_for_prompt(data)
+
+        prompt_template = self.config["prompt_template"]
+
+        if type(data_for_prompt) == dict:
+            for key in data.keys():
+                prompt_template = prompt_template.replace(f"{{data[{key}]}}", str(data_for_prompt[key]))
+
+        return prompt_template.replace("{data}", str(data_for_prompt)).replace("{text}", text)
+
+    # Default
+    def preprocess_data_for_prompt(self, data):
+        """Override this method to change the format how the data is presented in the prompt. See self.prompt() method for usage."""
+        return data
+
+    # Default
+    def annotate_example(self, data, text):
+        model = self.config["model"]
+        model_service = self._service_prefix() + model
+
+        self.validate_environment(model_service)
+
+        # temporarily disable until this is properly merged: https://github.com/BerriAI/litellm/pull/7832
+
+        # assert litellm.supports_response_schema(
+        #     model_service
+        # ), f"Model {model_service} does not support the JSON response schema."
+
+        try:
+            prompt = self.prompt(data, text)
+
+            logger.debug(f"Prompt: {prompt}")
+
+            logger.info("Annotated text:")
+            logger.info(f"\033[34m{text}\033[0m")
+
+            logger.info(f"Waiting for {model_service}.")
+            start = time.time()
+            response = self.get_model_response(prompt, model_service)
+            logger.info(f"Received response in {time.time() - start:.2f} seconds.")
+
+            logger.debug(f"Prompt tokens: {response.usage.prompt_tokens}")
+            logger.debug(f"Response tokens: {response.usage.completion_tokens}")
+
+            annotation_str = response.choices[0].message.content
+
+            return {
+                "prompt": prompt,
+                "annotations": self.parse_annotations(text=text, annotations_json=annotation_str),
+            }
+        except Exception as e:
+            traceback.print_exc()
+            logger.error(e)
+            raise e
 
 class VLLMMetric(LLMMetric):
     # https://docs.litellm.ai/docs/providers/vllm
@@ -528,6 +591,11 @@ class LLMGen(Model):
             messages.append(
                 {"role": "user", "content": prompt},
             )
+
+            # print("---")
+            # print(messages)
+            # print("---")
+            # exit()
 
             if self.config.get("start_with"):
                 messages.append({"role": "assistant", "content": self.config["start_with"]})

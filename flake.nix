@@ -129,7 +129,7 @@
 
     factgenie = python-packages.buildPythonPackage {
       pname = "factgenie";
-      version = "1.0.1";
+      version = "1.1.1";
       src = ./.;
       # Propagated = anything that uses factgenie will also see these
       propagatedBuildInputs = with python-packages; [

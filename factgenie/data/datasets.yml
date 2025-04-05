@@ -14,7 +14,9 @@ time-series-dataset:
   enabled: true
   name: tsd
   splits:
+  - all
   - test
+  - train
 xsum-debug:
   class: basic.PlainTextDataset
   description: Sample of 5 examples from the <a href="https://github.com/EdinburghNLP/XSum">XSum</a>
