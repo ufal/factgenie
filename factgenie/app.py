@@ -635,6 +635,10 @@ def llm_campaign_new():
     llm_configs = workflows.load_configs(mode=mode)
     metric_types = list(ModelFactory.model_classes()[mode].keys())
 
+    # TEMP:
+    model_apis = list(ModelFactory.get_model_apis().keys())
+    model_apis = [f"{api} API" for api in model_apis] 
+
     default_campaign_id = workflows.generate_default_id(app, mode=mode, prefix=mode.replace("_", "-"))
     default_prompts = utils.load_default_prompts()
 
@@ -647,6 +651,7 @@ def llm_campaign_new():
         available_data=available_data,
         configs=llm_configs,
         metric_types=metric_types,
+        model_apis=model_apis,
         host_prefix=app.config["host_prefix"],
     )
 
