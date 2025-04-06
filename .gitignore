@@ -16,7 +16,7 @@ venv/
 wiki
 factgenie/campaigns
 factgenie/templates/campaigns/*
-factgenie/data/datasets.yml
+# factgenie/data/datasets.yml
 factgenie/data/inputs
 factgenie/data/outputs
 factgenie/config/config.yml
