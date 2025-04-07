@@ -224,6 +224,7 @@ function gatherConfig() {
     } else if (window.mode == "llm_eval" || window.mode == "llm_gen") {
         config.metricType = $("#metric-type").val();
         config.modelName = $("#model-name").val();
+        config.modelApi = $("#model-api").val();
         config.promptTemplate = $("#prompt-template").val();
         config.systemMessage = $("#system-message").val();
         config.annotationOverlapAllowed = $("#annotationOverlapAllowed").is(":checked");
@@ -233,9 +234,11 @@ function gatherConfig() {
 
         if (window.mode == "llm_eval") {
             config.annotationSpanCategories = getAnnotationSpanCategories();
+            config.purpose = "metric"
         }
         if (window.mode == "llm_gen") {
             config.startWith = $("#start-with").val();
+            config.purpose = "gen"
         }
     }
     return config;
