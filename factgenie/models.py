@@ -10,6 +10,8 @@ import traceback
 from abc import abstractmethod
 from ast import literal_eval
 from typing import Literal
+
+from pandas.core.algorithms import is_extension_array_dtype
 from factgenie.campaign import CampaignMode
 from icecream import ic
 from pydantic import BaseModel, Field, ValidationError
@@ -1069,7 +1071,16 @@ class PromptingStrategy:
         # we used to require replacing any curly braces with double braces
         # to support existing prompts, we replace any double braces with single braces
         # this should not do much harm, as the prompts usually do contain double braces (but remove this in the future?)
+
         prompt_template = prompt_template.replace("{{", "{").replace("}}", "}")
+
+        if type(data) == dict:
+            for key in data.keys():
+                prompt_template = prompt_template.replace(f"{{data[{key}]}}", str(data[key]))
+
+        matches = re.findall(r'{data\[[^\[\]]*\]}', prompt_template)
+        if len(matches) > 0:
+            logger.warning(f"Unreplaced data keys in the template: {', '.join(matches)}")
 
         return prompt_template.replace("{data}", str(data)) \
                               .replace("{text}", to_annotate)
@@ -1113,6 +1124,9 @@ class PromptingStrategy:
         annotation_list = []
 
         logger.info(f"Response contains {len(annotations)} annotations.")
+        logger.info(f"<<mine>> Text: '{text}'")
+        logger.info(f"<<mine>> Annotations_json: '{annotations_json}'")
+        logger.info(f"<<mine>> Annotations_obj: '{annotations_obj}'")
 
         for i, annotation in enumerate(annotations):
             annotated_span = annotation.text.lower().strip()
@@ -1242,7 +1256,7 @@ class PromptingStrategy:
 
             messages = self.construct_message(prompt)
 
-            response = api.get_model_response(prompt, model_service)
+            response = api.get_model_response(messages, model_service)
             logger.info(f"Received response in {time.time() - start:.2f} seconds.")
 
             logger.debug(f"Prompt tokens: {response.usage.prompt_tokens}")
