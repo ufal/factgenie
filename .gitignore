@@ -16,12 +16,12 @@ venv/
 wiki
 factgenie/campaigns
 factgenie/templates/campaigns/*
-# factgenie/data/datasets.yml
+factgenie/data/datasets.yml
 factgenie/data/inputs
 factgenie/data/outputs
 factgenie/config/config.yml
-# factgenie/config/llm-eval
-# factgenie/config/llm-gen
+factgenie/config/llm-eval
+factgenie/config/llm-gen
 factgenie/config/crowdsourcing
 
 # ignore changes in the notebook by default (to avoid adding the notebook after each run)
