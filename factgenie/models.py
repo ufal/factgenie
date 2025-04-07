@@ -44,8 +44,10 @@ LLM_GENERATION_DIR = os.path.join(DIR_PATH, "outputs")
 
 # The config is passed to the instance as a dictionary with the required types, except for model_args, which the super() handles itself through `self.parse_model_args()`
 
+
 class ModelFactory:
     """Register any new model here."""
+
     @staticmethod
     def get_model_apis():
         return {
@@ -97,11 +99,8 @@ class ModelFactory:
         extra_args = config.get("extra_args", {})
         if mode == CampaignMode.LLM_EVAL and extra_args.get("parse_mode") != "raw":
             completion_kwargs["response_format"] = OutputAnnotations
-        
-        return Model(config,
-                       mode,
-                       model_apis[api_type](config, completion_kwargs),
-                       prompt_strats[prompt_type](config))
+
+        return Model(config, mode, model_apis[api_type](config, completion_kwargs), prompt_strats[prompt_type](config))
 
 
 class SpanAnnotation(BaseModel):
@@ -164,8 +163,7 @@ class ModelAPI:
                 response = self.call_model_once(messages, model_service)
                 return response
 
-            except (litellm.exceptions.RateLimitError,
-                    litellm.exceptions.InternalServerError) as e:
+            except (litellm.exceptions.RateLimitError, litellm.exceptions.InternalServerError) as e:
                 # Check if InternalServerError is specifically an "Overloaded" error
                 is_overloaded = isinstance(e, litellm.exceptions.InternalServerError) and "Overloaded" in str(e)
                 # Check if we've reached max retries
@@ -201,6 +199,7 @@ class ModelAPI:
         raise NotImplementedError(
             "Override this method in the subclass to call the appropriate API. See LiteLLM documentation: https://docs.litellm.ai/docs/providers."
         )
+
 
 class OpenAIAPI(ModelAPI):
     # https://docs.litellm.ai/docs/providers/openai
@@ -292,6 +291,7 @@ class VertexAIAPI(ModelAPI):
     def _service_prefix(self):
         return "vertex_ai/"
 
+
 class PromptingStrategy:
     def __init__(self, config: dict):
         self.config = config
@@ -315,12 +315,11 @@ class PromptingStrategy:
             for key in data.keys():
                 prompt_template = prompt_template.replace(f"{{data[{key}]}}", str(data[key]))
 
-        matches = re.findall(r'{data\[[^\[\]]*\]}', prompt_template)
+        matches = re.findall(r"{data\[[^\[\]]*\]}", prompt_template)
         if len(matches) > 0:
             logger.warning(f"Unreplaced data keys in the template: {', '.join(matches)}")
 
-        return prompt_template.replace("{data}", str(data)) \
-                              .replace("{text}", to_annotate)
+        return prompt_template.replace("{data}", str(data)).replace("{text}", to_annotate)
 
     def construct_message(self, prompt):
         messages = []
@@ -473,12 +472,9 @@ class PromptingStrategy:
             logger.error(e)
             raise e
 
+
 class Model:
-    def __init__(self,
-                 config: dict,
-                 mode: CampaignMode,
-                 model_api: ModelAPI,
-                 prompting_strategy: PromptingStrategy):
+    def __init__(self, config: dict, mode: CampaignMode, model_api: ModelAPI, prompting_strategy: PromptingStrategy):
         self.config = config
         self.campaign_mode = mode
         self.parse_model_args()
@@ -556,4 +552,3 @@ class Model:
                 self.config["model_args"][arg] = literal_eval(self.config["model_args"][arg])
             except:
                 pass
-

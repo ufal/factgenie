@@ -264,7 +264,7 @@ def parse_llm_gen_config(config):
 
 def parse_llm_eval_config(config):
     config = {
-        "type": config.get("metricType"), # metric type is now api type
+        "type": config.get("metricType"),  # metric type is now api type
         "prompt_type": config.get("promptStrat"),
         "model": config.get("modelName"),
         "prompt_template": config.get("promptTemplate"),

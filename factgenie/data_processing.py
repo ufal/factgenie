@@ -14,6 +14,7 @@ from pandas.core.algorithms import is_extension_array_dtype
 
 logger = logging.getLogger("factgenie")
 
+
 def extract_json_from_raw(content):
     """
     Extract JSON object from raw model output, handling potential thinking traces.
@@ -61,11 +62,9 @@ def extract_json_from_raw(content):
     return valid_jsons[-1]
 
 
-def parse_annotations(text: str,
-                      annotations_json: str,
-                      out_cls: type,
-                      annotation_span_categories: list[dict],
-                      overlap_allowed=False):
+def parse_annotations(
+    text: str, annotations_json: str, out_cls: type, annotation_span_categories: list[dict], overlap_allowed=False
+):
     """
     Args:
         text: The text to be annotated.
