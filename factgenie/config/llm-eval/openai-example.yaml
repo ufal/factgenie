@@ -19,6 +19,7 @@ annotation_span_categories:
     color: "rgb(102, 102, 102)"
     description: "The text is problematic for another reason, e.g. grammatically or stylistically incorrect, irrelevant, or repetitive."
 annotation_overlap_allowed: true
+prompt_strat: default
 prompt_template: |
   Given the data:
   ```

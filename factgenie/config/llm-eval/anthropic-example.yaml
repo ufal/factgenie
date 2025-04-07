@@ -19,6 +19,7 @@ model: claude-3-5-haiku-20241022
 model_args:
   max_tokens: 1024
   temperature: 0.0
+prompt_strat: default
 prompt_template: |-
   Given the data:
   ```

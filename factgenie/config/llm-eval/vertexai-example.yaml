@@ -20,6 +20,7 @@ model_args:
   max_tokens: '1024'
   seed: '42'
   temperature: '0'
+prompt_strat: default
 prompt_template: |-
   Given the data:
   ```

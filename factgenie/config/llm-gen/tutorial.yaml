@@ -1,5 +1,6 @@
 type: ollama
 model: llama3.1:70b
+prompt_strat: default
 prompt_template: |-
   Given the JSON-structured data about a basketball game:
   ```

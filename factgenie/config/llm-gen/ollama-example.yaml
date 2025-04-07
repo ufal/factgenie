@@ -6,7 +6,6 @@ model: llama3.3
 # If you run ollama at the same machine as factgenie let's use just localhost.
 api_url: http://localhost:11434/
 model_args:
-model_args:
   num_ctx: 32768
   num_predict: 1024
   seed: 42
@@ -15,6 +14,7 @@ system_msg: "You are an expert data-to-text system. You understand structured da
 start_with: "Sure, here is the required output:\n\""
 extra_args:
   remove_suffix: '"'
+prompt_strat: default
 prompt_template: |
   Given the data:
   ```

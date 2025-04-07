@@ -3,6 +3,7 @@ system_msg: You are an expert error annotation system. You undestand structured 
   and you can correcly operate with units and numerical values. You are designed to
   output token-level annotations in JSON.
 model: gpt-4o-mini-2024-07-18
+prompt_strat: default
 prompt_template: |-
   Given the input data about a basketball game:
   ```
