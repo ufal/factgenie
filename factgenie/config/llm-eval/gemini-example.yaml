@@ -19,6 +19,7 @@ model: gemini-1.5-pro
 model_args:
   max_tokens: '1024'
   temperature: '0'
+prompt_strat: default
 prompt_template: |-
   Given the data:
   ```
@@ -55,4 +56,4 @@ prompt_template: |-
 system_msg: You are an expert data-to-text error annotation system. You undestand
   structured data and you can correcly operate with units and numerical values. You
   are designed to output token-level annotations in JSON.
-type: gemini
+api_provider: gemini

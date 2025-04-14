@@ -1,4 +1,4 @@
-type: openai
+api_provider: openai
 model: gpt-4o-mini-2024-07-18
 system_msg: "You are an expert data-to-text error annotation system. You undestand structured data and you can correcly operate with units and numerical values. You are designed to output token-level annotations in JSON."
 model_args:
@@ -19,6 +19,7 @@ annotation_span_categories:
     color: "rgb(102, 102, 102)"
     description: "The text is problematic for another reason, e.g. grammatically or stylistically incorrect, irrelevant, or repetitive."
 annotation_overlap_allowed: true
+prompt_strat: default
 prompt_template: |
   Given the data:
   ```

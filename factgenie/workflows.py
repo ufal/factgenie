@@ -934,6 +934,9 @@ def save_record(mode, campaign, row, result):
         "metadata": campaign.metadata["config"].copy(),
     }
 
+    if result.get("thinking_trace"):
+        record["thinking_trace"] = result["thinking_trace"]
+
     record["metadata"].pop("annotator_instructions", None)
     record["metadata"].pop("final_message", None)
 

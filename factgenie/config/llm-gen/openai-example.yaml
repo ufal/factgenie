@@ -1,4 +1,4 @@
-type: openai
+api_provider: openai
 model: gpt-4o-mini-2024-07-18
 # model: gpt-3.5-turbo-1106
 # model: "gpt-4-1106-preview"
@@ -6,6 +6,7 @@ system_msg: "You are an expert data-to-text system. You understand structured da
 start_with: "Sure, here is the required output:\n\""
 extra_args:
   remove_suffix: '"'
+prompt_strat: default
 prompt_template: |
   Given the data:
   ```

@@ -225,6 +225,7 @@ def browse():
     split = request.args.get("split")
     example_idx = request.args.get("example_idx")
     setup_id = request.args.get("setup_id")
+    ann_campaign = request.args.get("ann_campaign")
 
     if dataset_id and split and example_idx:
         display_example = {"dataset": dataset_id, "split": split, "example_idx": int(example_idx)}
@@ -245,6 +246,7 @@ def browse():
         "pages/browse.html",
         display_example=display_example,
         highlight_setup_id=setup_id,
+        highlight_ann_campaign=ann_campaign,
         datasets=datasets,
         host_prefix=app.config["host_prefix"],
     )
@@ -631,7 +633,8 @@ def llm_campaign_new():
 
     # get a list of available metrics
     llm_configs = workflows.load_configs(mode=mode)
-    metric_types = list(ModelFactory.model_classes()[mode].keys())
+    model_apis = list(ModelFactory.get_model_apis().keys())
+    prompt_strats = list(ModelFactory.get_prompt_strategies()[mode].keys())
 
     default_campaign_id = workflows.generate_default_id(app, mode=mode, prefix=mode.replace("_", "-"))
     default_prompts = utils.load_default_prompts()
@@ -644,7 +647,8 @@ def llm_campaign_new():
         default_prompts=default_prompts,
         available_data=available_data,
         configs=llm_configs,
-        metric_types=metric_types,
+        model_apis=model_apis,
+        prompt_strats=prompt_strats,
         host_prefix=app.config["host_prefix"],
     )
 

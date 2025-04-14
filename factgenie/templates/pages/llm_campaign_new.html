@@ -91,6 +91,26 @@
 
               <div class="row g-3 mb-3 align-items-center">
                 <div class="col-auto">
+                  <i class="fa fa-comments"></i>
+                  <span style="margin-left: 5px; margin-right: 10px;">Prompting strategy</span>
+                  <div class="mb-2">
+                    <small class="form-text text-muted">Select one of the available prompting strategies (or add your
+                      own class to <code>factgenie/models.py</code>). A prompting strategy controls how the prompt will
+                      be used.
+                    </small>
+                  </div>
+                </div>
+                <div class="form-group mt-1">
+                  <select class="form-select" id="prompt-strat" name="prompt-strat">
+                    {% for prompt_strat in prompt_strats %}
+                    <option value="{{ prompt_strat }}">{{ prompt_strat }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+
+              <div class="row g-3 mb-3 align-items-center">
+                <div class="col-auto">
                   <i class="fa fa-align-left"></i>
                   <span style="margin-left: 5px; margin-right: 10px;">Prompt template</span>
                   <div class="mb-2">
@@ -145,17 +165,16 @@
                   <i class="fa fa-code"></i>
                   <span style="margin-left: 5px; margin-right: 10px;">API provider</span>
                   <div class="mb-2">
-                    <small class="form-text text-muted">Select one of the available providers (or add your own
-                      class
-                      to
-                      <code>factgenie/models.py</code>) Do not forget to add the relevant API keys in the <a href="/app_config">app settings</a> or in the <code>factgenie/config/config.yml</code> file.
+                    <small class="form-text text-muted">Select one of the available providers (or add your own class to
+                      <code>factgenie/models.py</code>). Do not forget to add the relevant API keys in the <a
+                        href="/app_config">app settings</a> or in the <code>factgenie/config/config.yml</code> file.
                     </small>
                   </div>
                 </div>
                 <div class="form-group mt-1">
-                  <select class="form-select" id="metric-type" name="metric-type">
-                    {% for metric_type in metric_types %}
-                    <option value="{{ metric_type }}">{{ metric_type }}</option>
+                  <select class="form-select" id="api-provider" name="api-provider">
+                    {% for model_api in model_apis %}
+                    <option value="{{ model_api }}">{{ model_api }}</option>
                     {% endfor %}
                   </select>
                 </div>
@@ -231,12 +250,15 @@
               {% if mode == 'llm_eval' %}
               <div class="form-group mt-4 mb-3">
                 <i class="fa fa-flag-checkered"></i>
-                <label style="margin-left: 5px; margin-right: 10px;" for="annotationOverlapAllowed">Allow overlapping annotations</label>
+                <label style="margin-left: 5px; margin-right: 10px;" for="annotationOverlapAllowed">Allow overlapping
+                  annotations</label>
                 <div class="mb-2">
-                  <small class="form-text text-muted">Whether the model should be allowed to produce overlapping annotations.</small>
+                  <small class="form-text text-muted">Whether the model should be allowed to produce overlapping
+                    annotations.</small>
                 </div>
                 <div class="form-check form-switch">
-                  <input type="checkbox" class="form-check-input" id="annotationOverlapAllowed" name="annotationOverlapAllowed">
+                  <input type="checkbox" class="form-check-input" id="annotationOverlapAllowed"
+                    name="annotationOverlapAllowed">
                 </div>
               </div>
               {% endif %}
