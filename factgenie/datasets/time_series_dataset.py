@@ -10,6 +10,7 @@ import pandas as pd
 import plotly.express as px
 import textwrap
 
+
 class TimeSeriesDataset(Dataset):
     def load_examples(self, split, data_path):
         examples = []
@@ -18,34 +19,22 @@ class TimeSeriesDataset(Dataset):
             lines = f.readlines()
             for line in lines:
                 j = json.loads(line)
-                is_reversed = j['time'][0] > j['time'][-1]
-                features = j['features']
+                is_reversed = j["time"][0] > j["time"][-1]
+                features = j["features"]
 
                 if is_reversed:
-                    j['time'] = list(reversed(j['time']))
+                    j["time"] = list(reversed(j["time"]))
                     for key in features.keys():
                         features[key] = list(reversed(features[key]))
 
-                j["all features"] = "\n".join([
-                    f"{key}: {' '.join(map(str, value))}"
-                    for key, value in features.items()
-                ])
-
+                j["all features"] = "\n".join(
+                    [f"{key}: {' '.join(map(str, value))}" for key, value in features.items()]
+                )
                 first_key = list(features.keys())[0]
-                if "close" in features.keys():
-                    first_key = "close"
-                j["first time"] = j['time'][0]
-                j["last time"] = j['time'][-1]
+                j["first time"] = j["time"][0]
+                j["last time"] = j["time"][1]
                 j["first feature name"] = str(first_key)
-                j["first feature values"] = ' '.join(map(str, features[first_key]))
-
-                time_feature_pairs = [
-                    f"{time} - {feature}"
-                    for time, feature
-                    in zip(j['time'], j["first feature values"])
-                ]
-
-                j["first feature-time zip"] = ' ; '.join(time_feature_pairs)
+                j["first feature values"] = " ".join(map(str, features[first_key]))
 
                 examples.append(j)
                 # summary = self.json_to_markdown_tables(data=j)
@@ -54,16 +43,13 @@ class TimeSeriesDataset(Dataset):
         return examples
 
     def render(self, example):
-        desc      = example['description']
-        unit      = example['unit']
-        frequency = example['frequency']
-        time      = example['time']
-        features  = example['features']
+        desc = example["description"]
+        unit = example["unit"]
+        frequency = example["frequency"]
+        time = example["time"]
+        features = example["features"]
 
-        df = pd.DataFrame({
-                              "time": time,
-                              **features
-                          })
+        df = pd.DataFrame({"time": time, **features})
 
         # # fig = plt.figure(figsize=(12, 8))
         # matplotlib.use("Agg")
@@ -104,3 +90,25 @@ class TimeSeriesDataset(Dataset):
             + html
             + """</div>"""
         )
+        # return (
+        #     """<div id="graph"></div><div class="root" style="margin-top: 40px">"""
+        #     + html
+        #     + """</div>
+        # <script>
+        #     if (typeof forecast === 'undefined') {
+        #         var forecast = """
+        #     + json.dumps(example)
+        #     + """;
+        #         // var tree = jsonview.create(forecast);
+        #     } else {
+        #         forecast = """
+        #     + json.dumps(example)
+        #     + """;
+        #        // tree = jsonview.create(forecast);
+        #     }
+
+        #     // jsonview.render(tree, document.querySelector('.root'));
+        #     // jsonview.expand(tree);
+        #     window.meteogram = new Meteogram(forecast, 'meteogram');
+        # </script>"""
+        # )
