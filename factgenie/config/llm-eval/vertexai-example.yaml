@@ -57,4 +57,4 @@ prompt_template: |-
 system_msg: You are an expert data-to-text error annotation system. You undestand
   structured data and you can correcly operate with units and numerical values. You
   are designed to output token-level annotations in JSON.
-type: vertexai
+api_provider: vertexai

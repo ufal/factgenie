@@ -1,4 +1,4 @@
-type: ollama
+api_provider: ollama
 model: llama3.1:70b
 prompt_strat: default
 prompt_template: |-

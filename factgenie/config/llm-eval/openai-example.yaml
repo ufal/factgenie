@@ -1,4 +1,4 @@
-type: openai
+api_provider: openai
 model: gpt-4o-mini-2024-07-18
 system_msg: "You are an expert data-to-text error annotation system. You undestand structured data and you can correcly operate with units and numerical values. You are designed to output token-level annotations in JSON."
 model_args:
