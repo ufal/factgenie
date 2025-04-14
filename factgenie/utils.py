@@ -10,6 +10,7 @@ from tqdm import tqdm
 from pathlib import Path
 from flask import jsonify, render_template_string
 from factgenie.campaign import CampaignMode
+from pydantic import ValidationError
 from factgenie import (
     RESOURCES_CONFIG_PATH,
     DATASET_CONFIG_PATH,

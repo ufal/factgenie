@@ -148,7 +148,7 @@ def run_llm_campaign(app, mode, campaign_id, announcer, campaign, datasets, mode
     campaign.metadata["last_run"] = int(time.time())
     campaign.update_metadata()
 
-    provider = campaign.metadata["config"].get("type", None)
+    provider = campaign.metadata["config"].get("api_provider", None)
 
     logger.info(f"Starting LLM campaign \033[1m{campaign_id}\033[0m | {provider}")
 
@@ -189,7 +189,8 @@ def run_llm_campaign(app, mode, campaign_id, announcer, campaign, datasets, mode
                 generated_output = workflows.get_output_for_setup(
                     dataset_id, split, example_idx, setup_id, app=app, force_reload=False
                 )
-                res = model.annotate_example(data=example, text=generated_output["output"])
+                res = model.generate_output(data=example, text=generated_output["output"])
+                # keep the annotated text in the object
                 res["output"] = generated_output["output"]
             elif mode == CampaignMode.LLM_GEN:
                 res = model.generate_output(data=example)
@@ -250,8 +251,9 @@ def pause_llm_campaign(app, campaign_id):
 
 def parse_llm_gen_config(config):
     config = {
-        "type": config.get("metricType"),
+        "api_provider": config.get("apiProvider"),
         "model": config.get("modelName"),
+        "prompt_strat": config.get("promptStrat"),
         "prompt_template": config.get("promptTemplate"),
         "system_msg": config.get("systemMessage"),
         "start_with": config.get("startWith"),
@@ -264,8 +266,9 @@ def parse_llm_gen_config(config):
 
 def parse_llm_eval_config(config):
     config = {
-        "type": config.get("metricType"),
+        "api_provider": config.get("apiProvider"),
         "model": config.get("modelName"),
+        "prompt_strat": config.get("promptStrat"),
         "prompt_template": config.get("promptTemplate"),
         "system_msg": config.get("systemMessage"),
         "annotation_overlap_allowed": config.get("annotationOverlapAllowed", False),

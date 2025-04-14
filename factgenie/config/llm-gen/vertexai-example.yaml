@@ -3,6 +3,7 @@ extra_args:
   remove_suffix: '"'
 model: gemini-1.5-pro
 model_args: {}
+prompt_strat: default
 prompt_template: |-
   Given the data:
   ```
@@ -29,4 +30,4 @@ start_with: |-
 system_msg: You are an expert data-to-text system. You understand structured data
   and you can correctly operate with units and numerical values. You are designed
   to output plain text summaries from structured data input.
-type: vertexai
+api_provider: vertexai

@@ -39,7 +39,7 @@
             <tr>
               <th scope="col" data-sortable="true">Id</th>
               <th scope="col" data-sortable="true">Created</th>
-              <th scope="col" data-sortable="true">Type</th>
+              <th scope="col" data-sortable="true">API</th>
               <th scope="col" data-sortable="true">Model</th>
               <th scope="col" data-sortable="true">Status</th>
               <!-- {% if mode == 'llm_eval' %}
@@ -57,7 +57,7 @@
               <td><a href="{{ host_prefix }}/{{ mode }}/detail/{{ campaign.metadata.id }}" class="blue-link">{{
                   metadata.id }}</a></td>
               <td>{{ metadata.created }}</td>
-              <td class="small font-monospace">{{ metadata.config.type }}</td>
+              <td class="small font-monospace">{{ metadata.config.api_provider }}</td>
               <td class="small font-monospace">{{ metadata.config.model }}</td>
               <td><span id="metadata-status-{{ campaign_id }}" class="badge bg-{{ metadata.status }}">{{ metadata.status
                   }}</span></td>

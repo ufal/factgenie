@@ -222,8 +222,9 @@ function gatherConfig() {
         config.sliders = getSliders();
         config.textFields = getKeys($("#textFields"));
     } else if (window.mode == "llm_eval" || window.mode == "llm_gen") {
-        config.metricType = $("#metric-type").val();
+        config.promptStrat = $("#prompt-strat").val();
         config.modelName = $("#model-name").val();
+        config.apiProvider = $("#api-provider").val();
         config.promptTemplate = $("#prompt-template").val();
         config.systemMessage = $("#system-message").val();
         config.annotationOverlapAllowed = $("#annotationOverlapAllowed").is(":checked");
@@ -233,9 +234,11 @@ function gatherConfig() {
 
         if (window.mode == "llm_eval") {
             config.annotationSpanCategories = getAnnotationSpanCategories();
+            config.purpose = "metric"
         }
         if (window.mode == "llm_gen") {
             config.startWith = $("#start-with").val();
+            config.purpose = "gen"
         }
     }
     return config;
@@ -622,7 +625,9 @@ function updateLLMMetricConfig() {
     }
     const cfg = window.configs[llmConfigValue];
 
-    const metric_type = cfg.type;
+    // Supporting a deprecated `type` field
+    const api_provider = cfg.api_provider || cfg.type;
+    const prompt_strat = cfg.prompt_strat;
     const model_name = cfg.model;
     const prompt_template = cfg.prompt_template;
     const system_msg = cfg.system_msg;
@@ -632,7 +637,8 @@ function updateLLMMetricConfig() {
     const extra_args = cfg.extra_args;
 
     // for metric, we need to select the appropriate one from the values in the select box
-    $("#metric-type").val(metric_type);
+    $("#api-provider").val(api_provider);
+    $("#prompt-strat").val(prompt_strat);
     $("#model-name").html(model_name);
     $("#prompt-template").html(prompt_template);
     $("#system-message").html(system_msg);
