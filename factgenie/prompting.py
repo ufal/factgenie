@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
+import abc
+import json
+import logging
 import re
 import time
 import traceback
-import logging
-import abc
-import json
+import yaml
 from pydantic import ValidationError
+from factgenie import annotations
 from factgenie.annotations import AnnotationModelFactory
 from factgenie.api import ModelAPI
 
@@ -19,8 +21,12 @@ class PromptingStrategy(abc.ABC):
         self.extra_args = config.get("extra_args", {})
         self.prompt_strat_kwargs = {}
 
-    def prompt(self, data, to_annotate: str = "{text}"):
-        prompt_template = self.config["prompt_template"]
+    def prompt(self, data, to_annotate: str = "{text}", template_override=None):
+        if template_override is not None:
+            prompt_template = template_override
+        else:
+            prompt_template = self.config["prompt_template"]
+
         data = self.preprocess_data_for_prompt(data)
 
         # Replace the placeholders (e.g., {text}) in the prompt template with the actual values
@@ -383,53 +389,198 @@ class RawOutputStrategy(AnnotationsStrategy):
             logger.error(e)
             raise e
 
- class MultiStepPrompting(RawOutputStrategy):
+class SentenceSplitPrompter(RawOutputStrategy):
     def __init__(self, config: dict):
         self.config = config
 
-    def annotate_example(self, api: ModelAPI, data, text):
+    def split_by_sentences(self, text: str):
+        # This regex:
+        #  - '.' and a negative lookahead
+        #    - Can't be followed by another numer, comma, colon, or spaces* lowercase.
+        #      This is needed for decimals (3.5) and abbreviations (e.g. this).
+        #    - Can be followed by an optional \".
+        #  - '?' or '!' followed by an optional \".
+        #  - Extra chunking shouldn't hurt once I show it preceding context.
+        punc_regex = "\\.(?![0-9]|,|:|\\s*[a-z])\"?|\\?\"?|!\"?"
+        parts = [part for part in re.split(punc_regex, text) if len(part) > 2]
+        return parts
+
+        # This text splitter (https://github.com/mediacloud/sentence-splitter) can properly recognize "e.g." and so on. When a sentence starts with a number, it only works if it's a year number (4 digits). Sentences must begin with capital letters. Unfortunately it doesn't work well with markdown formats, which llm's love to produce.
+        # parts = split_text_into_sentences(text, language='en')
+
+    def join_annotation_lists(self, annotations: list[str]) -> str:
+        removed_lrbrackets = []
+        for a in annotations:
+            left = a.find("[")
+            right = a.rfind("]")
+            removed_lrbrackets.append(a[left+1:right])
+        joint_annotations =  "{\n\"annotations\": [" + ",\n".join(removed_lrbrackets) + "]\n}"
+        # Sometimes the individual json lists end with comma, and then joining them by command causes double commas. This regular expression removes multiples of commas with a single comma. (It replaces single commas with a single comma too, improving formatting.)
+        joint_annotations = re.sub(r"}(?:\s*,)*(?:\s*){", "},\n\t{", joint_annotations)
+        return joint_annotations
+
+    def make_prompts_record_string(self, part_prompts: list[str]) -> str:
+        # ----------
+        # prompt 1
+        # ----------
+        # prompt 2
+        # ----------
+        delim = "----------"
+        return delim + delim.join(map(lambda x: f"\n{x}\n", part_prompts)) + delim
+
+    def get_model_output(self, api: ModelAPI, data, text):
         """
-        Annotate the example with the model.
+        Annotate text with the model using raw JSON extraction.
 
         Args:
-            data: the data from which the text was generated
-            text: the text describing the data
+            api: The ModelAPI instance
+            data: The data from which the text was generated (optional)
+            text: The text to annotate (required)
 
         Returns:
             A dictionary: {
                 "prompt": the prompt used for the generation,
                 "annotations": the annotations for the text
+                "thinking_trace": the thinking trace (if any)
             }
         """
-
         assert isinstance(text, str) and len(text) > 0, f"Text must be a non-empty string, got {text=}"
 
-        model_service = api._service_prefix() + self.config["model"]
+        try:
+            parts = self.split_by_sentences(text)
+            part_prompts = [self.prompt(data, part) for part in parts]
+            annotation_lists = []
 
-        api.validate_environment(model_service)
+            start = time.time()
+            for part, part_prompt in zip(parts, part_prompts):
+                logger.debug(f"Prompt: {part_prompt}")
 
-        # temporarily disable until this is properly merged: https://github.com/BerriAI/litellm/pull/7832
+                logger.info("Annotated text:")
+                logger.info(f"\033[34m{part}\033[0m")
 
-        # assert litellm.supports_response_schema(
-        #     model_service
-        # ), f"Model {model_service} does not support the JSON response schema."
+                response = self.get_model_response(api, part_prompt)
+
+                # If parse_mode is "raw", extract JSON from the raw output
+                extra_args = self.config.get("extra_args", {})
+                if extra_args.get("parse_mode") == "raw":
+                    response = self.extract_json_from_raw(response)
+
+                annotation_lists.append(response)
+
+            elapsed = time.time() - start
+            nresponses = len(parts)
+            logger.info(f"Received {nresponses} responses in {elapsed:.2f} seconds. ({elapsed / nresponses:.2f} seconds per response.)")
+
+            joint_annotations = self.join_annotation_lists(annotation_lists)
+
+            return {
+                "prompt": self.make_prompts_record_string(part_prompts),
+                "annotations": self.parse_annotations(text=text, annotations_json=joint_annotations),
+            }
+        except Exception as e:
+            traceback.print_exc()
+            logger.error(e)
+
+            raise e
+
+
+class MultiPartPrompter(SentenceSplitPrompter):
+    GATHER = "gather evidence"
+    COMPARE = "evaluate against evidence"
+    SECTIONS = [GATHER, COMPARE]
+    def __init__(self, config: dict):
+        self.config = config
+
+        template = self.config["prompt_template"]
+        # TODO:
+        # In the future, a class will derive this class and override a self._get_sections() argument. Then it will have a process_section() method (or a dictionary of methods).
+        self.template_sections = self.get_template_sections(template, MultiPartPrompter.SECTIONS)
+
+    def get_template_sections(self, template: str, sections: list[str]):
+        # Exptects text like this:
+
+        # --- part 1 ---
+        # Some text here (mandatory).
+        # ...
+        # --- part 2 ---
+        # Some more text here.
+
+        # Where 'part 1' and 'part 2' depends on `labels`,
+        # and re.match(...).group(1) corresponds to the text under 'part 1' and so on.
+        regex = "(.*?)".join(map(lambda s: f"---\\s*{s}\\s*---\n", sections)) + "(.*)"
+        match = re.match(regex, template)
+        assert match is not None, "Prompt template is not matching specification. Example prompt:\n" + self.make_example_prompt(sections)
+
+        return {
+            section: text.strip()
+            for section, text
+            in zip(sections, match.groups())
+        }
+
+    def make_example_prompt(self, sections):
+        return "\nyour prompt...\n".join(map(lambda s: f"--- {s} ---", sections)) + "\nyour prompt..."
+
+    def gather(self, api: ModelAPI, data, part):
+        template = MultiPartPrompter.GATHER
+        # template = template.replace("{data-description}", shape)
+        prompt = self.prompt(data, part, template_override=template)
+        response = self.get_model_response(api, prompt)
+        return response
+
+    def run_code(self, data, code):
+        return code
+
+    def final_response(self, api: ModelAPI, data, part, evidence):
+        template = MultiPartPrompter.COMPARE
+        template = template.replace("{evidence}", evidence)
+        prompt = self.prompt(data, part, template_override=template)
+        response = self.get_model_response(api, prompt)
+        return response
+
+    def process_part(self, api: ModelAPI, data, part) -> str | None:
+        # There needs to be another prompt (or could be done in this one), asking to classify what needs to be done for this. We don't always need to run some code.
+        gather_data_code = self.gather(api, data, part)
+        evidence = self.run_code(data, gather_data_code)
+        final_response = self.final_response(api, data, part, evidence)
+        return final_response
+
+    def get_model_output(self, api: ModelAPI, data, text):
+        """
+        Annotate text with the model using raw JSON extraction.
+
+        Args:
+            api: The ModelAPI instance
+            data: The data from which the text was generated (optional)
+            text: The text to annotate (required)
+
+        Returns:
+            A dictionary: {
+                "prompt": the prompt used for the generation,
+                "annotations": the annotations for the text
+                "thinking_trace": the thinking trace (if any)
+            }
+        """
+        assert isinstance(text, str) and len(text) > 0, f"Text must be a non-empty string, got {text=}"
 
         try:
-            # This regex:
-            #  - '.' and a negative lookahead
-            #    - Can't be followed by another numer, comma, colon, or spaces* lowercase.
-            #      This is needed for decimals (3.5) and abbreviations (e.g. this).
-            #    - Can be followed by an optional \".
-            #  - '?' or '!' followed by an optional \".
-            #  - Extra chunking shouldn't hurt once I show it preceding context.
-            punc_regex = "\\.(?![0-9]|,|:|\\s*[a-z])\"?|\\?\"?|!\"?"
-            parts = [part for part in re.split(punc_regex, text) if len(part) > 2]
+            parts = self.split_by_sentences(text)
+            template_sections = self.get_template_sections()
+            annotation_lists = []
+            part_prompts = []
 
-            # This text splitter (https://github.com/mediacloud/sentence-splitter) can properly recognize "e.g." and so on. When a sentence starts with a number, it only works if it's a year number (4 digits). Sentences must begin with capital letters. Unfortunately it doesn't work well with markdown formats, which llm's love to produce.
-            # parts = split_text_into_sentences(text, language='en')
+            for part in parts:
+                part_prompt, response = self.process_part(api, data, part)
+                part_prompts.append(part_prompts)
 
-            part_prompts = [self.prompt(data, part) for part in parts]
-            all_annotations = []
+                logger.info("Processed part:")
+                logger.info(f"\033[34m{part}\033[0m")
+
+                # If parse_mode is "raw", extract JSON from the raw output
+                extra_args = self.config.get("extra_args", {})
+                if extra_args.get("parse_mode") == "raw":
+                    response = self.extract_json_from_raw(response)
+
+                annotation_lists.append(response)
 
             start = time.time()
             for part, part_prompt in zip(parts, part_prompts):
@@ -440,33 +591,21 @@ class RawOutputStrategy(AnnotationsStrategy):
                 logger.info("Annotated text:")
                 logger.info(f"\033[34m{part}\033[0m")
 
-                logger.info(f"Waiting for {model_service}.")
+                response = self.get_model_response(api, part_prompt)
 
-                messages = self.construct_message(part_prompt)
-
-                start = time.time()
-                response: str = api.get_model_response_with_retries(messages, model_service)
-
-                # If parse_mode is "raw", extract JSON from the raw output
-                extra_args = self.config.get("extra_args", {})
-                if extra_args.get("parse_mode") == "raw":
-                    response: str = self.extract_json_from_raw(response)
-
-                left = response.find("[")
-                right = response.rfind("]")
-                all_annotations.append(response[left+1:right])
             elapsed = time.time() - start
             nresponses = len(parts)
             logger.info(f"Received {nresponses} responses in {elapsed:.2f} seconds. ({elapsed / nresponses:.2f} seconds per response.)")
 
-            joint_annotations = "{\n\"annotations\": [" + ",\n".join(all_annotations) + "]\n}"
+            joint_annotations = "{\n\"annotations\": [" + ",\n".join(annotation_lists) + "]\n}"
             # Sometimes the individual json lists end with comma, and then joining them by command causes double commas. This regular expression removes multiples of commas with a single comma. (It replaces single commas with a single comma too, improving formatting.)
             joint_annotations = re.sub(r"}(?:\s*,)*(?:\s*){", "},\n\t{", joint_annotations)
             return {
-                "prompt": "; ".join(part_prompts),
+                "prompt": "\n\n\n".join(map(lambda x: f"{'-'*9}\n{x}\n{'-'*9}", part_prompts)),
                 "annotations": self.parse_annotations(text=text, annotations_json=joint_annotations),
             }
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
             raise e
+

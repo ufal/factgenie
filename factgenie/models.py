@@ -18,7 +18,7 @@ from factgenie.prompting import (
     GenerationStrategy,
     StructuredOutputStrategy,
     RawOutputStrategy,
-    MultiStepPrompting,
+    SentenceSplitPrompter,
 )
 from factgenie.campaign import CampaignMode
 from factgenie.annotations import AnnotationModelFactory
@@ -67,7 +67,7 @@ class ModelFactory:
             CampaignMode.LLM_EVAL: {
                 "default": StructuredOutputStrategy,
                 "parse_raw": RawOutputStrategy,
-                "multi_step_prompting": MultiStepPrompting,
+                "sentence_split": SentenceSplitPrompter,
             },
             CampaignMode.LLM_GEN: {
                 "default": GenerationStrategy,
