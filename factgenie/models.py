@@ -1,27 +1,31 @@
 #!/usr/bin/env python3
 
-import json
 import logging
 import os
-import random
-import re
-import time
-import traceback
-from abc import abstractmethod
 from ast import literal_eval
-from typing import Literal
 
-from pandas.core.algorithms import is_extension_array_dtype
+from factgenie.api import (
+    ModelAPI,
+    OpenAIAPI,
+    OllamaAPI,
+    VllmAPI,
+    AnthropicAPI,
+    GeminiAPI,
+    VertexAIAPI,
+)
+from factgenie.prompting import (
+    PromptingStrategy,
+    GenerationStrategy,
+    StructuredOutputStrategy,
+    RawOutputStrategy,
+)
 from factgenie.campaign import CampaignMode
-from factgenie.data_processing import extract_json_from_raw, parse_annotations
-from pydantic import BaseModel, Field, ValidationError
+from factgenie.annotations import AnnotationModelFactory
 
 # LiteLLM seems to be triggering deprecation warnings in Pydantic, so we suppress them
 import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
-
-import litellm
 
 # also disable info logs from litellm
 logging.getLogger("LiteLLM").setLevel(logging.ERROR)
@@ -38,18 +42,15 @@ LLM_ANNOTATION_DIR = os.path.join(DIR_PATH, "annotations")
 LLM_GENERATION_DIR = os.path.join(DIR_PATH, "outputs")
 
 
-# ModelFactory has method `model_classes`. `app.py` uses it to create a list of model types to be used in `llm_campaign_new.html`. When the (metric/gen) type and everything else is selected there, `campaign.js` puts it all into a dictionary `config`. This is then used to (re)construct the metric/gen in the `ModelFactory`. The `ModelFactory` receives the config, uses config["type"] to select which metric/gen to create, and constructs it.
-
-# Each Gen/Metric has "required fields" and "optional fields", which biject with the config dictionary. The fields are typed. Missing required fields or extra undefined fields yield a warning.
-
-# The config is passed to the instance as a dictionary with the required types, except for model_args, which the super() handles itself through `self.parse_model_args()`
-
-
 class ModelFactory:
-    """Register any new model here."""
+    """
+    Factory for creating model instances based on configuration.
+    This class is responsible for parsing the configuration, selecting the appropriate model API, and initializing the prompting strategy.
+    """
 
     @staticmethod
     def get_model_apis():
+        # List of available model APIs that the user can select from, stored as `api_provider` in the config.
         return {
             "openai": OpenAIAPI,
             "ollama": OllamaAPI,
@@ -63,490 +64,75 @@ class ModelFactory:
     def get_prompt_strategies():
         return {
             CampaignMode.LLM_EVAL: {
-                "default": PromptingStrategy,
-                "default-duplicate": PromptingStrategy,
+                "default": StructuredOutputStrategy,
+                "parse_raw": RawOutputStrategy,
             },
             CampaignMode.LLM_GEN: {
-                "default": PromptingStrategy,
-                "default-duplicate": PromptingStrategy,
+                "default": GenerationStrategy,
             },
         }
 
     @staticmethod
-    def from_config(config, mode):
-        api_type = config["type"]
-        prompt_type = config.get("prompt_type", "default")
-        if "prompt_type" not in config:
-            logger.warning("Prompting strategy was not specified, using 'default'...")
+    def parse_api_provider(config):
+        if "type" in config:
+            logger.warning(
+                "The `type` field is deprecated. Please use `api_provider` instead. This will be removed in a future version."
+            )
 
-        # suffixes are not needed
-        if api_type.endswith("_metric"):
-            api_type = api_type[: -len("_metric")]
-        elif api_type.endswith("_gen"):
-            api_type = api_type[: -len("_gen")]
+        # Supporting the deprecated `type` field
+        api_provider = config.get("api_provider", config.get("type"))
+
+        # Supporting the deprecated suffixes
+        if api_provider.endswith("_metric"):
+            api_provider = api_provider[: -len("_metric")]
+        elif api_provider.endswith("_gen"):
+            api_provider = api_provider[: -len("_gen")]
+
+        return api_provider
+
+    @staticmethod
+    def from_config(config, mode):
+        api_provider = ModelFactory.parse_api_provider(config)
+
+        prompt_strat = config.get("prompt_strat", "default")
+        if "prompt_strat" not in config:
+            logger.warning("Prompting strategy was not specified, using 'default'...")
 
         model_apis = ModelFactory.get_model_apis()
         prompt_strats = ModelFactory.get_prompt_strategies()[mode]
 
-        # ensure the api_type and prompt_type are valid
-        if api_type not in model_apis:
-            raise ValueError(f"Model type {api_type} is not implemented.")
-        if prompt_type not in prompt_strats:
-            raise ValueError(f"Model type {prompt_type} is not implemented.")
-
-        # set correct response format for metrics
-        completion_kwargs = {}
-        extra_args = config.get("extra_args", {})
-        if mode == CampaignMode.LLM_EVAL and extra_args.get("parse_mode") != "raw":
-            completion_kwargs["response_format"] = OutputAnnotations
-
-        return Model(config, mode, model_apis[api_type](config, completion_kwargs), prompt_strats[prompt_type](config))
-
-
-class SpanAnnotation(BaseModel):
-    reason: str = Field(description="The reason for the annotation.")
-    text: str = Field(description="The text which is annotated.")
-    # Do not name it type since it is a reserved keyword in JSON schema
-    annotation_type: int = Field(
-        description="Index to the list of span annotation types defined for the annotation campaign."
-    )
-
-
-class SpanAnnotationNoReason(BaseModel):
-    text: str = Field(description="The text which is annotated.")
-    # Do not name it type since it is a reserved keyword in JSON schema
-    annotation_type: int = Field(
-        description="Index to the list of span annotation types defined for the annotation campaign."
-    )
-
-
-class OutputAnnotations(BaseModel):
-    annotations: list[SpanAnnotation] = Field(description="The list of annotations.")
-
-
-class OutputAnnotationsNoReason(BaseModel):
-    annotations: list[SpanAnnotationNoReason] = Field(description="The list of annotations.")
-
-
-class ModelAPI:
-    def __init__(self, config: dict, completion_kwargs: dict = {}):
-        self.config = config
-        self.completion_kwargs = completion_kwargs
-
-    # I think this should be called just once on the class creation rather than on each generation/annotation?
-    def validate_environment(self, model_service):
-        response = litellm.validate_environment(model=model_service)
-
-        if not response["keys_in_environment"]:
-            raise ValueError(
-                f"Required API variables not found for the model {model_service}. Please add the following keys to the system environment or factgenie config: {response['missing_keys']}"
-            )
-
-    def call_model_once(self, messages, model_service):
-        response = litellm.completion(
-            model=model_service,
-            messages=messages,
-            api_base=self._api_url(),
-            **self.completion_kwargs,  # E.g. for VertexAIAPI credentials or output format forcing.
-            **self.config.get("model_args", {}),
-        )
-        return response
-
-    # There is no reason to not use this always.
-    def get_model_response_with_retries(self, messages, model_service):
-        """Handle rate limits and overload errors with exponential backoff and retry logic."""
-        max_retries = 15
-        initial_retry_delay = 2  # seconds
-
-        for attempt in range(max_retries):
-            try:
-                response = self.call_model_once(messages, model_service)
-                return response
-
-            except (litellm.exceptions.RateLimitError, litellm.exceptions.InternalServerError) as e:
-                # Check if InternalServerError is specifically an "Overloaded" error
-                is_overloaded = isinstance(e, litellm.exceptions.InternalServerError) and "Overloaded" in str(e)
-                # Check if we've reached max retries
-                if attempt == max_retries - 1:
-                    error_type = "Rate limit" if isinstance(e, litellm.exceptions.RateLimitError) else "Server overload"
-                    logger.error(f"{error_type} exceeded after {max_retries} attempts. Giving up.")
-                    raise e
-
-                # Only retry for rate limits or overloaded errors
-                if not (isinstance(e, litellm.exceptions.RateLimitError) or is_overloaded):
-                    logger.error(f"Non-retryable InternalServerError: {str(e)}")
-                    raise e
-
-                # Calculate exponential backoff with jitter
-                retry_delay = initial_retry_delay * (2**attempt) + (random.uniform(0, 1))
-                error_type = "Rate limit" if isinstance(e, litellm.exceptions.RateLimitError) else "Server overload"
-                logger.warning(
-                    f"{error_type} hit. Retrying in {retry_delay:.2f} seconds (attempt {attempt+1}/{max_retries})..."
-                )
-                time.sleep(retry_delay)
-
-            except Exception as e:
-                # For other exceptions, don't retry
-                logger.error(f"Error calling API: {str(e)}")
-                raise e
-
-    def _api_url(self):
-        # by default we ignore the API URL
-        # override for local services that actually require the API URL (such as Ollama)
-        return None
-
-    def _service_prefix(self):
-        raise NotImplementedError(
-            "Override this method in the subclass to call the appropriate API. See LiteLLM documentation: https://docs.litellm.ai/docs/providers."
-        )
-
-
-class OpenAIAPI(ModelAPI):
-    # https://docs.litellm.ai/docs/providers/openai
-    def __init__(self, config, completion_kwargs: dict = {}):
-        super().__init__(config, completion_kwargs)
-
-    def _service_prefix(self):
-        # OpenAI models do not seem to require a prefix: https://docs.litellm.ai/docs/providers/openai
-        return ""
-
-
-class OllamaAPI(ModelAPI):
-    # https://docs.litellm.ai/docs/providers/ollama
-    def __init__(self, config, completion_kwargs: dict = {}):
-        super().__init__(config, completion_kwargs)
-
-    def _service_prefix(self):
-        # we want to call the `chat` endpoint: https://docs.litellm.ai/docs/providers/ollama#using-ollama-apichat
-        return "ollama_chat/"
-
-    def _api_url(self):
-        # local server URL
-        api_url = self.config.get("api_url", None)
-        api_url = api_url.rstrip("/")
-
-        if api_url.endswith("/generate") or api_url.endswith("/chat") or api_url.endswith("/api"):
-            raise ValueError(f"The API URL {api_url} is not valid. Use only the base URL, e.g. http://localhost:11434.")
-
-        return api_url
-
-    def validate_environment(self, model_service):
-        # Ollama would require setting OLLAMA_API_BASE, but we set the API URL in the config
-        pass
-
-
-class VllmAPI(ModelAPI):
-    # https://docs.litellm.ai/docs/providers/vllm
-    def __init__(self, config, completion_kwargs: dict = {}):
-        super().__init__(config, completion_kwargs)
-
-    def _service_prefix(self):
-        return "hosted_vllm/"
-
-    def _api_url(self):
-        # local server URL
-        return self.config.get("api_url", None)
-
-
-class AnthropicAPI(ModelAPI):
-    # https://docs.litellm.ai/docs/providers/anthropic
-    def __init__(self, config, completion_kwargs: dict = {}):
-        super().__init__(config, completion_kwargs)
-
-    def _service_prefix(self):
-        return "anthropic/"
-
-
-class GeminiAPI(ModelAPI):
-    # https://docs.litellm.ai/docs/providers/gemini
-    def __init__(self, config, completion_kwargs: dict = {}):
-        super().__init__(config, completion_kwargs)
-
-    def _service_prefix(self):
-        return "gemini/"
-
-
-class VertexAIAPI(ModelAPI):
-    # https://docs.litellm.ai/docs/providers/vertex
-    def __init__(self, config, completion_kwargs: dict = {}):
-        completion_kwargs["vertex_credentials"] = self.load_google_credentials()
-        super().__init__(config, completion_kwargs)
-
-    def load_google_credentials(self):
-        json_file_path = os.environ.get("VERTEXAI_JSON_FULL_PATH")
-
-        if json_file_path:
-            if not os.path.exists(json_file_path):
-                raise ValueError(
-                    "File not found in VERTEXAI_JSON_FULL_PATH. For more details, see https://docs.litellm.ai/docs/providers/vertex"
-                )
-
-            # Load the JSON file
-            with open(json_file_path, "r") as file:
-                vertex_credentials = json.load(file)
-
-            # Convert to JSON string
-            return json.dumps(vertex_credentials)
-
-    def _service_prefix(self):
-        return "vertex_ai/"
-
-
-class PromptingStrategy:
-    def __init__(self, config: dict):
-        self.config = config
-
-    def preprocess_data_for_prompt(self, data):
-        """Override this method to change the format how the data is presented in the prompt. See self.prompt() method for usage."""
-        return data
-
-    # Default string is cleverly {text} to basically cause no replacement when called from `generate_text()`.
-    def prompt(self, data, to_annotate: str = "{text}"):
-        prompt_template = self.config["prompt_template"]
-        data = self.preprocess_data_for_prompt(data)
-
-        # we used to require replacing any curly braces with double braces
-        # to support existing prompts, we replace any double braces with single braces
-        # this should not do much harm, as the prompts usually do contain double braces (but remove this in the future?)
-
-        prompt_template = prompt_template.replace("{{", "{").replace("}}", "}")
-
-        if type(data) == dict:
-            for key in data.keys():
-                prompt_template = prompt_template.replace(f"{{data[{key}]}}", str(data[key]))
-
-        matches = re.findall(r"{data\[[^\[\]]*\]}", prompt_template)
-        if len(matches) > 0:
-            logger.warning(f"Unreplaced data keys in the template: {', '.join(matches)}")
-
-        return prompt_template.replace("{data}", str(data)).replace("{text}", to_annotate)
-
-    def construct_message(self, prompt):
-        messages = []
-
-        if self.config.get("system_msg"):
-            messages.append({"role": "system", "content": self.config["system_msg"]})
-
-        messages.append({"role": "user", "content": prompt})
-
-        if self.config.get("start_with"):
-            messages.append({"role": "assistant", "content": self.config["start_with"]})
-
-        return messages
-
-    def parse_annotations(self, text, annotations_json):
-        extra_args = self.config.get("extra_args", {})
-        if extra_args.get("no_reason"):
-            out_cls = OutputAnnotationsNoReason
-        else:
-            out_cls = OutputAnnotations
-
-        annotation_span_categories = self.config["annotation_span_categories"]
-        overlap_allowed = self.config.get("annotation_overlap_allowed", False)
-
-        return parse_annotations(text, annotations_json, out_cls, annotation_span_categories, overlap_allowed)
-
-    def postprocess_output(self, output):
-        extra_args = self.config.get("extra_args", {})
-
-        # cut model generation at the stopping sequence
-        if extra_args.get("stopping_sequence", False):
-            stopping_sequence = extra_args["stopping_sequence"]
-
-            # re-normalize double backslashes ("\\n" -> "\n")
-            stopping_sequence = stopping_sequence.encode().decode("unicode_escape")
-
-            if stopping_sequence in output:
-                output = output[: output.index(stopping_sequence)]
-
-        output = output.strip()
-
-        # strip the suffix from the output
-        if extra_args.get("remove_suffix", ""):
-            suffix = extra_args["remove_suffix"]
-
-            if output.endswith(suffix):
-                output = output[: -len(suffix)]
-
-        # remove any multiple spaces
-        output = " ".join(output.split())
-
-        output = output.strip()
-        return output
-
-    def generate_output(self, api: ModelAPI, data):
-        """
-        Generate the output with the model.
-
-        Args:
-            data: the data to be used in the prompt
-
-        Returns:
-            A dictionary: {
-                "prompt": the prompt used for the generation,
-                "output": the generated output
-            }
-        """
-        model_service = api._service_prefix() + self.config["model"]
-
-        api.validate_environment(model_service)
-
-        try:
-            prompt = self.prompt(data)
-
-            messages = self.construct_message(prompt)
-
-            response = api.get_model_response_with_retries(messages, model_service)
-
-            output = response.choices[0].message.content
-            output = self.postprocess_output(output)
-            logger.info(output)
-
-            return {"prompt": prompt, "output": output}
-
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(e)
-            raise e
-
-    def annotate_example(self, api: ModelAPI, data, text):
-        """
-        Annotate the example with the model.
-
-        Args:
-            data: the data from which the text was generated
-            text: the text describing the data
-
-        Returns:
-            A dictionary: {
-                "prompt": the prompt used for the generation,
-                "annotations": the annotations for the text
-            }
-        """
-
-        assert isinstance(text, str) and len(text) > 0, f"Text must be a non-empty string, got {text=}"
-
-        model_service = api._service_prefix() + self.config["model"]
-
-        api.validate_environment(model_service)
-
-        # temporarily disable until this is properly merged: https://github.com/BerriAI/litellm/pull/7832
-
-        # assert litellm.supports_response_schema(
-        #     model_service
-        # ), f"Model {model_service} does not support the JSON response schema."
-
-        try:
-            prompt = self.prompt(data, text)
-
-            logger.debug(f"Prompt: {prompt}")
-
-            logger.info("Annotated text:")
-            logger.info(f"\033[34m{text}\033[0m")
-
-            logger.info(f"Waiting for {model_service}.")
-
-            messages = self.construct_message(prompt)
-
-            start = time.time()
-            response = api.get_model_response_with_retries(messages, model_service)
-            logger.info(f"Received response in {time.time() - start:.2f} seconds.")
-
-            logger.debug(f"Prompt tokens: {response.usage.prompt_tokens}")
-            logger.debug(f"Response tokens: {response.usage.completion_tokens}")
-
-            # Get the content from the response
-            annotation_str = response.choices[0].message.content
-
-            # If parse_mode is "raw", extract JSON from the raw output
-            extra_args = self.config.get("extra_args", {})
-            if extra_args.get("parse_mode") == "raw":
-                annotation_str = extract_json_from_raw(annotation_str)
-
-            return {
-                "prompt": prompt,
-                "annotations": self.parse_annotations(text=text, annotations_json=annotation_str),
-            }
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(e)
-            raise e
+        # ensure the api_type and prompt_strat are valid
+        if api_provider not in model_apis:
+            raise ValueError(f"Model type {api_provider} is not implemented.")
+        if prompt_strat not in prompt_strats:
+            raise ValueError(f"Model type {prompt_strat} is not implemented.")
+
+        return Model(config, mode, model_apis[api_provider](config), prompt_strats[prompt_strat](config))
 
 
 class Model:
-    def __init__(self, config: dict, mode: CampaignMode, model_api: ModelAPI, prompting_strategy: PromptingStrategy):
+    def __init__(self, config: dict, mode: CampaignMode, model_api: ModelAPI, prompt_strat: PromptingStrategy):
         self.config = config
         self.campaign_mode = mode
         self.parse_model_args()
         self.model_api = model_api
-        self.prompting_strategy = prompting_strategy
+        self.prompt_strat = prompt_strat
 
-    def generate_output(self, data):
-        return self.prompting_strategy.generate_output(api=self.model_api, data=data)
-
-    def annotate_example(self, data, text):
-        return self.prompting_strategy.annotate_example(api=self.model_api, data=data, text=text)
+    def generate_output(self, data, text=None):
+        """For backward compatibility with existing code."""
+        return self.prompt_strat.get_model_output(api=self.model_api, data=data, text=text)
 
     def get_annotator_id(self):
-        return "llm-" + self.config["type"] + "-" + self.config["model"]
+        return "llm-" + ModelFactory.parse_api_provider(self.config) + "-" + self.config["model"]
 
     def get_config(self):
         return self.config
-
-    def get_required_fields(self):
-        fields: dict[str, type] = {
-            "type": str,
-            "prompt_template": str,
-            "model": str,
-        }
-
-        if self.campaign_mode == CampaignMode.LLM_EVAL:
-            fields["annotation_span_categories"] = list
-
-        return fields
-
-    def get_optional_fields(self):
-        fields: dict[str, type] = {
-            "model_args": dict,
-            "system_msg": str,
-            "api_url": str,
-            "extra_args": dict,
-            "start_with": str,
-        }
-
-        if self.campaign_mode == CampaignMode.LLM_EVAL:
-            fields["annotation_overlap_allowed"] = bool
-
-        return fields
-
-    def validate_config(self, config):
-        # Is this never called?
-        for field in self.get_required_fields():
-            assert field in config, f"Field `{field}` is missing in the config. Keys: {config.keys()}"
-
-        for field, field_type in self.get_required_fields().items():
-            assert isinstance(
-                config[field], field_type
-            ), f"Field `{field}` must be of type {field_type}, got {config[field]=}"
-
-        for field, field_type in self.get_optional_fields().items():
-            if field in config:
-                assert isinstance(
-                    config[field], field_type
-                ), f"Field `{field}` must be of type {field_type}, got {config[field]=}"
-            else:
-                # set the default value for the data type
-                config[field] = field_type()
-
-        # warn if there are any extra fields
-        for field in config:
-            if field not in self.get_required_fields() and field not in self.get_optional_fields():
-                logger.warning(f"Field `{field}` is not recognized in the config.")
 
     def parse_model_args(self):
         if "model_args" not in self.config:
             return
 
+        # implicitly convert all model_args to literals based on their format
         for arg in self.config["model_args"]:
             try:
                 self.config["model_args"][arg] = literal_eval(self.config["model_args"][arg])
