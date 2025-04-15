@@ -36,6 +36,8 @@ class TimeSeriesDataset(Dataset):
                 j["first feature name"] = str(first_key)
                 j["first feature values"] = " ".join(map(str, features[first_key]))
 
+                j["df"] = pd.DataFrame({"time": j["time"], **j["features"]})
+
                 examples.append(j)
                 # summary = self.json_to_markdown_tables(data=j)
                 # examples.append(summary)

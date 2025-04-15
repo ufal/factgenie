@@ -486,8 +486,8 @@ class SentenceSplitPrompter(RawOutputStrategy):
 
 class MultiPartPrompter(SentenceSplitPrompter):
     GATHER = "gather evidence"
-    COMPARE = "evaluate against evidence"
-    SECTIONS = [GATHER, COMPARE]
+    ANNOTATE = "annotate against evidence"
+    SECTIONS = [GATHER, ANNOTATE]
     def __init__(self, config: dict):
         self.config = config
 
@@ -531,7 +531,7 @@ class MultiPartPrompter(SentenceSplitPrompter):
         return code
 
     def final_response(self, api: ModelAPI, data, part, evidence):
-        template = MultiPartPrompter.COMPARE
+        template = MultiPartPrompter.ANNOTATE
         template = template.replace("{evidence}", evidence)
         prompt = self.prompt(data, part, template_override=template)
         response = self.get_model_response(api, prompt)
