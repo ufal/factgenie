@@ -9,6 +9,7 @@ import json
 from pydantic import ValidationError
 from factgenie.annotations import AnnotationModelFactory
 from factgenie.api import ModelAPI
+from factgenie.text_processing import template_replace
 
 logger = logging.getLogger("factgenie")
 
@@ -19,20 +20,16 @@ class PromptingStrategy(abc.ABC):
         self.extra_args = config.get("extra_args", {})
         self.prompt_strat_kwargs = {}
 
-    def prompt(self, data, to_annotate: str = "{text}"):
-        prompt_template = self.config["prompt_template"]
+    def prompt(self, data, to_annotate: str = "{text}", template_override=None):
+        if template_override is not None:
+            prompt_template = template_override
+        else:
+            prompt_template = self.config["prompt_template"]
+
         data = self.preprocess_data_for_prompt(data)
 
-        # Replace the placeholders (e.g., {text}) in the prompt template with the actual values
-        if type(data) == dict:
-            for key in data.keys():
-                prompt_template = prompt_template.replace(f"{{data[{key}]}}", str(data[key]))
-
-        matches = re.findall(r"{data\[[^\[\]]*\]}", prompt_template)
-        if len(matches) > 0:
-            logger.warning(f"Unreplaced data keys in the template: {', '.join(matches)}")
-
-        prompt_template = prompt_template.replace("{data}", str(data)).replace("{text}", to_annotate)
+        prompt_template = template_replace(prompt_template, "data", data)
+        prompt_template = prompt_template.replace("{text}", to_annotate)
 
         return prompt_template
 
@@ -378,94 +375,6 @@ class RawOutputStrategy(AnnotationsStrategy):
                 ret["thinking_trace"] = extracted["thinking_trace"]
 
             return ret
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(e)
-            raise e
-
- class MultiStepPrompting(RawOutputStrategy):
-    def __init__(self, config: dict):
-        self.config = config
-
-    def annotate_example(self, api: ModelAPI, data, text):
-        """
-        Annotate the example with the model.
-
-        Args:
-            data: the data from which the text was generated
-            text: the text describing the data
-
-        Returns:
-            A dictionary: {
-                "prompt": the prompt used for the generation,
-                "annotations": the annotations for the text
-            }
-        """
-
-        assert isinstance(text, str) and len(text) > 0, f"Text must be a non-empty string, got {text=}"
-
-        model_service = api._service_prefix() + self.config["model"]
-
-        api.validate_environment(model_service)
-
-        # temporarily disable until this is properly merged: https://github.com/BerriAI/litellm/pull/7832
-
-        # assert litellm.supports_response_schema(
-        #     model_service
-        # ), f"Model {model_service} does not support the JSON response schema."
-
-        try:
-            # This regex:
-            #  - '.' and a negative lookahead
-            #    - Can't be followed by another numer, comma, colon, or spaces* lowercase.
-            #      This is needed for decimals (3.5) and abbreviations (e.g. this).
-            #    - Can be followed by an optional \".
-            #  - '?' or '!' followed by an optional \".
-            #  - Extra chunking shouldn't hurt once I show it preceding context.
-            punc_regex = "\\.(?![0-9]|,|:|\\s*[a-z])\"?|\\?\"?|!\"?"
-            parts = [part for part in re.split(punc_regex, text) if len(part) > 2]
-
-            # This text splitter (https://github.com/mediacloud/sentence-splitter) can properly recognize "e.g." and so on. When a sentence starts with a number, it only works if it's a year number (4 digits). Sentences must begin with capital letters. Unfortunately it doesn't work well with markdown formats, which llm's love to produce.
-            # parts = split_text_into_sentences(text, language='en')
-
-            part_prompts = [self.prompt(data, part) for part in parts]
-            all_annotations = []
-
-            start = time.time()
-            for part, part_prompt in zip(parts, part_prompts):
-                # prompt = self.prompt(data, text)
-
-                logger.debug(f"Prompt: {part_prompt}")
-
-                logger.info("Annotated text:")
-                logger.info(f"\033[34m{part}\033[0m")
-
-                logger.info(f"Waiting for {model_service}.")
-
-                messages = self.construct_message(part_prompt)
-
-                start = time.time()
-                response: str = api.get_model_response_with_retries(messages, model_service)
-
-                # If parse_mode is "raw", extract JSON from the raw output
-                extra_args = self.config.get("extra_args", {})
-                if extra_args.get("parse_mode") == "raw":
-                    response: str = self.extract_json_from_raw(response)
-
-                left = response.find("[")
-                right = response.rfind("]")
-                all_annotations.append(response[left+1:right])
-            elapsed = time.time() - start
-            nresponses = len(parts)
-            logger.info(f"Received {nresponses} responses in {elapsed:.2f} seconds. ({elapsed / nresponses:.2f} seconds per response.)")
-
-            joint_annotations = "{\n\"annotations\": [" + ",\n".join(all_annotations) + "]\n}"
-            # Sometimes the individual json lists end with comma, and then joining them by command causes double commas. This regular expression removes multiples of commas with a single comma. (It replaces single commas with a single comma too, improving formatting.)
-            joint_annotations = re.sub(r"}(?:\s*,)*(?:\s*){", "},\n\t{", joint_annotations)
-            return {
-                "prompt": "; ".join(part_prompts),
-                "annotations": self.parse_annotations(text=text, annotations_json=joint_annotations),
-            }
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
