@@ -20,14 +20,10 @@ class PromptingStrategy(abc.ABC):
         self.extra_args = config.get("extra_args", {})
         self.prompt_strat_kwargs = {}
 
-    def prompt(self, data, to_annotate: str = "{text}", template_override=None):
-        if template_override is not None:
-            prompt_template = template_override
-        else:
-            prompt_template = self.config["prompt_template"]
-
+    def prompt(self, data, to_annotate: str = "{text}"):
         data = self.preprocess_data_for_prompt(data)
 
+        prompt_template = self.config["prompt_template"]
         prompt_template = template_replace(prompt_template, "data", data)
         prompt_template = prompt_template.replace("{text}", to_annotate)
 
