@@ -22,10 +22,10 @@ class PromptingStrategy(abc.ABC):
 
     def prompt(self, data, to_annotate: str = "{text}"):
         data = self.preprocess_data_for_prompt(data)
+        keyword_dict = { "data": data, "text": to_annotate }
 
         prompt_template = self.config["prompt_template"]
-        prompt_template = template_replace(prompt_template, "data", data)
-        prompt_template = prompt_template.replace("{text}", to_annotate)
+        prompt_template = template_replace(prompt_template, keyword_dict)
 
         return prompt_template
 
