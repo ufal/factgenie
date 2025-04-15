@@ -48,9 +48,7 @@ def template_replace(text: str, keyword_dict: dict):
         # Case 1: we have something like {data[key1]}.
         if s.group(2) is not None:
             if type(data) is not dict:
-                raise TypeError(
-                    f"Trying to access dictionary entries in {label_for_data} but it's not a dictionary."
-                )
+                raise TypeError(f"Trying to access dictionary entries in {label_for_data} but it's not a dictionary.")
 
             # The replacement path in the dictionary.
             keys = s.group(2)[1:-1].split("][")
@@ -123,9 +121,7 @@ class TestTemplating(unittest.TestCase):
         self.assertRaises(KeyError, lambda: extract_data(data, ["a", "z"]))
 
     def test_template_wrong_key(self):
-        text = (
-            "Yes in this we have {data[a][z]} and {data[e]} and also {data[a][b][c]}."
-        )
+        text = "Yes in this we have {data[a][z]} and {data[e]} and also {data[a][b][c]}."
         data = {"a": {"b": {"c": "<CC>"}, "d": "<DD>"}, "e": "<EE>"}
         keyword_dict = {"data": data}
         self.assertRaises(KeyError, lambda: template_replace(text, keyword_dict))
