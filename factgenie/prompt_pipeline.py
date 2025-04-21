@@ -469,40 +469,6 @@ class ParseAnnotations(Transform):
         return derive_field(current, api, self.parse_annotations, self.output_field)
 
 
-class SequentialStrategy(PromptingStrategy):
-    def __init__(self, config):
-        super().__init__(config)
-        self.transform_sequence = self.get_transform_sequence()
-
-    @abc.abstractmethod
-    def get_transform_sequence(self) -> list[Transform]:
-        pass
-
-    def verify_sequence(self):
-        # TODO: Check that inputs and outputs match
-        # How to deal with deleted fields?
-        pass
-
-    def get_model_output(self, api: ModelAPI, data, text=None):
-        try:
-            # Initial condition
-            current = [{"data": data}]
-            if text is not None:
-                current[0]["text"] = text
-
-            for step in self.transform_sequence:
-                current = step(current, api)
-
-            # TODO: Assert format (or at least the required fields).
-            # Actually do that earlier.
-            return current
-
-        except Exception as e:
-            traceback.print_exc()
-            logger.error(e)
-            raise e
-
-
 class ExtractTag(Transform):
     # I thought about replacing `remove_from_input: bool` with `save_modified_input: str` to allow non-destructive modifications. I decided against it because it doesn't feel as intuitive. The same functionality can still be achieved with Duplicate. 
     def __init__(self, input_field: str, output_field: str | None, tag: str, join_occurances=True, remove_from_input=True, log_as: str | None = None):
@@ -631,6 +597,52 @@ class ExtractJson(Transform):
         return derive_field(current, api, self.extract_json, self.output_field)
 
 
+class SequentialStrategy(PromptingStrategy):
+    def __init__(self, config):
+        super().__init__(config)
+        self.transform_sequence = self.get_transform_sequence()
+
+    @abc.abstractmethod
+    def get_transform_sequence(self) -> list[Transform]:
+        pass
+
+    def verify_sequence(self):
+        # TODO: Check that inputs and outputs match
+        # How to deal with deleted fields?
+        # TODO: How to solve the problem of initial fields? I.e. is this a generation or an annotation strategy?
+        #  - config could have a field saying what the input fields are
+        #  - config could have a field saying if it's a GEN or EVAL
+        #  - GEN/EVAL could be passed through (I think this is probably the best solution)
+        pass
+
+    def get_model_output(self, api: ModelAPI, data, text=None):
+        from icecream import ic
+        try:
+            # Initial condition
+            current = [{"data": data}]
+            if text is not None:
+                current[0]["text"] = text
+
+            ic(current[0].keys())
+            for step in self.transform_sequence:
+                current = step(current, api)
+                ic(current[0].keys())
+
+            # TODO: Assert format (or at least the required fields).
+            # Actually do that earlier.
+            assert len(current) == 1
+            answer = current[0]
+            ic(answer["output"])
+            ic(answer["prompt"][:200])
+
+            return answer
+
+        except Exception as e:
+            traceback.print_exc()
+            logger.error(e)
+            raise e
+
+
 class CoderStrategy(SequentialStrategy):
     TEXT = "text"
     PART = "part"
@@ -746,26 +758,26 @@ class RawOutputAnnotationStrategy(SequentialStrategy):
         ]
 
 
-def idk(data, text: str, api: ModelAPI):
-    gen = GenerationStrategy({})
-    ann = RawOutputStrategy({})
-    promptingProxy = PromptingProxy(gen, api)
-    parse_raw = True
+# def idk(data, text: str, api: ModelAPI):
+#     gen = GenerationStrategy({})
+#     ann = RawOutputStrategy({})
+#     promptingProxy = PromptingProxy(gen, api)
+#     parse_raw = True
 
-    template_gather = "Hello {data[raw]} and {part}"
-    template_annotate = "Annotating {part} using {code_result}"
+#     template_gather = "Hello {data[raw]} and {part}"
+#     template_annotate = "Annotating {part} using {code_result}"
 
-    steps = []
-    steps.append(SentenceSplit(self.PART))
-    steps.append(ApplyTemplate(template_gather, "gather_prompt"))
-    steps.append(AskPrompt(api, "gather_prompt", "gather_response"))
-    steps.append(InterpretCode("code", "code_result"))
-    steps.append(ApplyTemplate(template_annotate, "annotation_text"))
-    if parse_raw:
-        steps.append(DeriveField(lambda c: ann.extract_json_from_raw(c["annotaiton_text"])["json_str"], "annotation_text"))
-    steps.append(DeriveField(lambda c: ann.parse_annotations(c['text'], c['annotation_text']), "annotations"))
+#     steps = []
+#     steps.append(SentenceSplit(self.PART))
+#     steps.append(ApplyTemplate(template_gather, "gather_prompt"))
+#     steps.append(AskPrompt(api, "gather_prompt", "gather_response"))
+#     steps.append(InterpretCode("code", "code_result"))
+#     steps.append(ApplyTemplate(template_annotate, "annotation_text"))
+#     if parse_raw:
+#         steps.append(DeriveField(lambda c: ann.extract_json_from_raw(c["annotaiton_text"])["json_str"], "annotation_text"))
+#     steps.append(DeriveField(lambda c: ann.parse_annotations(c['text'], c['annotation_text']), "annotations"))
 
-    current = {"data": data, "text": text}
+#     current = {"data": data, "text": text}
 
 
 class TransformTests(unittest.TestCase):
@@ -868,6 +880,9 @@ class TransformTests(unittest.TestCase):
         result = transform(current, self.api)
 
         self.assertListEqual(expected, result)
+
+    # TODO: ExtractTag and ExtractJson
+    # TODO: Logging parity with previous version
 
 
 if __name__ == "__main__":
