@@ -8,15 +8,16 @@ import re
 import time
 import traceback
 from typing import Literal, Type
+import unittest
 from litellm.types.utils import StandardBuiltInToolsParams
 import yaml
 from itertools import chain
 from pydantic import BaseModel, ValidationError
 from factgenie import annotations
 from factgenie.annotations import AnnotationModelFactory
-from factgenie.api import ModelAPI
+from factgenie.api import MockingAPI, ModelAPI
 from factgenie.prompting import PromptingStrategy, RawOutputStrategy
-from factgenie.text_processing import find_all_template_keys, template_replace
+from factgenie.text_processing import find_all_template_keys, iter_sentences, template_replace
 
 logger = logging.getLogger("factgenie")
 
@@ -50,19 +51,20 @@ def derive_field(current: list[dict], api: ModelAPI, function, output_field: str
 
 
 class DeriveField(Transform):
-    def __init__(self, function, output_field: str, expects: list[str] = []):
+    def __init__(self, input_fields: list[str], output_field: str, function):
         """
         Args:
-            function: A function taking a dictionary and returning any object.
+            input_fields: A list of input fields that the function will need (minus the mandatory api).
             output_field: An output field to save the output as in each dictionary.
+            function: A function taking as parameters the listed parameters + ModelAPI. E.g. `input_fields=["a", "b"]`, and `function(a, b, api) -> Any`
         """
-        self.function = function
+        self.input_fields = input_fields
         self.output_field = output_field
-        self.expects = expects
+        self.function = function
 
     @property
     def requires_fields(self) -> list[str]:
-        return self.expects
+        return self.input_fields
 
     @property
     def outputs_fields(self) -> list[str]:
@@ -72,8 +74,12 @@ class DeriveField(Transform):
     def clears_other_fields(self) -> bool:
         return False
 
+    def apply_function(self, c: dict, api: ModelAPI):
+        params = [c[field] for field in self.input_fields]
+        return self.function(*params, api)
+
     def __call__(self, current: list[dict], api: ModelAPI):
-        return derive_field(current, api, self.function, self.output_field)
+        return derive_field(current, api, self.apply_function, self.output_field)
 
 
 CopyType = Literal["reference", "shallow", "deep"]
@@ -117,7 +123,7 @@ class Filter(Transform):
         """
         Args:
             input_fields: A list of input fields passed as parameters to the condition.
-            condition: A function like `condition(input_1, input_2, ...) -> bool`
+            condition: A function like `condition(input_1, input_2, ..., api: ModelAPI) -> bool`
 
         Returns only the elements that pass the conditions.
         """
@@ -138,19 +144,20 @@ class Filter(Transform):
 
     def passes(self, c: dict, api: ModelAPI):
         function_inputs = [c[field] for field in self.input_fields]
-        return self.condition(*function_inputs)
+        return self.condition(*function_inputs, api)
  
     def __call__(self, current: list[dict], api: ModelAPI) -> list[dict]:
         return [c for c in current if self.passes(c, api)]
 
 
 class SentenceSplit(Transform):
-    def __init__(self, output_field: str):
+    def __init__(self, input_field: str, output_field: str):
         self.output_field = output_field
+        self.input_field = input_field
 
     @property
     def requires_fields(self) -> list[str]:
-        return ["text"]
+        return [self.input_field]
 
     @property
     def outputs_fields(self) -> list[str]:
@@ -162,7 +169,7 @@ class SentenceSplit(Transform):
 
     # I also tried this text splitter (https://github.com/mediacloud/sentence-splitter). It can properly recognize sentences. It needs the next sentence to either start with a capital letter or a 4-digit number (year). Unfortunately it has problems with markdown, which is a common output of LLMs.
     @classmethod
-    def iter_sentences(cls, text: str):
+    def iter_sentences_old(cls, text: str):
         # This regex:
         #  - '.' and a negative lookahead
         #    - Can't be followed by another numer, comma, colon, or spaces* lowercase.
@@ -180,7 +187,7 @@ class SentenceSplit(Transform):
         return [{**c, self.output_field: part}
                 for c in current
                 for part in
-                self.iter_sentences(c["text"])]
+                iter_sentences(c[self.input_field])]
 
 
 class InterpretCode(Transform):
@@ -198,10 +205,11 @@ class InterpretCode(Transform):
 
 
 class PostprocessOutput(Transform):
-    def __init__(self, input_field, output_field, remove_suffix="", stopping_sequence: str | None = None):
-        self.remove_suffix = remove_suffix
+    # `stopping_sequence` gets applied first so it precedes the `remove_suffix` argument.
+    def __init__(self, input_field, output_field, stopping_sequence: str | None = None, remove_suffix=""):
         self.input_field = input_field
         self.output_field = output_field
+        self.remove_suffix = remove_suffix
         if type(stopping_sequence) is str:
             # re-normalize double backslashes ("\\n" -> "\n")
             self.stopping_sequence = stopping_sequence.encode().decode("unicode_escape")
@@ -343,7 +351,8 @@ class AskPrompt(Transform):
         logger.debug(f"Prompt tokens: {response.usage.prompt_tokens}")
         logger.debug(f"Response tokens: {response.usage.completion_tokens}")
 
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
+        return content
 
     def __call__(self, current: list[dict], api: ModelAPI):
         return derive_field(current, api, self.get_model_response, self.output_field)
@@ -623,11 +632,13 @@ class ExtractJson(Transform):
 
 
 class CoderStrategy(SequentialStrategy):
+    TEXT = "text"
     PART = "part"
     GATHER_PROMPT = "gather_prompt"
     GATHER_RESPONSE =  "gather_response"
     CODE = "code"
     CODE_OUTPUT = "code_result"
+    THINKING_TRACE = "thinking_trace"
     ANNOTATION_PROMPT = "annotation_prompt"
     ANNOTATION_TEXT = "annotation_text"
     ANNOTATION_RESPONSE = "annotation_response"
@@ -657,7 +668,7 @@ class CoderStrategy(SequentialStrategy):
         
         return [
             # 1. Split sentences
-            SentenceSplit(self.PART),
+            SentenceSplit(self.TEXT, self.PART),
 
             # 2. Ask for a code
             ApplyTemplate(template_gather, self.GATHER_PROMPT),
@@ -673,7 +684,7 @@ class CoderStrategy(SequentialStrategy):
             ApplyTemplate(template_annotate, self.ANNOTATION_PROMPT),
             AskPrompt(self.ANNOTATION_PROMPT, self.ANNOTATION_RESPONSE),
 
-            ExtractTag(self.ANNOTATION_RESPONSE, "thinking_trace", tag="think", join_occurances=True, remove_from_input=True, log_as="THINKING"),
+            ExtractTag(self.ANNOTATION_RESPONSE, self.THINKING_TRACE, tag="think", join_occurances=True, remove_from_input=True, log_as="THINKING"),
             ExtractJson(self.ANNOTATION_RESPONSE, self.EXTRACTED),
             ParseAnnotations(self.EXTRACTED, self.ANNOTATIONS, annotation_span_categories, annotation_overlap_allowed, output_validation_model),
             # TODO: ParseAnnotations(self.ANNOTATION_RESPONSE, self.ANNOTATIONS)
@@ -688,13 +699,13 @@ class GenerationStrategy(SequentialStrategy):
         system_msg = self.config.get("system_msg", None)
         starts_with = self.config.get("start_with", None)
 
-        remove_suffix = self.extra_args.get("remove_suffix", None)
         stopping_sequence = self.extra_args.get("stopping_sequence", None)
+        remove_suffix = self.extra_args.get("remove_suffix", None)
 
         return [
             ApplyTemplate(self.config["prompt_template"], "prompt"),
             AskPrompt("prompt", "output", system_msg, starts_with),
-            PostprocessOutput("output", "output", remove_suffix, stopping_sequence)
+            PostprocessOutput("output", "output", stopping_sequence, remove_suffix)
             # TODO: Log("output")? or just always log it? Or in pieces?
         ]
 
@@ -755,3 +766,109 @@ def idk(data, text: str, api: ModelAPI):
     steps.append(DeriveField(lambda c: ann.parse_annotations(c['text'], c['annotation_text']), "annotations"))
 
     current = {"data": data, "text": text}
+
+
+class TransformTests(unittest.TestCase):
+    def __init__(self, *vargs, **kwargs):
+        super().__init__(*vargs, **kwargs)
+        self.api = MockingAPI()
+
+    def test_duplicate(self):
+        current = [{"a": "a"}, {"a": "a"}]
+        transform = Duplicate("a", "b")
+
+        expected = [{"a": "a", "b": "a"}, {"a": "a", "b": "a"}]
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_derive(self):
+        current = [{"a": "a"}, {"a": "a"}]
+
+        def fn(a, api: ModelAPI):
+            self.assertEqual(a, "a")
+            return "b"
+
+        transform = DeriveField(["a"], "b", fn)
+
+        expected = [{"a": "a", "b": "b"}, {"a": "a", "b": "b"}]
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_filter(self):
+        current = [{"a": "yes"}, {"a": "no"}]
+
+        def fn(a, api: ModelAPI):
+            return a == "yes"
+        
+        transform = Filter(["a"], fn)
+
+        expected = [{"a": "yes"}]
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_sentence_split(self):
+        current = [{"a": "Sentence 1. Sentence 2."}, {"a": "Sentence 3."}]
+        transform = SentenceSplit("a", "b")
+
+        expected = [{"a": "Sentence 1. Sentence 2.", "b": "Sentence 1."},
+                    {"a": "Sentence 1. Sentence 2.", "b": "Sentence 2."},
+                    {"a": "Sentence 3.", "b": "Sentence 3."}]
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_postprocess_output(self):
+        current = [{"a": "a<<<stop yayaya"}, {"a": "b<<<"}]
+        transform = PostprocessOutput("a", "b", stopping_sequence="stop", remove_suffix="<<<")
+
+        expected = [{"a": "a<<<stop yayaya", "b": "a"}, {"a": "b<<<", "b": "b"}]
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_apply_template(self):
+        current = [{"a": "LETTER A", "g": {"g": "gg"}}, {"a": "ay", "g": {"g": "ggs"}}]
+        transform = ApplyTemplate("{a}-{g[g]}", "b")
+
+        expected = [{"a": "LETTER A", "g": {"g": "gg"}, "b": "LETTER A-gg"}, {"a": "ay", "g": {"g": "ggs"}, "b": "ay-ggs"}]
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_ask_prompt(self):
+        current = [{"p": "hello"}, {"p": "bye"}]
+        transform = AskPrompt("p", "a", system_msg="I am system.", start_with="YAYA")
+
+        expected = [{"p": "hello", "a": "MOCK: <system: I am system.> <user: hello> <assistant: YAYA>"}, {"p": "bye", "a": "MOCK: <system: I am system.> <user: bye> <assistant: YAYA>"}]
+        result = transform(current, self.api)
+        self.assertListEqual(expected, result)
+
+    def test_parse_annotations(self):
+        current = [{"text": "some text", "ann_raw": '{ "annotations": [{ "text": "text", "reason": "it is correct", "annotation_type": 0 }, { "text": "some", "reason": "it is incorrect", "annotation_type": 1 }]}'}] * 2
+
+        annotation_span_categories = [
+            { "name": "correct", "color": "rgb(0, 255, 0)", "description": "is correct"},
+            { "name": "incorrect", "color": "rgb(255, 0, 0)", "description": "is incorrect"}
+        ]
+        annotation_overlap_allowed = True
+        output_validation_model = AnnotationModelFactory.get_output_model(with_reason=True)
+        transform = ParseAnnotations("ann_raw", "ann", annotation_span_categories, annotation_overlap_allowed, output_validation_model)
+
+        expected = [{
+            "text": "some text",
+            "ann_raw": '{ "annotations": [{ "text": "text", "reason": "it is correct", "annotation_type": 0 }, { "text": "some", "reason": "it is incorrect", "annotation_type": 1 }]}',
+            "ann": [
+                {"reason": "it is correct", "start": 5, "text": "text", "type": 0},
+                {"reason": "it is incorrect", "start": 0, "text": "some", "type": 1},
+            ],
+        }] * 2
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+
+if __name__ == "__main__":
+    unittest.main()

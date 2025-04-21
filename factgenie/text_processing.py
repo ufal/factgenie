@@ -9,7 +9,6 @@ def find_all_template_keys(text: str):
     results = re.findall(regex, text)
     return results
     
-
 # Throws `KeyError` when the key is not found.
 def template_replace(text: str, keyword_dict: dict):
     """
@@ -95,6 +94,31 @@ def extract_data(data: dict, keys: list[str]):
         raise KeyError()
 
 
+def iter_sentences(text: str):
+    # This regex:
+    #  - '.' and a negative lookahead
+    #    - Can't be followed by another numer, comma, colon, or spaces* lowercase.
+    #      This is needed for decimals (3.5) and abbreviations (e.g. this).
+    #    - Can be followed by an optional \".
+    #  - '?' or '!' followed by an optional \".
+    #  - Extra chunking shouldn't hurt once I show it preceding context.
+    # punc_regex = "\\.(?![0-9]|,|:|\\s*[a-z])\"?|\\?\"?|!\"?(?!\\.|\\?|!|,)"
+    punc_regex = "(?:\\.|\\?|\\!)(?![0-9]|,|:|-|\\s*[a-z]|\\.|\\?|!)\"?\\s?"
+    processed_chars = 0
+
+    while True:
+        s = re.search(punc_regex, text[processed_chars:])
+        if s is None:
+            break
+
+        _, r = s.span()
+        yield text[processed_chars:processed_chars + r].strip()
+        processed_chars += r
+
+    if processed_chars < len(text):
+        yield text[processed_chars:].strip()
+
+
 class TestTemplating(unittest.TestCase):
     def test_template_full(self):
         text = "Yes in this we have {data[a][d]} and {data[e]} and also {data[a][b][c]} and {data[num]}."
@@ -131,6 +155,14 @@ class TestTemplating(unittest.TestCase):
         data = {"a": {"b": {"c": "<CC>"}, "d": "<DD>"}, "e": "<EE>"}
         keyword_dict = {"data": data}
         self.assertRaises(KeyError, lambda: template_replace(text, keyword_dict))
+
+
+class TestSentenceSplit(unittest.TestCase):
+    def test_sentence_split(self):
+        text = "Hey. What is your name? Mine is Filip!!?! And my favorite number is 3.14159265358979323846264338"
+        expected = ["Hey.", "What is your name?", "Mine is Filip!!?!", "And my favorite number is 3.14159265358979323846264338"]
+        actual = list(iter_sentences(text))
+        self.assertListEqual(expected, actual)
 
 
 if __name__ == "__main__":

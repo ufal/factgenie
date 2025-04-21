@@ -188,3 +188,18 @@ class VertexAIAPI(ModelAPI):
 
     def _service_prefix(self):
         return "vertex_ai/"
+
+
+class MockingAPI(GeminiAPI):
+    def __init__(self):
+        super().__init__(config={"model": "mocking"}, api_kwargs={"mock_response": "A mock response."})
+
+    def validate_environment(self):
+        pass
+
+    def mocking_reponse(self, messages):
+        return "MOCK: " + " ".join(f"<{d['role']}: {d['content']}>" for d in messages)
+
+    def call_model_once(self, messages, model_service, prompt_strat_kwargs):
+        response = litellm.completion(model="gemini-2.0-flash", mock_response=self.mocking_reponse(messages))
+        return response
