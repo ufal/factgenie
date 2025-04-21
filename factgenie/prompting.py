@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from factgenie import annotations
 from factgenie.annotations import AnnotationModelFactory
 from factgenie.api import ModelAPI
+from factgenie.text_processing import template_replace
 
 logger = logging.getLogger("factgenie")
 
@@ -21,24 +22,12 @@ class PromptingStrategy(abc.ABC):
         self.extra_args = config.get("extra_args", {})
         self.prompt_strat_kwargs = {}
 
-    def prompt(self, data, to_annotate: str = "{text}", template_override=None):
-        if template_override is not None:
-            prompt_template = template_override
-        else:
-            prompt_template = self.config["prompt_template"]
-
+    def prompt(self, data, to_annotate: str = "{text}"):
         data = self.preprocess_data_for_prompt(data)
+        keyword_dict = {"data": data, "text": to_annotate}
 
-        # Replace the placeholders (e.g., {text}) in the prompt template with the actual values
-        if type(data) == dict:
-            for key in data.keys():
-                prompt_template = prompt_template.replace(f"{{data[{key}]}}", str(data[key]))
-
-        matches = re.findall(r"{data\[[^\[\]]*\]}", prompt_template)
-        if len(matches) > 0:
-            logger.warning(f"Unreplaced data keys in the template: {', '.join(matches)}")
-
-        prompt_template = prompt_template.replace("{data}", str(data)).replace("{text}", to_annotate)
+        prompt_template = self.config["prompt_template"]
+        prompt_template = template_replace(prompt_template, keyword_dict)
 
         return prompt_template
 
@@ -608,4 +597,3 @@ class MultiPartPrompter(SentenceSplitPrompter):
             traceback.print_exc()
             logger.error(e)
             raise e
-
