@@ -167,7 +167,8 @@ class AnnotationsStrategy(PromptingStrategy):
             annotations_obj = self.output_validation_model.model_validate_json(annotations_json)
             annotations = annotations_obj.annotations
         except ValidationError as e:
-            logger.error("Parsing error: ", json.loads(e.json())[0]["msg"])
+            logger.exception("Parsing error: ")
+
             try:
                 logger.error(f"Model response does not follow the schema.")
                 parsed_json = json.loads(annotations_json)
