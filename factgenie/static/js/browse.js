@@ -372,9 +372,8 @@ function showSelectedCampaigns() {
     if (window.highlight_ann_campaign) {
         $(`.btn-ann-select[data-ann="${window.highlight_ann_campaign}"]`).addClass("active").trigger("change");
     }
-
-    // if no campaigns were selected, select the first one
-    if (!window.highlight_ann_campaign && selected_campaigns.length == 0) {
+    // if no campaigns were selected (no $(".btn-ann-select") has class `active), select the first one
+    if (!window.highlight_ann_campaign && $(".btn-ann-select").length > 0 && $(".btn-ann-select.active").length == 0) {
         $(".btn-ann-select").first().addClass("active").trigger("change");
     }
 }

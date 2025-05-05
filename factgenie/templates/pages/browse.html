@@ -184,8 +184,8 @@
   window.url_prefix = "{{ host_prefix }}";
   window.display_example = {{ display_example | tojson | safe }};
   window.datasets = {{ datasets | tojson | safe }};
-  window.highlight_setup_id = "{{ highlight_setup_id }}";
-  window.highlight_ann_campaign = "{{ highlight_ann_campaign }}";
+  window.highlight_setup_id = {{ highlight_setup_id | tojson | safe }};
+  window.highlight_ann_campaign = {{ highlight_ann_campaign | tojson | safe }};
   window.mode = "browse";
 </script>
 
