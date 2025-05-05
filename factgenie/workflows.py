@@ -189,25 +189,31 @@ def generate_campaign_index(app, force_reload=True):
     return app.db["campaign_index"]
 
 
-def load_annotations_from_file(file_path):
+def load_annotations_from_file(file_path, metadata):
     annotations_campaign = []
 
     with open(file_path) as f:
         for line in f:
-            annotation_records = load_annotations_from_record(line, jsonl_file=file_path)
+            annotation_records = load_annotations_from_record(line, jsonl_file=file_path, metadata=metadata)
             annotations_campaign.append(annotation_records[0])
 
     return annotations_campaign
 
 
-def create_annotation_example_record(j, jsonl_file):
+def create_annotation_example_record(j, jsonl_file, metadata):
+    # campaign metadata can be overwritten by annotation metadata
+    ann_metadata = metadata["config"].copy()
+    ann_metadata["campaign_id"] = metadata["id"]
+    if "metadata" in j:
+        ann_metadata.update(j["metadata"])
+
     return {
-        "annotation_span_categories": j["metadata"]["annotation_span_categories"],
-        "annotator_id": j["metadata"]["annotator_id"],
-        "annotator_group": int(j["metadata"].get("annotator_group", 0)),
-        "annotation_granularity": j["metadata"].get("annotation_granularity", "words"),
-        "annotation_overlap_allowed": j["metadata"].get("annotation_overlap_allowed", False),
-        "campaign_id": slugify(j["metadata"]["campaign_id"]),
+        "annotation_span_categories": ann_metadata["annotation_span_categories"],
+        "annotator_id": ann_metadata.get("annotator_id"),
+        "annotator_group": int(ann_metadata.get("annotator_group", 0)),
+        "annotation_granularity": ann_metadata.get("annotation_granularity", "words"),
+        "annotation_overlap_allowed": ann_metadata.get("annotation_overlap_allowed", False),
+        "campaign_id": slugify(ann_metadata["campaign_id"]),
         "dataset": slugify(j["dataset"]),
         "example_idx": int(j["example_idx"]),
         "setup_id": slugify(j["setup_id"]),
@@ -220,11 +226,11 @@ def create_annotation_example_record(j, jsonl_file):
     }
 
 
-def load_annotations_from_record(line, jsonl_file, split_spans=False):
+def load_annotations_from_record(line, jsonl_file, metadata, split_spans=False):
     j = json.loads(line)
     annotation_records = []
 
-    record = create_annotation_example_record(j, jsonl_file)
+    record = create_annotation_example_record(j, jsonl_file, metadata)
 
     if split_spans:
         for annotation in j["annotations"]:
@@ -257,7 +263,10 @@ def get_annotation_files():
         if metadata["mode"] == CampaignMode.HIDDEN or metadata["mode"] == CampaignMode.LLM_GEN:
             continue
 
-        files_dict[str(jsonl_file)] = jsonl_file.stat().st_mtime
+        files_dict[str(jsonl_file)] = {
+            "mtime": jsonl_file.stat().st_mtime,
+            "metadata": metadata,
+        }
 
     return files_dict
 
@@ -281,10 +290,13 @@ def get_annotation_index(app, force_reload=True):
     new_annotations = []
 
     # Handle modified files
-    for file_path, mod_time in current_files.items():
-        if file_path not in cached_files or cached_files[file_path] < mod_time:
+    for file_path, file_info in current_files.items():
+        mod_time = file_info["mtime"]
+        metadata = file_info["metadata"]
+
+        if file_path not in cached_files or cached_files[file_path]["mtime"] < mod_time:
             remove_annotations(app, file_path)
-            new_annotations.extend(load_annotations_from_file(file_path))
+            new_annotations.extend(load_annotations_from_file(file_path, metadata))
 
     # Handle deleted files
     for file_path in set(cached_files.keys()) - set(current_files.keys()):
