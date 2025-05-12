@@ -20,6 +20,7 @@ from factgenie.prompting import (
     RawOutputStrategy,
     SentenceSplitPrompter,
 )
+import factgenie.prompt_pipeline
 from factgenie.campaign import CampaignMode
 from factgenie.annotations import AnnotationModelFactory
 
@@ -68,9 +69,13 @@ class ModelFactory:
                 "default": StructuredOutputStrategy,
                 "parse_raw": RawOutputStrategy,
                 "sentence_split": SentenceSplitPrompter,
+                "pipeline_default": factgenie.prompt_pipeline.StructuredAnnotationStrategy,
+                "pipeline_raw": factgenie.prompt_pipeline.RawOutputAnnotationStrategy,
+                "pipeline_split": factgenie.prompt_pipeline.SentenceSplitStrategy,
             },
             CampaignMode.LLM_GEN: {
                 "default": GenerationStrategy,
+                "pipeline_default": factgenie.prompt_pipeline.GenerationStrategy,
             },
         }
 
@@ -109,7 +114,7 @@ class ModelFactory:
         if prompt_strat not in prompt_strats:
             raise ValueError(f"Model type {prompt_strat} is not implemented.")
 
-        return Model(config, mode, model_apis[api_provider](config), prompt_strats[prompt_strat](config))
+        return Model(config, mode, model_apis[api_provider](config), prompt_strats[prompt_strat](config, mode))
 
 
 class Model:

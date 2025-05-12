@@ -11,14 +11,16 @@ from pydantic import ValidationError
 from factgenie import annotations
 from factgenie.annotations import AnnotationModelFactory
 from factgenie.api import ModelAPI
+from factgenie.campaign import CampaignMode
 from factgenie.text_processing import template_replace
 
 logger = logging.getLogger("factgenie")
 
 
 class PromptingStrategy(abc.ABC):
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, mode: str):
         self.config = config
+        self.mode = mode
         self.extra_args = config.get("extra_args", {})
         self.prompt_strat_kwargs = {}
 
@@ -139,8 +141,8 @@ class GenerationStrategy(PromptingStrategy):
 class AnnotationsStrategy(PromptingStrategy):
     """Base strategy for annotation tasks."""
 
-    def __init__(self, config):
-        super().__init__(config)
+    def __init__(self, config, mode: str):
+        super().__init__(config, mode)
 
         if self.extra_args.get("with_reason") == False:
             with_reason = False
@@ -241,8 +243,8 @@ class AnnotationsStrategy(PromptingStrategy):
 class StructuredOutputStrategy(AnnotationsStrategy):
     """Strategy for generating structured annotations with reasoning."""
 
-    def __init__(self, config):
-        super().__init__(config)
+    def __init__(self, config, mode: str):
+        super().__init__(config, mode)
 
         # We force the output format with the `response_format` parameter
         self.prompt_strat_kwargs["response_format"] = self.output_validation_model

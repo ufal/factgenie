@@ -13,9 +13,11 @@ from litellm.types.utils import StandardBuiltInToolsParams
 import yaml
 from itertools import chain
 from pydantic import BaseModel, ValidationError
+from colors import Colors
 from factgenie import annotations
 from factgenie.annotations import AnnotationModelFactory
 from factgenie.api import MockingAPI, ModelAPI
+from factgenie.campaign import CampaignMode
 from factgenie.prompting import PromptingStrategy, RawOutputStrategy
 from factgenie.text_processing import find_all_template_keys, iter_sentences, template_replace
 
@@ -82,9 +84,9 @@ class DeriveField(Transform):
         return derive_field(current, api, self.apply_function, self.output_field)
 
 
-CopyType = Literal["reference", "shallow", "deep"]
-
 class Duplicate(Transform):
+    CopyType = Literal["reference", "shallow", "deep"]
+
     def __init__(self, input_field: str, output_field: str, copy_type: CopyType = "reference"):
         """
         Args:
@@ -148,6 +150,59 @@ class Filter(Transform):
  
     def __call__(self, current: list[dict], api: ModelAPI) -> list[dict]:
         return [c for c in current if self.passes(c, api)]
+
+
+class Log(Transform):
+    LogLevel = Literal["info", "debug"]
+
+    def __init__(self, text: str = "", field: str | None = None, log_level: LogLevel = "info", color: str | None = None, join_by: str = " │ "):
+        """
+        Args:
+            input_fields: A list of input fields passed as parameters to the condition.
+            condition: A function like `condition(input_1, input_2, ..., api: ModelAPI) -> bool`
+
+        Returns only the elements that pass the conditions.
+        """
+        self.text = text
+        self.field = field
+        self.log_level = log_level
+        self.join_by = join_by
+
+        # Default color is blue (when log_level is "info")
+        if color is not None:
+            self.color = color
+        elif log_level == "info":
+            self.color = Colors.BLUE
+        else:
+            self.color = ""
+
+    # Maybe later create a class 'PassThroughTransform(Transform)' which sets these 3 properties. (Or 'NoTransform' ?)
+    @property
+    def requires_fields(self) -> list[str]:
+        return []
+
+    @property
+    def outputs_fields(self) -> list[str]:
+        return []
+
+    @property
+    def clears_other_fields(self) -> bool:
+        return False
+
+    def __call__(self, current: list[dict], api: ModelAPI) -> list[dict]:
+        if self.field is not None:
+            values = [f"{self.color}{c[self.field]}{Colors.RESET}" for c in current]
+        else:
+            values = []
+        text = self.text + self.join_by.join(values)
+
+        if self.log_level == "info":
+            logger.info(text)
+        else:
+            logger.debug(text)
+
+        # No changes
+        return current
 
 
 class SentenceSplit(Transform):
@@ -478,6 +533,8 @@ class ExtractTag(Transform):
             join_occurances: If true, all occurances will be joined by "\n". Otherwise, `output[output_field]` will be a list of strings.
             remove_from_input: If true, all "<{tag}>...</{tag}>" blocks will be removed from the input field.
             log_as: `log_as="THINKING"` will log occurances as gray "[THINKING]" blocks.
+
+        Each block as well as the modified (if `remove_from_input=True`) is stripped of the padding spaces.
         """
         self.input_field = input_field
         self.output_field = output_field
@@ -507,12 +564,13 @@ class ExtractTag(Transform):
         return False
 
     def __call__(self, current: list[dict], api: ModelAPI) -> list[dict]:
-        regex = f"<{self.tag}>(.*?)</{self.tag}>"
+        regex = f"\\s*<{self.tag}>(.*?)</{self.tag}>\\s*"
         output = []
         for c in current:
-            # Log and extract "<{tag}>...</{tag}>" sections.
+            # Log and extract "<{tag}>...</{tag}>" sections, stripped.
             input = c[self.input_field]
             tag_blocks = re.findall(regex, input, flags=re.DOTALL)
+            tag_blocks = [block.strip() for block in tag_blocks]
 
             if self.log_as is not None:
                 for block in tag_blocks:
@@ -528,7 +586,7 @@ class ExtractTag(Transform):
             c_changes = {}
 
             if self.remove_from_input:
-                modified_input = re.sub(regex, "", input, flags=re.DOTALL)
+                modified_input = re.sub(regex, " ", input, flags=re.DOTALL).strip()
                 c_changes[self.input_field] = modified_input
 
             if self.output_field is not None:
@@ -577,6 +635,7 @@ class ExtractJson(Transform):
 
         # Try to validate each potential JSON, prioritizing the last valid one
         valid_jsons = []
+        from icecream import ic
         for json_str in potential_jsons:
             try:
                 json.loads(json_str)  # Validate JSON
@@ -597,23 +656,71 @@ class ExtractJson(Transform):
         return derive_field(current, api, self.extract_json, self.output_field)
 
 
+class MissingRequirementException(Exception):
+    pass
+
+
+class MissingOutputsException(Exception):
+    pass
+
+
 class SequentialStrategy(PromptingStrategy):
-    def __init__(self, config):
-        super().__init__(config)
+    def __init__(self, config, mode: str):
+        super().__init__(config, mode)
         self.transform_sequence = self.get_transform_sequence()
+        self.verify_sequence()  # must be called after 'self.transform_sequence' is set and after 'super().__init__(...)' is called.
 
     @abc.abstractmethod
     def get_transform_sequence(self) -> list[Transform]:
         pass
 
     def verify_sequence(self):
-        # TODO: Check that inputs and outputs match
-        # How to deal with deleted fields?
-        # TODO: How to solve the problem of initial fields? I.e. is this a generation or an annotation strategy?
-        #  - config could have a field saying what the input fields are
-        #  - config could have a field saying if it's a GEN or EVAL
-        #  - GEN/EVAL could be passed through (I think this is probably the best solution)
-        pass
+        if self.mode == CampaignMode.LLM_GEN:
+            current_keys = {"data"}
+            expected_outputs = {"prompt", "output"}
+        elif self.mode == CampaignMode.LLM_EVAL:
+            current_keys = {"data", "text"}
+            expected_outputs = {"prompt", "annotations"}
+        else:
+            raise NotImplementedError(f"{self.mode} is not implemented")
+
+        for i, step in enumerate(self.transform_sequence):
+            # Throw if there is an unfulfilled requirement.
+            unfulfilled = set(step.requires_fields) - current_keys
+            if len(unfulfilled) > 0:
+                error = f"Sequence for '{type(self)}' is not valid. At index {i}, '{type(step)}' is missing required fields: [{', '.join(list(unfulfilled))}]. Currently accessible fields are: [{', '.join(list(current_keys))}]."
+                logger.error(error)
+                raise MissingRequirementException(error)
+
+            if step.clears_other_fields:
+                current_keys = set()
+
+            for field in step.outputs_fields:
+                current_keys.add(field)
+
+        unfulfilled = expected_outputs - current_keys
+        if len(unfulfilled) > 0:
+            error = f"Sequence for {type(self)} is missing output field: [{', '.join(list(unfulfilled))}]."
+            logger.error(error)
+            raise MissingOutputsException(error)
+
+        # To see how the result will be used:
+        # ./workflows.py --> save_record (result is what we output)
+        # ./llm_campaign.py --> run_llm_campaign (search for 'model.generate_output')
+
+        # What is saved:
+        # ['output'] = res['output'] in LLM_GEN, and LLM_GEN's output in LLM_EVAL
+        # ['annotations'] if LLM_EVAL
+        # ['thinking_trace'] if exists
+        # ['metadata']['prompt'] = result['prompt'] ALWAYS
+
+        logger.info(f"Sequence for '{type(self)}' is valid.")
+
+        # TODO: What is really important from these?
+        # Is the metadata just for logging in files? In that case, we write `SaveMetadata(Transform)` and it would create the metadata field.
+        # Used like: `SaveMetadata(["prompt"])`
+
+        # TODO: Think if Log(...) should be automatic inside of individual sequences or automatic (log 'annotations' or 'output' based on type). Maybe metadata?
 
     def get_model_output(self, api: ModelAPI, data, text=None):
         from icecream import ic
@@ -623,17 +730,13 @@ class SequentialStrategy(PromptingStrategy):
             if text is not None:
                 current[0]["text"] = text
 
-            ic(current[0].keys())
             for step in self.transform_sequence:
                 current = step(current, api)
-                ic(current[0].keys())
 
             # TODO: Assert format (or at least the required fields).
             # Actually do that earlier.
             assert len(current) == 1
             answer = current[0]
-            ic(answer["output"])
-            ic(answer["prompt"][:200])
 
             return answer
 
@@ -670,7 +773,7 @@ class CoderStrategy(SequentialStrategy):
         ignore_keywords = self.extra_args.get("ignore_keywords", None)
         # Returns true if the response doesn't match one of the ignore phrases.
         # 
-        def filter_irrelevant(response: str):
+        def is_relevant(response: str, api: ModelAPI):
             if ignore_keywords is None:
                 return True
             else:
@@ -685,8 +788,7 @@ class CoderStrategy(SequentialStrategy):
             # 2. Ask for a code
             ApplyTemplate(template_gather, self.GATHER_PROMPT),
             AskPrompt(self.GATHER_PROMPT, self.GATHER_RESPONSE),
-            Filter([self.GATHER_PROMPT], filter_irrelevant),
-            # TODO: Filter(lambda x: x not in ["...", "..."])?
+            Filter([self.GATHER_PROMPT], is_relevant),
 
             # 3. Intepret code
             ExtractTag(self.GATHER_RESPONSE, self.CODE, tag="code", join_occurances=False, remove_from_input=False, log_as="CODE"),
@@ -706,6 +808,39 @@ class CoderStrategy(SequentialStrategy):
         ]
 
 
+class SentenceSplitStrategy(SequentialStrategy):
+    TEXT = "text"
+    PART = "part"
+    THINKING_TRACE = "thinking_trace"
+    PROMPT = "annotation_prompt"
+    ANNOTATION_RESPONSE = "annotation_response"
+    ANNOTATIONS = "annotations"
+    EXTRACTED = "extracted"
+
+    def get_transform_sequence(self) -> list[Transform]:
+        # TODO: Postprocess output? If args?
+        # I could make the Modules return args they need. Possibly they could even be sub-dictionaries.
+        annotation_span_categories = self.config["annotation_span_categories"]
+        annotation_overlap_allowed = self.config.get("annotation_overlap_allowed", False)
+        with_reason = self.extra_args.get("with_reason", True)
+        output_validation_model = AnnotationModelFactory.get_output_model(with_reason)
+        
+        return [
+            # 1. Split sentences
+            SentenceSplit(self.TEXT, self.PART),
+            Log(text="Sentences: ", field=self.PART),
+
+            # 2. Ask prompt
+            ApplyTemplate(self.config["prompt_template"], self.PROMPT),
+            Log(text="Prompt: ", field=self.PROMPT, log_level="debug"),
+            AskPrompt(self.PROMPT, self.ANNOTATION_RESPONSE),
+
+            # 3. Intepret code
+            # Parse annotations.
+            ParseAnnotations(self.ANNOTATION_RESPONSE, self.ANNOTATIONS, annotation_span_categories, annotation_overlap_allowed, output_validation_model),
+        ]
+
+
 class GenerationStrategy(SequentialStrategy):
     def get_transform_sequence(self) -> list[Transform]:
         system_msg = self.config.get("system_msg", None)
@@ -717,8 +852,8 @@ class GenerationStrategy(SequentialStrategy):
         return [
             ApplyTemplate(self.config["prompt_template"], "prompt"),
             AskPrompt("prompt", "output", system_msg, starts_with),
-            PostprocessOutput("output", "output", stopping_sequence, remove_suffix)
-            # TODO: Log("output")? or just always log it? Or in pieces?
+            PostprocessOutput("output", "output", stopping_sequence, remove_suffix),
+            Log(text="Output: ", field="output"),
         ]
 
 
@@ -733,8 +868,13 @@ class StructuredAnnotationStrategy(SequentialStrategy):
         output_validation_model = AnnotationModelFactory.get_output_model(with_reason)
 
         return [
+            # 1. Ask prompt.
             ApplyTemplate(self.config["prompt_template"], "prompt"),
-            AskPrompt("prompt", "annotations_raw", system_msg, starts_with),
+            Log(text="Prompt: ", field="prompt", log_level="debug"),
+            Log(text="Annotated text: ", field="text"),
+            AskPrompt("prompt", "annotations_raw", system_msg, starts_with, completion_kwargs={"response_format": output_validation_model}),
+
+            # 2. Parse annotations.
             ParseAnnotations("annotations_raw", "annotations", annotation_span_categories, annotation_overlap_allowed, output_validation_model),
         ]
 
@@ -750,8 +890,13 @@ class RawOutputAnnotationStrategy(SequentialStrategy):
         output_validation_model = AnnotationModelFactory.get_output_model(with_reason)
 
         return [
+            # 1. Ask prompt.
             ApplyTemplate(self.config["prompt_template"], "prompt"),
+            Log(text="Prompt: ", field="prompt", log_level="debug"),
+            Log(text="Annotated text: ", field="text"),
             AskPrompt("prompt", "annotations_raw", system_msg, starts_with),
+
+            # 2. Extract think trace and annotations.
             ExtractTag("annotations_raw", "thinking_trace", tag="think", join_occurances=True, remove_from_input=True, log_as="THINKING"),
             ExtractJson("annotations_raw", "extracted"),
             ParseAnnotations("extracted", "annotations", annotation_span_categories, annotation_overlap_allowed, output_validation_model),
@@ -881,9 +1026,98 @@ class TransformTests(unittest.TestCase):
 
         self.assertListEqual(expected, result)
 
-    # TODO: ExtractTag and ExtractJson
-    # TODO: Logging parity with previous version
+    def test_extract_tag(self):
+        # join_occurances=True
+        # remove_from_input=True
+        current = [{"a": "code: <code>ccc </code> and <code>ddd</code>"}] * 2
+        transform = ExtractTag("a", "code", "code", join_occurances=True, remove_from_input=True)
+
+        expected = [{"a": "code: and", "code": "ccc\nddd"}] * 2
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_extract_tag_2(self):
+        # join_occurances=False
+        # remove_from_input=False
+        current = [{"a": "code: <code>ccc </code> and <code>ddd</code>"}] * 2
+        transform = ExtractTag("a", "code", "code", join_occurances=False, remove_from_input=False)
+
+        expected = [{"a": "code: <code>ccc </code> and <code>ddd</code>", "code": ["ccc", "ddd"]}] * 2
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_extract_json(self):
+        current = [{"a": 'f3 s,e fj3 {"annotations": [{"text": "test", "type": 3}]}'}] * 2
+        transform = ExtractJson("a", "json")
+
+        expected = [{"a": 'f3 s,e fj3 {"annotations": [{"text": "test", "type": 3}]}', "json": '{"annotations": [{"text": "test", "type": 3}]}'}] * 2
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+
+class SeqTests(unittest.TestCase):
+    class PromptSeqTestStrategy(SequentialStrategy):
+        def __init__(self, config: dict, mode: str, prompt_template: str, output_name: str):
+            self.prompt_template = prompt_template
+            self.output_name = output_name
+            super().__init__(config, mode)
+
+        def get_transform_sequence(self) -> list[Transform]:
+            return [
+                ApplyTemplate(self.prompt_template, "prompt"),
+                AskPrompt("prompt", self.output_name),
+            ]
+
+    def __init__(self, *vargs, **kwargs):
+        super().__init__(*vargs, **kwargs)
+        self.api = MockingAPI()
+
+    def test_sequential_work(self):
+        good_prompt = "{text} and {data} are okay"
+
+        # Should work
+        strat = SeqTests.PromptSeqTestStrategy({}, CampaignMode.LLM_EVAL, good_prompt, "annotations")
+        result = strat.get_model_output(self.api, "/data/", "/text/")
+        self.assertEqual(result["annotations"], "MOCK: <user: /text/ and /data/ are okay>")
+
+    def test_sequential_work_2(self):
+        good_prompt = "{data} is okay"
+
+        # Should work
+        strat = SeqTests.PromptSeqTestStrategy({}, CampaignMode.LLM_GEN, good_prompt, "output")
+        result = strat.get_model_output(self.api, "/data/")
+        self.assertEqual(result["output"], "MOCK: <user: /data/ is okay>")
+
+    def test_missing_requirement_1(self):
+        bad_prompt = "{text} is not okay"
+        self.assertRaises(MissingRequirementException, lambda: SeqTests.PromptSeqTestStrategy({}, CampaignMode.LLM_GEN, bad_prompt, "output"))
+
+    def test_missing_requirement_2(self):
+        bad_prompt = "{typo} is not okay"
+        self.assertRaises(MissingRequirementException, lambda: SeqTests.PromptSeqTestStrategy({}, CampaignMode.LLM_EVAL, bad_prompt, "annotations"))
+        
+    def test_missing_output(self):
+        good_prompt = "{data} is okay"
+        self.assertRaises(MissingOutputsException, lambda: SeqTests.PromptSeqTestStrategy({}, CampaignMode.LLM_EVAL, good_prompt, "nonsense"))
+        
 
 
 if __name__ == "__main__":
+    logger.disabled = True
     unittest.main()
+
+# RawOutput:
+#  - logger.debug(f"Prompt: {part_prompt}")
+#  - logger.info("Annotated text:")
+#  - logger.info(f"\033[34m{part}\033[0m")
+
+# StructuredOutput:
+#  - logger.debug(f"Prompt: {part_prompt}")
+#  - logger.info("Annotated text:")
+#  - logger.info(f"\033[34m{part}\033[0m")
+
+# GenerationStrategy:
+#  - logger.info(output) 
