@@ -167,18 +167,18 @@ class TestF1Computation(unittest.TestCase):
 
         # --- Assertions ---
         # Expected:
-        # Ref spans: typeA (0-10), typeB (5-15) -> total ref_length = 10 + 10 = 20
-        # Hyp spans: typeA (0-5), typeA (0-10) -> total hyp_length = 5 + 10 = 15
+        # Ref spans: typeA (0-10), typeB (5-15) :: total ref_length = 10 + 10 = 20
+        # Hyp spans: typeA (0-5), typeA (0-10) :: total hyp_length = 5 + 10 = 15
         # Overlap (hard match):
-        # Example 0: hyp typeA (0-5) with ref typeA (0-10) -> overlap = 5
-        # Example 1: hyp typeA (0-10) with ref typeB (5-15) -> overlap = 0 (type mismatch)
+        # Example 0: hyp typeA (0-5) with ref typeA (0-10) :: overlap = 5
+        # Example 1: hyp typeA (0-10) with ref typeB (5-15) :: overlap = 0 (type mismatch)
         # Total overlap_length = 5
         # Precision = overlap / hyp_length = 5 / 15 = 0.333
         # Recall = overlap / ref_length = 5 / 20 = 0.25
         # F1 = 2 * P * R / (P + R) = 2 * 0.333 * 0.25 / (0.333 + 0.25) = 0.1665 / 0.583 = 0.2856 ~ 0.286
 
-        self.assertIn(f"{ref_camp_id} -> {hyp_camp_id}", results)
-        metrics = results[f"{ref_camp_id} -> {hyp_camp_id}"]
+        self.assertIn(f"{ref_camp_id} :: {hyp_camp_id}", results)
+        metrics = results[f"{ref_camp_id} :: {hyp_camp_id}"]
 
         self.assertEqual(metrics["precision"], 0.333)
         self.assertEqual(metrics["recall"], 0.250)
@@ -234,7 +234,7 @@ class TestF1Computation(unittest.TestCase):
         mock_compute_span_index.return_value = all_spans_df
 
         results = compute_f1(ref_camp_id, [0], hyp_camp_id, [0], match_mode="hard")
-        metrics = results[f"{ref_camp_id} -> {hyp_camp_id}"]
+        metrics = results[f"{ref_camp_id} :: {hyp_camp_id}"]
         self.assertEqual(metrics["precision"], 0.0)
         self.assertEqual(metrics["recall"], 0.0)
         self.assertEqual(metrics["f1"], 0.0)
@@ -288,7 +288,7 @@ class TestF1Computation(unittest.TestCase):
         mock_compute_span_index.return_value = all_spans_df
 
         results = compute_f1(ref_camp_id, [0], hyp_camp_id, [0], match_mode="soft")
-        metrics = results[f"{ref_camp_id} -> {hyp_camp_id}"]
+        metrics = results[f"{ref_camp_id} :: {hyp_camp_id}"]
         self.assertEqual(metrics["precision"], 1.0)
         self.assertEqual(metrics["recall"], 1.0)
         self.assertEqual(metrics["f1"], 1.0)
@@ -366,7 +366,7 @@ class TestF1Computation(unittest.TestCase):
         mock_compute_span_index.return_value = all_spans_df
 
         results = compute_f1(ref_camp_id, [0], hyp_camp_id, [0], match_mode="hard", category_breakdown=True)
-        metrics = results[f"{ref_camp_id} -> {hyp_camp_id}"]
+        metrics = results[f"{ref_camp_id} :: {hyp_camp_id}"]
         self.assertIn("categories", metrics)
         self.assertIn("typeA", metrics["categories"])
         self.assertIn("typeB", metrics["categories"])

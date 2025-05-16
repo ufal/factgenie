@@ -295,7 +295,7 @@ def compute_f1(
     )
 
     # Store results with appropriate key
-    comparison_key = f"{ref_camp_id} -> {hyp_camp_id}"
+    comparison_key = f"{ref_camp_id} :: {hyp_camp_id}"
     all_results = {comparison_key: results}
 
     return all_results
@@ -394,7 +394,7 @@ def main():
     # Print results in a table
     print("\nPrecision, Recall and F1 scores:")
     headers = [
-        "Hypothesis -> Reference",
+        "Reference :: Hypothesis",
         "Precision",
         "Recall",
         "F1",
