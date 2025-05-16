@@ -962,7 +962,7 @@ def save_record(mode, campaign, row, result):
         record["text_fields"] = result.get("text_fields", [])
 
     if mode == CampaignMode.LLM_EVAL:
-        record["metadata"]["prompt"] = result["prompt"]
+        record["metadata"] |= result.get("metadata", {})  # Typical workflows contain result["metadata"]["prompt"]
         last_run = campaign.metadata.get("last_run", int(time.time()))
         filename = f"{dataset_id}-{split}-{setup_id}-{last_run}.jsonl"
     elif mode == CampaignMode.CROWDSOURCING:
@@ -978,7 +978,9 @@ def save_record(mode, campaign, row, result):
     elif mode == CampaignMode.LLM_GEN:
         last_run = campaign.metadata.get("last_run", int(time.time()))
         filename = f"{dataset_id}-{split}-{last_run}.jsonl"
-        record["metadata"]["prompt"] = result["prompt"]
+        record["metadata"] |= result.get(
+            "metadata", {}
+        )  # For typical workflows, result["metadata"]["prompt"] contains the prompt.
 
     record["metadata"]["annotator_id"] = str(annotator_id)
     record["metadata"]["annotator_group"] = int(row["annotator_group"])

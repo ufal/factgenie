@@ -95,8 +95,7 @@
                   <span style="margin-left: 5px; margin-right: 10px;">Prompting strategy</span>
                   <div class="mb-2">
                     <small class="form-text text-muted">Select one of the available prompting strategies (or add your
-                      own class to <code>factgenie/models.py</code>). A prompting strategy controls how the prompt will
-                      be used.
+                      own class to <code>factgenie/prompting/strategies/</code>—see <code>factgenie/prompting/strategies/gen_example.py</code> for example). A prompting strategy controls how the prompt will be used to obtain the output.
                     </small>
                   </div>
                 </div>
@@ -166,7 +165,7 @@
                   <span style="margin-left: 5px; margin-right: 10px;">API provider</span>
                   <div class="mb-2">
                     <small class="form-text text-muted">Select one of the available providers (or add your own class to
-                      <code>factgenie/models.py</code>). Do not forget to add the relevant API keys in the <a
+                      <code>factgenie/prompting/api.py</code>). Do not forget to add the relevant API keys in the <a
                         href="/app_config">app settings</a> or in the <code>factgenie/config/config.yml</code> file.
                     </small>
                   </div>
