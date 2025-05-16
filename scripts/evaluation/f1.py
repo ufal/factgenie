@@ -29,8 +29,8 @@ def compute_f1_scores(span_index, ref_group_ids, hyp_group_ids, match_mode="hard
 
     Args:
         span_index: DataFrame containing all spans from both annotator groups
-        ref_group_id: Group ID of the reference annotator
-        hyp_group_id: Group ID of the hypothesis annotator
+        ref_group_ids: List of Group IDs of the reference annotator
+        hyp_group_ids: List of Group IDs of the hypothesis annotator
         match_mode: 'hard' requires exact category match, 'soft' allows any category
         category_breakdown: Return metrics broken down by annotation category
 
@@ -192,8 +192,10 @@ def compute_f1(
     Always aggregates all groups from each campaign.
 
     Args:
-        reference: Tuple of (campaign_id, ann_groups) where ann_groups can be a list of group IDs or None
-        hypothesis: Tuple of (campaign_id, ann_groups) where ann_groups can be a list of group IDs or None
+        ref_camp_id: Reference campaign ID
+        ref_groups: List of reference annotator groups (None means all groups)
+        hyp_camp_id: Hypothesis campaign ID
+        hyp_groups: List of hypothesis annotator groups (None means all groups)
         match_mode: 'hard' requires exact category match, 'soft' allows any category
         category_breakdown: Whether to compute metrics per annotation category
         filter_datasets: List of dataset IDs to include (None means include all)
