@@ -10,20 +10,18 @@ import traceback
 import numpy as np
 
 from pathlib import Path
-from tabulate import tabulate
 from tqdm import tqdm
 from pyannote.core import Segment
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CAMPAIGNS_PATH = PROJECT_ROOT / "factgenie" / "campaigns"
 
-from factgenie.workflows import load_campaign, generate_campaign_index, get_annotation_index
-from factgenie.analysis import format_group_id, compute_iaa_dfs, compute_span_counts, compute_span_index
+from factgenie.workflows import generate_campaign_index
+from factgenie.analysis import compute_span_index
 from factgenie.bin.run import create_app
 
 # Initialize the Flask app
 app = create_app()
-
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -182,9 +180,6 @@ def compute_gamma_score(span_index, example_list, alpha, beta, delta_empty, soft
             s_empty_scores.append(s_empty)
             pbar.update(1)
             continue
-
-        if len(unique_annotators) > 2:
-            breakpoint()
 
         # Add each annotation to continuum
         continuum = pa.Continuum()
