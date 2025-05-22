@@ -2,8 +2,6 @@
 import os
 import json
 import logging
-import time
-import tempfile
 import threading
 import traceback
 import shutil
