@@ -356,33 +356,6 @@ def crowdsourcing_new():
     )
 
 
-@app.route("/compute_agreement", methods=["POST"])
-@login_required
-def compute_agreement():
-    data = request.get_json()
-    combinations = data.get("combinations")
-    selected_campaigns = data.get("selectedCampaigns")
-
-    campaign_index = workflows.generate_campaign_index(app, force_reload=True)
-
-    try:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            zip_path = analysis.generate_iaa_files(
-                app,
-                selected_campaigns=selected_campaigns,
-                combinations=combinations,
-                campaigns=campaign_index,
-                temp_dir=temp_dir,
-            )
-            return send_file(
-                zip_path, mimetype="application/zip", as_attachment=True, download_name="agreement_files.zip"
-            )
-
-    except Exception as e:
-        traceback.print_exc()
-        return utils.error(f"Error while computing agreement: {e}")
-
-
 @app.route("/delete_campaign", methods=["POST"])
 @login_required
 def delete_campaign():

@@ -10,3 +10,10 @@ force-exclude = '''
 
 [tool.isort]
 profile="black"
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:The get_cmap function was deprecated:matplotlib.MatplotlibDeprecationWarning",
+    "ignore:Support for class-based `config` is deprecated:DeprecationWarning:pydantic\\._internal\\._config",
+    "ignore:Valid config keys have changed in V2:UserWarning:pydantic\\._internal\\._config",
+]

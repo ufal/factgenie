@@ -25,6 +25,7 @@ install_requires = [
     "google-cloud-aiplatform>=1.38",
     "pygamma-agreement==0.5.9",
     "matplotlib>=3.10.0",
+    "tabulate>=0.9.0",
     "tenacity>=9.0.0",
 ]
 
