@@ -46,6 +46,23 @@ class Campaign:
         self.load_metadata()
         self.load_db()
 
+        self.check_db_consistency()
+
+    def check_db_consistency(self):
+        # Detect issues with the database
+        if not self.db.empty:
+            # Check for duplicate entries based on key columns
+            duplicate_columns = ["dataset", "split", "setup_id", "example_idx", "annotator_group"]
+            # Make sure all columns exist in the dataframe
+            check_columns = [col for col in duplicate_columns if col in self.db.columns]
+            if len(check_columns) > 0:  # Only check if relevant columns exist
+                duplicates = self.db.duplicated(subset=check_columns, keep=False)
+                if duplicates.any():
+                    duplicate_rows = self.db[duplicates]
+                    logger.warning(
+                        f"Duplicated annotator group for an entry found in campaign {self.campaign_id}: rows {duplicate_rows.index.tolist()}"
+                    )
+
     def get_finished_examples(self):
         # load all the JSONL files in the "files" subdirectory
         examples_finished = []
