@@ -3,7 +3,6 @@ import json
 import time
 import random
 import logging
-import litellm
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -12,6 +11,9 @@ logger = logging.getLogger(__name__)
 
 class ModelAPI:
     def __init__(self, config: dict, api_kwargs: dict = {}):
+        # Importing LiteLLM is currently quite slow: https://github.com/BerriAI/litellm/issues/7605
+        import litellm
+
         self.config = config
         self.api_kwargs = api_kwargs
 
@@ -28,6 +30,8 @@ class ModelAPI:
         return model_service
 
     def validate_environment(self):
+        import litellm
+
         model_service = self.get_model_service_name()
         response = litellm.validate_environment(model=model_service)
 
@@ -37,6 +41,8 @@ class ModelAPI:
             )
 
     def call_model_once(self, messages, model_service, prompt_strat_kwargs):
+        import litellm
+
         response = litellm.completion(
             model=model_service,
             messages=messages,
@@ -48,6 +54,8 @@ class ModelAPI:
         return response
 
     def get_model_response_with_retries(self, messages, prompt_strat_kwargs={}):
+        import litellm
+
         """Handle rate limits and overload errors with exponential backoff and retry logic."""
         max_retries = 15
         initial_retry_delay = 2  # seconds
