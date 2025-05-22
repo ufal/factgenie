@@ -1,20 +1,23 @@
-import pytest
-import pandas as pd
-import numpy as np
 import sys
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import MagicMock, call, patch
 
-from factgenie.iaa.gamma import (
-    compute_gamma_scores,
-    compute_gamma,
-    _process_example_gamma,
-    _initialize_gamma_metrics,
-    compute_s_empty_score,
-    compute_gamma_score,  # The inner function that calls pygamma
-    save_plot,
-)
+import numpy as np
+import pandas as pd
+import pytest
+
 import factgenie.iaa.gamma as gamma_module  # For mocking elements within the gamma module
 from factgenie.analysis import format_group_id
+from factgenie.iaa.gamma import (
+    compute_gamma_score,  # The inner function that calls pygamma
+)
+from factgenie.iaa.gamma import (
+    _initialize_gamma_metrics,
+    _process_example_gamma,
+    compute_gamma,
+    compute_gamma_scores,
+    compute_s_empty_score,
+    save_plot,
+)
 
 
 # Helper function to create span DataFrames

@@ -1,11 +1,16 @@
-import pytest
-import pandas as pd
+from unittest.mock import MagicMock, patch
+
 import numpy as np
-from unittest.mock import patch, MagicMock
+import pandas as pd
+import pytest
 from scipy.stats import pearsonr
 
-from factgenie.iaa.pearson import compute_pearson_scores, compute_pearson, _initialize_metrics
 import factgenie.iaa.pearson as pearson_module
+from factgenie.iaa.pearson import (
+    _initialize_metrics,
+    compute_pearson,
+    compute_pearson_scores,
+)
 
 
 # Helper function to create span DataFrames for Pearson tests

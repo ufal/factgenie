@@ -1,9 +1,10 @@
-import pytest
-import pandas as pd
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import MagicMock, call, patch
 
-from factgenie.iaa.f1 import compute_f1_scores, compute_f1
+import pandas as pd
+import pytest
+
 import factgenie.iaa.f1 as f1
+from factgenie.iaa.f1 import compute_f1, compute_f1_scores
 
 
 # Helper function to create span DataFrames
@@ -1119,6 +1120,7 @@ def main():
     Main function to run the tests in this file when the script is executed directly.
     """
     import sys
+
     import pytest
 
     # Run only the tests in this file
