@@ -4,6 +4,11 @@ import logging
 import os
 from ast import literal_eval
 
+# LiteLLM seems to be triggering deprecation warnings in Pydantic, so we suppress them
+import warnings
+
+warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
+
 from factgenie.api import (
     ModelAPI,
     OpenAIAPI,
@@ -22,10 +27,6 @@ from factgenie.prompting import (
 from factgenie.campaign import CampaignMode
 from factgenie.annotations import AnnotationModelFactory
 
-# LiteLLM seems to be triggering deprecation warnings in Pydantic, so we suppress them
-import warnings
-
-warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
 
 # also disable info logs from litellm
 logging.getLogger("LiteLLM").setLevel(logging.ERROR)
