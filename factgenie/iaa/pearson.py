@@ -3,10 +3,11 @@
 """Pearson correlation computation for factgenie annotation campaigns."""
 
 import logging
-import pandas as pd
+
 import numpy as np
-from scipy.stats import pearsonr
+import pandas as pd
 from flask import current_app as app
+from scipy.stats import pearsonr
 
 logger = logging.getLogger(__name__)
 
@@ -133,12 +134,12 @@ def compute_pearson(
     Returns:
         Dictionary with correlation metrics
     """
-    from factgenie.workflows import generate_campaign_index
     from factgenie.analysis import (
-        compute_span_index,
         assert_common_categories,
+        compute_span_index,
         get_example_list,
     )
+    from factgenie.workflows import generate_campaign_index
 
     # Generate campaign index
     campaign_index = generate_campaign_index(app, force_reload=True)

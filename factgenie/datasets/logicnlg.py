@@ -3,11 +3,13 @@ import ast
 import json
 import logging
 import os
+
 import requests
 
 logger = logging.getLogger("factgenie")
-from factgenie.datasets.hf_dataset import HFDataset
 from tinyhtml import h
+
+from factgenie.datasets.hf_dataset import HFDataset
 
 
 class LogicNLG(HFDataset):

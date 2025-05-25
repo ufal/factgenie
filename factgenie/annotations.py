@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
+from typing import Any, Dict, List, Optional, Type
+
 from pydantic import BaseModel, Field
-from typing import Type, List, Dict, Any, Optional
 
 
 class SpanAnnotation(BaseModel):

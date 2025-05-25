@@ -2,9 +2,10 @@
 import logging
 
 logger = logging.getLogger("factgenie")
+from tinyhtml import h
+
 from factgenie.datasets.basic import JSONDataset
 from factgenie.datasets.quintd import QuintdDataset
-from tinyhtml import h
 
 
 class Wikidata(QuintdDataset, JSONDataset):

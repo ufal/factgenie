@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-import os
-import json
-import glob
-import logging
-import pandas as pd
 import ast
-
+import glob
+import json
+import logging
+import os
 from datetime import datetime
+
+import pandas as pd
+
 from factgenie import CAMPAIGN_DIR
 
 logger = logging.getLogger("factgenie")

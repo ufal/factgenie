@@ -10,12 +10,12 @@ import glob
 import json
 import logging
 import os
-from pathlib import Path
-from typing import Any, List, Union, Dict
 import zipfile
+from pathlib import Path
+from typing import Any, Dict, List, Union
 
-from factgenie.utils import resumable_download
 from factgenie.datasets.dataset import Dataset
+from factgenie.utils import resumable_download
 
 logger = logging.getLogger("factgenie")
 
@@ -381,8 +381,8 @@ class PropagandaTechniques(Dataset):
 
 if __name__ == "__main__":
     # testing download
-    from factgenie.bin.run import create_app
     import factgenie.workflows as workflows
+    from factgenie.bin.run import create_app
 
     app = create_app()
 

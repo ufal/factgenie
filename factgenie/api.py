@@ -1,8 +1,8 @@
-import os
 import json
-import time
-import random
 import logging
+import os
+import random
+import time
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

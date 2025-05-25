@@ -2,31 +2,30 @@
 
 import logging
 import os
-from ast import literal_eval
 
 # LiteLLM seems to be triggering deprecation warnings in Pydantic, so we suppress them
 import warnings
+from ast import literal_eval
 
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
 
+from factgenie.annotations import AnnotationModelFactory
 from factgenie.api import (
-    ModelAPI,
-    OpenAIAPI,
-    OllamaAPI,
-    VllmAPI,
     AnthropicAPI,
     GeminiAPI,
+    ModelAPI,
+    OllamaAPI,
+    OpenAIAPI,
     VertexAIAPI,
-)
-from factgenie.prompting import (
-    PromptingStrategy,
-    GenerationStrategy,
-    StructuredOutputStrategy,
-    RawOutputStrategy,
+    VllmAPI,
 )
 from factgenie.campaign import CampaignMode
-from factgenie.annotations import AnnotationModelFactory
-
+from factgenie.prompting import (
+    GenerationStrategy,
+    PromptingStrategy,
+    RawOutputStrategy,
+    StructuredOutputStrategy,
+)
 
 # also disable info logs from litellm
 logging.getLogger("LiteLLM").setLevel(logging.ERROR)
