@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
-import os
-import pandas as pd
-import sys
 import logging
+import os
+import sys
 import traceback
-import factgenie.workflows as workflows
 from collections import defaultdict
+
+import pandas as pd
+
+import factgenie.workflows as workflows
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 

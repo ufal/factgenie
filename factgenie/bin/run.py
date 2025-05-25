@@ -23,7 +23,7 @@ def list_datasets(app):
 
 
 def list_downloadable(app):
-    from factgenie import workflows, utils
+    from factgenie import utils, workflows
 
     datasets = workflows.get_local_dataset_overview(app)
 
@@ -64,8 +64,9 @@ def list_outputs(app):
 
 def list_campaigns(app):
     """List all available campaigns."""
-    from factgenie.workflows import get_sorted_campaign_list
     from pprint import pprint as pp
+
+    from factgenie.workflows import get_sorted_campaign_list
 
     campaigns = get_sorted_campaign_list(
         app, modes=[CampaignMode.CROWDSOURCING, CampaignMode.LLM_EVAL, CampaignMode.LLM_GEN, CampaignMode.EXTERNAL]
@@ -266,9 +267,9 @@ def run_llm_campaign(campaign_id: str):
     """
     Run a LLM campaign by id.
     """
-    from factgenie.models import ModelFactory
     from factgenie import llm_campaign
     from factgenie.campaign import CampaignStatus
+    from factgenie.models import ModelFactory
     from factgenie.workflows import load_campaign
 
     # mockup object
@@ -321,10 +322,11 @@ def save_generated_outputs(campaign_id: str, setup_id: str):
 
 def setup_logging(config):
     import logging
-    import coloredlogs
     import os
     import re
     from datetime import datetime
+
+    import coloredlogs
 
     from factgenie import ROOT_DIR
 
@@ -366,15 +368,24 @@ def setup_logging(config):
 
 
 def create_app(**kwargs):
-    import yaml
+    import logging
     import os
     import shutil
-    import logging
-    import factgenie.workflows as workflows
-    from apscheduler.schedulers.background import BackgroundScheduler
     from datetime import datetime
+
+    import yaml
+    from apscheduler.schedulers.background import BackgroundScheduler
+
+    import factgenie.workflows as workflows
+    from factgenie import (
+        CAMPAIGN_DIR,
+        INPUT_DIR,
+        MAIN_CONFIG_PATH,
+        MAIN_CONFIG_TEMPLATE_PATH,
+        OUTPUT_DIR,
+        ROOT_DIR,
+    )
     from factgenie.utils import check_login
-    from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, MAIN_CONFIG_TEMPLATE_PATH, CAMPAIGN_DIR, INPUT_DIR, OUTPUT_DIR
 
     if not MAIN_CONFIG_PATH.exists():
         print("Activating the default configuration.")

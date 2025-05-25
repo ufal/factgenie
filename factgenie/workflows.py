@@ -1,42 +1,40 @@
 #!/usr/bin/env python3
-import os
 import datetime
-import json
-import time
-import logging
-import pandas as pd
-import time
-import traceback
-import yaml
-import shutil
 import importlib
-import zipfile
-import traceback
+import json
+import logging
+import os
+import shutil
 import tempfile
-import factgenie.utils as utils
-
-from io import BytesIO
-from slugify import slugify
-from flask import make_response
+import time
+import traceback
+import zipfile
 from collections import defaultdict
+from io import BytesIO
 from pathlib import Path
-from factgenie.campaign import (
-    HumanCampaign,
-    LLMCampaignEval,
-    ExternalCampaign,
-    LLMCampaignGen,
-    CampaignMode,
-    CampaignStatus,
-    ExampleStatus,
-)
 
+import pandas as pd
+import yaml
+from flask import make_response
+from slugify import slugify
+
+import factgenie.utils as utils
 from factgenie import (
     CAMPAIGN_DIR,
-    OUTPUT_DIR,
+    CROWDSOURCING_CONFIG_DIR,
     INPUT_DIR,
     LLM_EVAL_CONFIG_DIR,
     LLM_GEN_CONFIG_DIR,
-    CROWDSOURCING_CONFIG_DIR,
+    OUTPUT_DIR,
+)
+from factgenie.campaign import (
+    CampaignMode,
+    CampaignStatus,
+    ExampleStatus,
+    ExternalCampaign,
+    HumanCampaign,
+    LLMCampaignEval,
+    LLMCampaignGen,
 )
 
 logger = logging.getLogger("factgenie")
