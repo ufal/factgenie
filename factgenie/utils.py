@@ -1,25 +1,27 @@
 #!/usr/bin/env python3
-import queue
-import os
-import urllib
-import logging
-import yaml
 import json
+import logging
+import os
+import queue
+import urllib
+from pathlib import Path
+
+import yaml
+from flask import jsonify, render_template_string
+from pydantic import ValidationError
 from slugify import slugify
 from tqdm import tqdm
-from pathlib import Path
-from flask import jsonify, render_template_string
-from factgenie.campaign import CampaignMode
-from pydantic import ValidationError
+
 from factgenie import (
-    RESOURCES_CONFIG_PATH,
+    CROWDSOURCING_CONFIG_DIR,
     DATASET_CONFIG_PATH,
     DEFAULT_PROMPTS_CONFIG_PATH,
     LLM_EVAL_CONFIG_DIR,
     LLM_GEN_CONFIG_DIR,
-    CROWDSOURCING_CONFIG_DIR,
     MAIN_CONFIG_PATH,
+    RESOURCES_CONFIG_PATH,
 )
+from factgenie.campaign import CampaignMode
 
 logger = logging.getLogger("factgenie")
 

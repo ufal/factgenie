@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
+import abc
+import json
+import logging
 import re
 import time
 import traceback
-import logging
-import abc
-import json
+
 from pydantic import ValidationError
+
 from factgenie.annotations import AnnotationModelFactory
 from factgenie.api import ModelAPI
 from factgenie.text_processing import template_replace

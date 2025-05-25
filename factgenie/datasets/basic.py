@@ -3,17 +3,18 @@ import logging
 
 logger = logging.getLogger("factgenie")
 
-from factgenie.datasets.dataset import Dataset
-from pathlib import Path
-from natsort import natsorted
-import requests
-import zipfile
+import json
 import os
 import re
-import json
+import zipfile
+from pathlib import Path
+
 import json2table
 import pandas as pd
+import requests
+from natsort import natsorted
 
+from factgenie.datasets.dataset import Dataset
 from factgenie.utils import resumable_download
 
 

@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
-import logging
-import requests
-import json
-import os
-import zipfile
 import importlib
 import inspect
-
-
-from pathlib import Path
-from collections import defaultdict
-from slugify import slugify
+import json
+import logging
+import os
+import zipfile
 from abc import ABC, abstractmethod
+from collections import defaultdict
+from pathlib import Path
+
+import requests
+from slugify import slugify
 
 from factgenie import INPUT_DIR, OUTPUT_DIR
 

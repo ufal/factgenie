@@ -1,8 +1,10 @@
-from factgenie.datasets.dataset import Dataset
-import json
-import markdown
-import textwrap
 import datetime
+import json
+import textwrap
+
+import markdown
+
+from factgenie.datasets.dataset import Dataset
 
 
 class RotowireSharedTask(Dataset):

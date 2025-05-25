@@ -1,10 +1,12 @@
 """Command line interface for inter-annotator agreement tools."""
 
-import click
-import logging
 import json
-from factgenie.iaa.gamma import compute_gamma
+import logging
+
+import click
+
 from factgenie.iaa.f1 import compute_f1
+from factgenie.iaa.gamma import compute_gamma
 from factgenie.iaa.pearson import compute_pearson
 
 logger = logging.getLogger(__name__)

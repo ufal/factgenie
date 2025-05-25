@@ -4,10 +4,12 @@ import logging
 logger = logging.getLogger("factgenie")
 
 import json
+from datetime import datetime
+
+import dateutil.parser
+
 from factgenie.datasets.basic import JSONDataset
 from factgenie.datasets.quintd import QuintdDataset
-import dateutil.parser
-from datetime import datetime
 
 
 class OpenWeather(QuintdDataset, JSONDataset):

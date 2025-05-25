@@ -5,11 +5,11 @@
 import logging
 import os
 import traceback
+
 import numpy as np
 import pandas as pd  # Added for type hinting and potential use
-
-from tqdm import tqdm
 from flask import current_app as app
+from tqdm import tqdm
 
 from factgenie.analysis import format_group_id
 
@@ -277,12 +277,12 @@ def compute_gamma(
     Returns:
         Dictionary with gamma scores
     """
-    from factgenie.workflows import generate_campaign_index
     from factgenie.analysis import (
-        compute_span_index,
         assert_common_categories,
+        compute_span_index,
         get_example_list,
     )
+    from factgenie.workflows import generate_campaign_index
 
     # Generate campaign index
     campaign_index = generate_campaign_index(app, force_reload=True)

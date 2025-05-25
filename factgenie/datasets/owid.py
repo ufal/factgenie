@@ -3,11 +3,13 @@ import logging
 
 logger = logging.getLogger("factgenie")
 
+import json
+from pathlib import Path
+
 import dateutil.parser
+
 from factgenie.datasets.dataset import Dataset
 from factgenie.datasets.quintd import QuintdDataset
-from pathlib import Path
-import json
 
 
 class OurWorldInData(QuintdDataset, Dataset):

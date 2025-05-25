@@ -1,25 +1,24 @@
 #!/usr/bin/env python3
 
-import pandas as pd
+import ast
 import datetime
+import json
+import logging
+import os
 import shutil
 import time
-import json
-import os
-import ast
-import logging
 import traceback
+
+import pandas as pd
 import requests
 import urllib3
-
+from flask import jsonify
 from slugify import slugify
 
-from factgenie.campaign import CampaignMode, CampaignStatus, ExampleStatus
-from flask import jsonify
 import factgenie.utils as utils
 import factgenie.workflows as workflows
-
 from factgenie import CAMPAIGN_DIR, OUTPUT_DIR, TEMPLATES_DIR
+from factgenie.campaign import CampaignMode, CampaignStatus, ExampleStatus
 
 logger = logging.getLogger("factgenie")
 
