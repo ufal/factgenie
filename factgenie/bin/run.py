@@ -5,11 +5,11 @@
 # Use them as much as possible and minimize imports at the top of the file.
 import click
 from flask.cli import FlaskGroup
-from factgenie.app import app
-from factgenie.campaign import CampaignMode  # required because of the click args choices
 
-# Add this with the other imports
+from factgenie.app import app
+from factgenie.campaign import CampaignMode
 from factgenie.iaa.cli import iaa_cli
+from factgenie.stats.cli import stats_cli
 
 
 def list_datasets(app):
@@ -110,18 +110,21 @@ def show_dataset_info(app, dataset_id: str):
 
 def show_campaign_info(app, campaign_id: str):
     """Show information about a campaign."""
-    from factgenie.workflows import load_campaign
     from pprint import pprint as pp
+
+    from factgenie.workflows import load_campaign
 
     campaign = load_campaign(app, campaign_id)
 
     if campaign is None:
         print(f"Campaign {campaign_id} not found.")
+        return
 
     pp({"metadata": campaign.metadata, "stats": campaign.get_stats()})
 
 
 app.cli.add_command(iaa_cli)  # Register the iaa command group
+app.cli.add_command(stats_cli)  # Register the stats command group
 
 
 @app.cli.command("info")
@@ -178,12 +181,14 @@ def create_llm_campaign(
     campaign_id: str, dataset_ids: str, splits: str, setup_ids: str, mode: str, config_file: str, overwrite: bool
 ):
     """Create a new LLM campaign."""
-    import yaml
-    from slugify import slugify
-    from factgenie.workflows import load_campaign, get_sorted_campaign_list
-    from factgenie import workflows, llm_campaign
     from pathlib import Path
     from pprint import pprint as pp
+
+    import yaml
+    from slugify import slugify
+
+    from factgenie import llm_campaign, workflows
+    from factgenie.workflows import get_sorted_campaign_list, load_campaign
 
     if mode == CampaignMode.LLM_EVAL and not setup_ids:
         raise ValueError("The `setup_id` argument is required for llm_eval mode.")

@@ -308,14 +308,16 @@ def assert_common_categories(campaign_ids, campaign_index):
             )
             return False
 
-    logger.info(f"Categories:")
-    for i, category_name in enumerate(common_category_names):
-        logger.info(f"  {i}: {category_name}")
+    category_list = ", ".join([f"{i}: {category_name}" for i, category_name in enumerate(common_category_names)])
+    logger.info(f"Categories: {category_list}")
     return True
 
 
 def format_group_id(campaign_id, group):
     """Format annotator group ID."""
+    if group is None:
+        return f"{campaign_id}-anngroup-all"
+
     return f"{campaign_id}-anngroup-{group}"
 
 
@@ -349,6 +351,25 @@ def get_common_examples(first_campaign_data, second_campaign_data, first_group=N
 
     # Convert to list of tuples
     return list(map(tuple, common.values))
+
+
+def get_ref_hyp_spans(span_index, annotator_groups):
+    """Get reference and hypothesis spans for a set of spans."""
+    # Unpack annotator groups
+    ref_camp_id, ref_group = annotator_groups[0]
+    hyp_camp_id, hyp_group = annotator_groups[1]
+
+    # Get reference and hypothesis spans for this example
+    ref_spans = span_index[
+        (span_index["campaign_id"] == ref_camp_id)
+        & (span_index["annotator_group"] == ref_group if ref_group is not None else True)
+    ]
+    hyp_spans = span_index[
+        (span_index["campaign_id"] == hyp_camp_id)
+        & (span_index["annotator_group"] == hyp_group if hyp_group is not None else True)
+    ]
+
+    return ref_spans, hyp_spans
 
 
 def get_example_list(

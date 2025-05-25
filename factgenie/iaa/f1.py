@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
 import logging
-import pandas as pd
 
+import pandas as pd
 from flask import current_app as app
+
+from factgenie.analysis import get_ref_hyp_spans
 
 logger = logging.getLogger(__name__)
 
@@ -110,25 +112,6 @@ def _initialize_metrics(categories):
     return metrics
 
 
-def _get_ref_hyp_spans(span_index, annotator_groups):
-    """Get reference and hypothesis spans for a set of spans."""
-    # Unpack annotator groups
-    ref_camp_id, ref_group = annotator_groups[0]
-    hyp_camp_id, hyp_group = annotator_groups[1]
-
-    # Get reference and hypothesis spans for this example
-    ref_spans = span_index[
-        (span_index["campaign_id"] == ref_camp_id)
-        & (span_index["annotator_group"] == ref_group if ref_group is not None else True)
-    ]
-    hyp_spans = span_index[
-        (span_index["campaign_id"] == hyp_camp_id)
-        & (span_index["annotator_group"] == hyp_group if hyp_group is not None else True)
-    ]
-
-    return ref_spans, hyp_spans
-
-
 def _process_example(example_tuple, span_index, annotator_groups, metrics, match_mode):
     """Process a single example and update metrics."""
     dataset, split, setup_id, example_idx = example_tuple
@@ -140,7 +123,7 @@ def _process_example(example_tuple, span_index, annotator_groups, metrics, match
         & (span_index["setup_id"] == setup_id)
         & (span_index["example_idx"] == example_idx)
     ]
-    example_ref_spans, example_hyp_spans = _get_ref_hyp_spans(example_spans, annotator_groups)
+    example_ref_spans, example_hyp_spans = get_ref_hyp_spans(example_spans, annotator_groups)
 
     metrics["ref_count"] += example_ref_spans.shape[0]
     metrics["hyp_count"] += example_hyp_spans.shape[0]
@@ -255,12 +238,12 @@ def compute_f1(
     Returns:
         Dictionary with F1 metrics for aggregated reference-hypothesis pair
     """
-    from factgenie.workflows import generate_campaign_index
     from factgenie.analysis import (
-        compute_span_index,
         assert_common_categories,
+        compute_span_index,
         get_example_list,
     )
+    from factgenie.workflows import generate_campaign_index
 
     # Generate campaign index using current_app
     campaign_index = generate_campaign_index(app, force_reload=True)
