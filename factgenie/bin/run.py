@@ -5,11 +5,11 @@
 # Use them as much as possible and minimize imports at the top of the file.
 import click
 from flask.cli import FlaskGroup
-from factgenie.app import app
-from factgenie.campaign import CampaignMode  # required because of the click args choices
 
-# Add this with the other imports
+from factgenie.app import app
+from factgenie.campaign import CampaignMode
 from factgenie.iaa.cli import iaa_cli
+from factgenie.stats.cli import stats_cli
 
 
 def list_datasets(app):
@@ -23,7 +23,7 @@ def list_datasets(app):
 
 
 def list_downloadable(app):
-    from factgenie import workflows, utils
+    from factgenie import utils, workflows
 
     datasets = workflows.get_local_dataset_overview(app)
 
@@ -64,8 +64,9 @@ def list_outputs(app):
 
 def list_campaigns(app):
     """List all available campaigns."""
-    from factgenie.workflows import get_sorted_campaign_list
     from pprint import pprint as pp
+
+    from factgenie.workflows import get_sorted_campaign_list
 
     campaigns = get_sorted_campaign_list(
         app, modes=[CampaignMode.CROWDSOURCING, CampaignMode.LLM_EVAL, CampaignMode.LLM_GEN, CampaignMode.EXTERNAL]
@@ -110,18 +111,21 @@ def show_dataset_info(app, dataset_id: str):
 
 def show_campaign_info(app, campaign_id: str):
     """Show information about a campaign."""
-    from factgenie.workflows import load_campaign
     from pprint import pprint as pp
+
+    from factgenie.workflows import load_campaign
 
     campaign = load_campaign(app, campaign_id)
 
     if campaign is None:
         print(f"Campaign {campaign_id} not found.")
+        return
 
     pp({"metadata": campaign.metadata, "stats": campaign.get_stats()})
 
 
 app.cli.add_command(iaa_cli)  # Register the iaa command group
+app.cli.add_command(stats_cli)  # Register the stats command group
 
 
 @app.cli.command("info")
@@ -178,12 +182,14 @@ def create_llm_campaign(
     campaign_id: str, dataset_ids: str, splits: str, setup_ids: str, mode: str, config_file: str, overwrite: bool
 ):
     """Create a new LLM campaign."""
-    import yaml
-    from slugify import slugify
-    from factgenie.workflows import load_campaign, get_sorted_campaign_list
-    from factgenie import workflows, llm_campaign
     from pathlib import Path
     from pprint import pprint as pp
+
+    import yaml
+    from slugify import slugify
+
+    from factgenie import llm_campaign, workflows
+    from factgenie.workflows import get_sorted_campaign_list, load_campaign
 
     if mode == CampaignMode.LLM_EVAL and not setup_ids:
         raise ValueError("The `setup_id` argument is required for llm_eval mode.")
@@ -261,9 +267,9 @@ def run_llm_campaign(campaign_id: str):
     """
     Run a LLM campaign by id.
     """
-    from factgenie.models import ModelFactory
     from factgenie import llm_campaign
     from factgenie.campaign import CampaignStatus
+    from factgenie.models import ModelFactory
     from factgenie.workflows import load_campaign
 
     # mockup object
@@ -316,10 +322,11 @@ def save_generated_outputs(campaign_id: str, setup_id: str):
 
 def setup_logging(config):
     import logging
-    import coloredlogs
     import os
     import re
     from datetime import datetime
+
+    import coloredlogs
 
     from factgenie import ROOT_DIR
 
@@ -361,15 +368,24 @@ def setup_logging(config):
 
 
 def create_app(**kwargs):
-    import yaml
+    import logging
     import os
     import shutil
-    import logging
-    import factgenie.workflows as workflows
-    from apscheduler.schedulers.background import BackgroundScheduler
     from datetime import datetime
+
+    import yaml
+    from apscheduler.schedulers.background import BackgroundScheduler
+
+    import factgenie.workflows as workflows
+    from factgenie import (
+        CAMPAIGN_DIR,
+        INPUT_DIR,
+        MAIN_CONFIG_PATH,
+        MAIN_CONFIG_TEMPLATE_PATH,
+        OUTPUT_DIR,
+        ROOT_DIR,
+    )
     from factgenie.utils import check_login
-    from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, MAIN_CONFIG_TEMPLATE_PATH, CAMPAIGN_DIR, INPUT_DIR, OUTPUT_DIR
 
     if not MAIN_CONFIG_PATH.exists():
         print("Activating the default configuration.")
