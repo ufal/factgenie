@@ -8,17 +8,18 @@ import logging
 import re
 import time
 import unittest
-from pydantic import BaseModel, ValidationError
 from typing import Any, Literal, Type
 
-from factgenie.colors import Ansi
+from pydantic import BaseModel, ValidationError
+
 from factgenie.annotations import AnnotationModelFactory
+from factgenie.colors import Ansi
 from factgenie.prompting.model_apis import MockingAPI, ModelAPI
 from factgenie.prompting.text_processing import (
     find_all_template_keys,
     iter_sentences,
-    template_replace,
     join_outer_lists,
+    template_replace,
 )
 
 logger = logging.getLogger("factgenie")

@@ -1,7 +1,8 @@
+import shutil
 from pathlib import Path
+
 from setuptools import find_packages, setup
 from setuptools.command.install import install
-import shutil
 
 project_root = Path(__file__).parent
 install_requires = [
