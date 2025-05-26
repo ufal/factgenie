@@ -8,15 +8,20 @@ import time
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from factgenie.prompting.registry import track_subclasses, untracked, Registry, UnregisteredTracker
+from factgenie.prompting.registry import (
+    Registry,
+    UnregisteredTracker,
+    track_subclasses,
+    untracked,
+)
+
+# Importing LiteLLM is currently quite slow: https://github.com/BerriAI/litellm/issues/7605
+# We are thus importing it only when needed, i.e. in the ModelAPI class.
 
 
 @track_subclasses
 class ModelAPI:
     def __init__(self, config: dict, api_kwargs: dict = {}):
-        # Importing LiteLLM is currently quite slow: https://github.com/BerriAI/litellm/issues/7605
-        import litellm
-
         self.config = config
         self.api_kwargs = api_kwargs
 
@@ -227,5 +232,7 @@ class MockingAPI(GeminiAPI):
         return "MOCK: " + " ".join(f"<{d['role']}: {d['content']}>" for d in messages)
 
     def call_model_once(self, messages, model_service, prompt_strat_kwargs):
+        import litellm
+
         response = litellm.completion(model="gemini-2.0-flash", mock_response=self.mocking_reponse(messages))
         return response
