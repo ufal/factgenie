@@ -64,23 +64,16 @@ def generate_span_index(app, campaign):
         )
         span_index = span_index[span_index["annotation_text"].apply(lambda x: len(x) > 0)]
 
+        # remove annotations with type that is not in the correct range (0 - len(annotation_span_categories))
+        annotation_span_categories = campaign.metadata["config"]["annotation_span_categories"]
+
+        category_cnt = len(annotation_span_categories)
+        span_index = span_index[span_index["annotation_type"].apply(lambda x: x in range(category_cnt))]
+
+        # make annotation_type an integer
+        span_index["annotation_type"] = span_index["annotation_type"].astype(int)
+
     return span_index
-
-
-def preprocess_annotations(df, campaign):
-    # remove lines with nans
-    df = df.dropna()
-
-    # remove annotations with type that is not in the correct range (0 - len(annotation_span_categories))
-    annotation_span_categories = campaign.metadata["config"]["annotation_span_categories"]
-
-    category_cnt = len(annotation_span_categories)
-    df = df[df["annotation_type"].apply(lambda x: x in range(category_cnt))]
-
-    # make annotation_type an integer
-    df["annotation_type"] = df["annotation_type"].astype(int)
-
-    return df
 
 
 def compute_ann_counts(df):
@@ -225,8 +218,6 @@ def compute_statistics(app, campaign):
     example_index = generate_example_index(app, campaign)
 
     if not span_index.empty:
-        span_index = preprocess_annotations(span_index, campaign)
-
         annotation_counts = compute_ann_counts(span_index)
         annotation_counts = compute_avg_ann_counts(annotation_counts, example_index)
         annotation_counts = compute_prevalence(annotation_counts, example_index)

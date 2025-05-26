@@ -8,7 +8,10 @@ import time
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+from factgenie.prompting.registry import track_subclasses, untracked, Registry, UnregisteredTracker
 
+
+@track_subclasses
 class ModelAPI:
     def __init__(self, config: dict, api_kwargs: dict = {}):
         # Importing LiteLLM is currently quite slow: https://github.com/BerriAI/litellm/issues/7605
@@ -107,6 +110,15 @@ class ModelAPI:
         )
 
 
+# Registry.
+register_model_api = Registry(ModelAPI, "register_model_api")
+unregistered_model_api_tracker = UnregisteredTracker(ModelAPI, [register_model_api])
+
+
+# ―――――――――――――――――――――――――――――――――――― APIs ――――――――――――――――――――――――――――――――――――
+
+
+@register_model_api(name="openai")
 class OpenAIAPI(ModelAPI):
     # https://docs.litellm.ai/docs/providers/openai
     def __init__(self, config, api_kwargs: dict = {}):
@@ -117,6 +129,7 @@ class OpenAIAPI(ModelAPI):
         return ""
 
 
+@register_model_api(name="ollama")
 class OllamaAPI(ModelAPI):
     # https://docs.litellm.ai/docs/providers/ollama
     def __init__(self, config, api_kwargs: dict = {}):
@@ -141,6 +154,7 @@ class OllamaAPI(ModelAPI):
         pass
 
 
+@register_model_api(name="vllm")
 class VllmAPI(ModelAPI):
     # https://docs.litellm.ai/docs/providers/vllm
     def __init__(self, config, api_kwargs: dict = {}):
@@ -154,6 +168,7 @@ class VllmAPI(ModelAPI):
         return self.config.get("api_url", None)
 
 
+@register_model_api(name="anthropic")
 class AnthropicAPI(ModelAPI):
     # https://docs.litellm.ai/docs/providers/anthropic
     def __init__(self, config, api_kwargs: dict = {}):
@@ -163,6 +178,7 @@ class AnthropicAPI(ModelAPI):
         return "anthropic/"
 
 
+@register_model_api(name="gemini")
 class GeminiAPI(ModelAPI):
     # https://docs.litellm.ai/docs/providers/gemini
     def __init__(self, config, api_kwargs: dict = {}):
@@ -172,6 +188,7 @@ class GeminiAPI(ModelAPI):
         return "gemini/"
 
 
+@register_model_api(name="vertexai")
 class VertexAIAPI(ModelAPI):
     # https://docs.litellm.ai/docs/providers/vertex
     def __init__(self, config, api_kwargs: dict = {}):
@@ -196,3 +213,19 @@ class VertexAIAPI(ModelAPI):
 
     def _service_prefix(self):
         return "vertex_ai/"
+
+
+@untracked
+class MockingAPI(GeminiAPI):
+    def __init__(self):
+        super().__init__(config={"model": "mocking"}, api_kwargs={"mock_response": "A mock response."})
+
+    def validate_environment(self):
+        pass
+
+    def mocking_reponse(self, messages):
+        return "MOCK: " + " ".join(f"<{d['role']}: {d['content']}>" for d in messages)
+
+    def call_model_once(self, messages, model_service, prompt_strat_kwargs):
+        response = litellm.completion(model="gemini-2.0-flash", mock_response=self.mocking_reponse(messages))
+        return response

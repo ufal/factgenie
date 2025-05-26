@@ -178,8 +178,12 @@ class HumanCampaign(Campaign):
                 self.clear_output_by_idx(db_index)
 
     def get_stats(self):
-        # group by batch_idx, keep the first row of each group
-        batch_stats = self.db.groupby(["batch_idx"]).first()
+        # if there is no batch_idx in the db, return the stats for the whole db
+        if "batch_idx" not in self.db.columns:
+            batch_stats = self.db.groupby(["example_idx"]).first()
+        else:
+            # group by batch_idx, keep the first row of each group
+            batch_stats = self.db.groupby(["batch_idx"]).first()
 
         return {
             "total": len(batch_stats),
@@ -203,6 +207,9 @@ class HumanCampaign(Campaign):
         df = df.where(pd.notnull(df), "")
 
         # Group by batch_idx and annotator_group
+        if "batch_idx" not in df.columns:
+            df["batch_idx"] = df["example_idx"]
+
         grouped = df.groupby(["batch_idx"])
 
         # Aggregate the necessary columns

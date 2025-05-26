@@ -2,30 +2,23 @@
 
 import logging
 import os
-
-# LiteLLM seems to be triggering deprecation warnings in Pydantic, so we suppress them
 import warnings
 from ast import literal_eval
 
-warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
-
-from factgenie.annotations import AnnotationModelFactory
-from factgenie.api import (
-    AnthropicAPI,
-    GeminiAPI,
-    ModelAPI,
-    OllamaAPI,
-    OpenAIAPI,
-    VertexAIAPI,
-    VllmAPI,
-)
 from factgenie.campaign import CampaignMode
-from factgenie.prompting import (
-    GenerationStrategy,
-    PromptingStrategy,
-    RawOutputStrategy,
-    StructuredOutputStrategy,
+from factgenie.prompting.model_apis import (
+    ModelAPI,
+    register_model_api,
+    unregistered_model_api_tracker,
 )
+from factgenie.prompting.strategies import (
+    PromptingStrategy,
+    register_llm_eval,
+    register_llm_gen,
+    unregistered_prompting_strategy_tracker,
+)
+
+warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
 
 # also disable info logs from litellm
 logging.getLogger("LiteLLM").setLevel(logging.ERROR)
@@ -50,26 +43,20 @@ class ModelFactory:
 
     @staticmethod
     def get_model_apis():
+        # Only warns once about each unregistered subclass.
+        unregistered_model_api_tracker.warn_about_unregistered_subclasses()
+
         # List of available model APIs that the user can select from, stored as `api_provider` in the config.
-        return {
-            "openai": OpenAIAPI,
-            "ollama": OllamaAPI,
-            "vllm": VllmAPI,
-            "anthropic": AnthropicAPI,
-            "gemini": GeminiAPI,
-            "vertexai": VertexAIAPI,
-        }
+        return register_model_api.registered_subclasses
 
     @staticmethod
     def get_prompt_strategies():
+        # Only warns once about each unregistered subclass.
+        unregistered_prompting_strategy_tracker.warn_about_unregistered_subclasses()
+
         return {
-            CampaignMode.LLM_EVAL: {
-                "default": StructuredOutputStrategy,
-                "parse_raw": RawOutputStrategy,
-            },
-            CampaignMode.LLM_GEN: {
-                "default": GenerationStrategy,
-            },
+            CampaignMode.LLM_GEN: register_llm_gen.registered_subclasses,
+            CampaignMode.LLM_EVAL: register_llm_eval.registered_subclasses,
         }
 
     @staticmethod
@@ -107,7 +94,7 @@ class ModelFactory:
         if prompt_strat not in prompt_strats:
             raise ValueError(f"Model type {prompt_strat} is not implemented.")
 
-        return Model(config, mode, model_apis[api_provider](config), prompt_strats[prompt_strat](config))
+        return Model(config, mode, model_apis[api_provider](config), prompt_strats[prompt_strat](config, mode))
 
 
 class Model:
@@ -120,7 +107,7 @@ class Model:
 
     def generate_output(self, data, text=None):
         """For backward compatibility with existing code."""
-        return self.prompt_strat.get_model_output(api=self.model_api, data=data, text=text)
+        return self.prompt_strat.get_output(api=self.model_api, data=data, text=text)
 
     def get_annotator_id(self):
         return "llm-" + ModelFactory.parse_api_provider(self.config) + "-" + self.config["model"]
@@ -138,3 +125,26 @@ class Model:
                 self.config["model_args"][arg] = literal_eval(self.config["model_args"][arg])
             except:
                 pass
+
+    def validate_config(self, config):
+        for field in self.get_required_fields():
+            assert field in config, f"Field `{field}` is missing in the config. Keys: {config.keys()}"
+
+        for field, field_type in self.get_required_fields().items():
+            assert isinstance(
+                config[field], field_type
+            ), f"Field `{field}` must be of type {field_type}, got {config[field]=}"
+
+        for field, field_type in self.get_optional_fields().items():
+            if field in config:
+                assert isinstance(
+                    config[field], field_type
+                ), f"Field `{field}` must be of type {field_type}, got {config[field]=}"
+            else:
+                # set the default value for the data type
+                config[field] = field_type()
+
+        # warn if there are any extra fields
+        for field in config:
+            if field not in self.get_required_fields() and field not in self.get_optional_fields():
+                logger.warning(f"Field `{field}` is not recognized in the config.")
