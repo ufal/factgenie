@@ -740,7 +740,6 @@ class ExtractJson(Transform):
 
         # Try to validate each potential JSON, prioritizing the last valid one
         valid_jsons = []
-        from icecream import ic
 
         for json_str in potential_jsons:
             try:
