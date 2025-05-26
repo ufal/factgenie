@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 import logging
+
 import requests
 
 logger = logging.getLogger("factgenie")
 
+from tinyhtml import h
+
 from factgenie.datasets.basic import JSONDataset
 from factgenie.datasets.quintd import QuintdDataset
-from tinyhtml import h
 
 
 class GSMArena(QuintdDataset, JSONDataset):

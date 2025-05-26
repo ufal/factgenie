@@ -1,40 +1,35 @@
 #!/usr/bin/env python3
-import os
+import datetime
 import json
 import logging
-import time
-import tempfile
+import os
+import shutil
 import threading
 import traceback
-import shutil
-import datetime
 import urllib.parse
-
 
 from flask import (
     Flask,
-    render_template,
-    jsonify,
-    request,
     Response,
+    jsonify,
     make_response,
     redirect,
-    send_from_directory,
+    render_template,
+    request,
     send_file,
+    send_from_directory,
 )
 from slugify import slugify
+from werkzeug.middleware.proxy_fix import ProxyFix
 
+import factgenie.analysis as analysis
 import factgenie.crowdsourcing as crowdsourcing
 import factgenie.llm_campaign as llm_campaign
-import factgenie.workflows as workflows
-import factgenie.analysis as analysis
 import factgenie.utils as utils
-
-from factgenie import CAMPAIGN_DIR, TEMPLATES_DIR, STATIC_DIR, INPUT_DIR, PACKAGE_DIR
+import factgenie.workflows as workflows
+from factgenie import CAMPAIGN_DIR, INPUT_DIR, PACKAGE_DIR, STATIC_DIR, TEMPLATES_DIR
 from factgenie.campaign import CampaignMode, CampaignStatus, ExampleStatus
 from factgenie.models import ModelFactory
-
-from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask("factgenie", template_folder=TEMPLATES_DIR, static_folder=STATIC_DIR)
 app.db = {}
@@ -354,33 +349,6 @@ def crowdsourcing_new():
         configs=configs,
         host_prefix=app.config["host_prefix"],
     )
-
-
-@app.route("/compute_agreement", methods=["POST"])
-@login_required
-def compute_agreement():
-    data = request.get_json()
-    combinations = data.get("combinations")
-    selected_campaigns = data.get("selectedCampaigns")
-
-    campaign_index = workflows.generate_campaign_index(app, force_reload=True)
-
-    try:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            zip_path = analysis.generate_iaa_files(
-                app,
-                selected_campaigns=selected_campaigns,
-                combinations=combinations,
-                campaigns=campaign_index,
-                temp_dir=temp_dir,
-            )
-            return send_file(
-                zip_path, mimetype="application/zip", as_attachment=True, download_name="agreement_files.zip"
-            )
-
-    except Exception as e:
-        traceback.print_exc()
-        return utils.error(f"Error while computing agreement: {e}")
 
 
 @app.route("/delete_campaign", methods=["POST"])

@@ -3,12 +3,14 @@ import logging
 
 logger = logging.getLogger("factgenie")
 
+import json
 from datetime import datetime
+from pathlib import Path
+
 from tinyhtml import h
+
 from factgenie.datasets.basic import JSONDataset
 from factgenie.datasets.quintd import QuintdDataset
-import json
-from pathlib import Path
 
 
 class IceHockey(QuintdDataset, JSONDataset):

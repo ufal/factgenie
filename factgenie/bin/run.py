@@ -5,8 +5,11 @@
 # Use them as much as possible and minimize imports at the top of the file.
 import click
 from flask.cli import FlaskGroup
+
 from factgenie.app import app
-from factgenie.campaign import CampaignMode  # required because of the click args choices
+from factgenie.campaign import CampaignMode
+from factgenie.iaa.cli import iaa_cli
+from factgenie.stats.cli import stats_cli
 
 
 def list_datasets(app):
@@ -20,7 +23,7 @@ def list_datasets(app):
 
 
 def list_downloadable(app):
-    from factgenie import workflows, utils
+    from factgenie import utils, workflows
 
     datasets = workflows.get_local_dataset_overview(app)
 
@@ -61,8 +64,9 @@ def list_outputs(app):
 
 def list_campaigns(app):
     """List all available campaigns."""
-    from factgenie.workflows import get_sorted_campaign_list
     from pprint import pprint as pp
+
+    from factgenie.workflows import get_sorted_campaign_list
 
     campaigns = get_sorted_campaign_list(
         app, modes=[CampaignMode.CROWDSOURCING, CampaignMode.LLM_EVAL, CampaignMode.LLM_GEN, CampaignMode.EXTERNAL]
@@ -107,132 +111,21 @@ def show_dataset_info(app, dataset_id: str):
 
 def show_campaign_info(app, campaign_id: str):
     """Show information about a campaign."""
-    from factgenie.workflows import load_campaign
     from pprint import pprint as pp
+
+    from factgenie.workflows import load_campaign
 
     campaign = load_campaign(app, campaign_id)
 
     if campaign is None:
         print(f"Campaign {campaign_id} not found.")
+        return
 
     pp({"metadata": campaign.metadata, "stats": campaign.get_stats()})
 
 
-@app.cli.command("iaa")
-@click.argument("first_campaign", type=str)
-@click.argument("first_ann_group", type=int)
-@click.argument("second_campaign", type=str)
-@click.argument("second_ann_group", type=int)
-@click.argument("method", type=click.Choice(["ann_cnt_pearson", "gamma_score"]))
-@click.option(
-    "--gamma_score_alpha",
-    default=1,
-    show_default=True,
-    type=float,
-    help="Coefficient weighting the positional dissimilarity value for gamma score (default: 1)",
-)
-@click.option(
-    "--gamma_score_beta",
-    default=1,
-    show_default=True,
-    type=float,
-    help="Coefficient weighting the categorical dissimilarity value for gamma score(default: 1)",
-)
-@click.option(
-    "--gamma_score_delta",
-    default=1,
-    show_default=True,
-    type=float,
-    help="Empty dissimilarity value for gamma score (default: 1)",
-)
-@click.option("--gamma_score_soft", is_flag=True, default=False, help="Use soft gamma score")
-@click.option("--gamma_save_plots", type=str, help="Save gamma best alignment plots to the specified directory")
-@click.option(
-    "--gamma_handle_empty_annotations",
-    is_flag=True,
-    default=False,
-    help="Computes a modified gamma score that handles cases where annotations from one or both annotators are missing. Score is computed as 1 / (1 + ann_count), where ann_count is the number of annotations from the existing annotator.",
-)
-def compute_iaa(first_campaign, first_ann_group, second_campaign, second_ann_group, method, **args):
-    """Compute inter-annotator agreement between two annotator groups."""
-    from factgenie.workflows import load_campaign, generate_campaign_index
-    from factgenie import analysis
-
-    # Load campaigns
-    campaigns = generate_campaign_index(app, force_reload=True)
-
-    if first_campaign not in campaigns or second_campaign not in campaigns:
-        print("Campaign not found. Available campaigns:")
-        for c in campaigns:
-            print(f"  {c}")
-        return
-
-    first_camp = load_campaign(app, first_campaign)
-    second_camp = load_campaign(app, second_campaign)
-
-    # Get available annotator groups
-    first_groups = first_camp.db.annotator_group.unique()
-    second_groups = second_camp.db.annotator_group.unique()
-
-    if first_ann_group not in first_groups or second_ann_group not in second_groups:
-        print(f"Invalid annotator group. Available groups:")
-        print(f"Campaign {first_campaign}: {first_groups}")
-        print(f"Campaign {second_campaign}: {second_groups}")
-        return
-
-    # Find common examples
-    combinations = analysis.get_common_examples(first_camp.db, second_camp.db, first_ann_group, second_ann_group)
-
-    if not combinations:
-        print("No common examples found between the selected annotator groups")
-        return
-
-    selected_campaigns = [first_campaign, second_campaign]
-
-    dfs = analysis.compute_iaa_dfs(app, selected_campaigns, combinations, campaigns)
-
-    dataset_level_counts = dfs["dataset_level_counts"]
-    example_level_counts = dfs["example_level_counts"]
-    span_index = dfs["span_index"]
-
-    first_group_id = analysis.format_group_id(first_campaign, first_ann_group)
-    second_group_id = analysis.format_group_id(second_campaign, second_ann_group)
-
-    # filter the selected annotator groups
-    for df in [dataset_level_counts, example_level_counts, span_index]:
-        df = df[df["annotator_group_id"].isin([first_group_id, second_group_id])]
-        df.reset_index(drop=True, inplace=True)
-
-    if method == "ann_cnt_pearson":
-        # Compute Pearson correlation for both levels
-        for level, counts_df in [("example", example_level_counts), ("dataset", dataset_level_counts)]:
-            correlations = analysis.compute_pearson_r(counts_df, first_group_id, second_group_id)
-
-            print(f"\n{level.title()}-level correlations between {first_group_id} and {second_group_id}")
-            print("==============================================")
-            print(f"Micro Pearson-r: {correlations['micro']:.3f}")
-            print("==============================================")
-
-            for i, corr in enumerate(correlations["category_correlations"]):
-                print(f"Category {i}: {corr:.3f}")
-            print("----------------------------------------------")
-            print(f"Macro Pearson-r: {correlations['macro']:.3f}")
-            print("==============================================")
-
-    elif method == "gamma_score":
-        gamma = analysis.compute_gamma_score(
-            span_index,
-            example_level_counts,
-            alpha=args["gamma_score_alpha"],
-            beta=args["gamma_score_beta"],
-            delta_empty=args["gamma_score_delta"],
-            soft=args["gamma_score_soft"],
-            save_plots=args["gamma_save_plots"],
-        )
-
-        print("==============================================")
-        print(f"Gamma score: {gamma:.3f}")
-        print("==============================================")
+app.cli.add_command(iaa_cli)  # Register the iaa command group
+app.cli.add_command(stats_cli)  # Register the stats command group
 
 
 @app.cli.command("info")
@@ -289,12 +182,14 @@ def create_llm_campaign(
     campaign_id: str, dataset_ids: str, splits: str, setup_ids: str, mode: str, config_file: str, overwrite: bool
 ):
     """Create a new LLM campaign."""
-    import yaml
-    from slugify import slugify
-    from factgenie.workflows import load_campaign, get_sorted_campaign_list
-    from factgenie import workflows, llm_campaign
     from pathlib import Path
     from pprint import pprint as pp
+
+    import yaml
+    from slugify import slugify
+
+    from factgenie import llm_campaign, workflows
+    from factgenie.workflows import get_sorted_campaign_list, load_campaign
 
     if mode == CampaignMode.LLM_EVAL and not setup_ids:
         raise ValueError("The `setup_id` argument is required for llm_eval mode.")
@@ -372,9 +267,9 @@ def run_llm_campaign(campaign_id: str):
     """
     Run a LLM campaign by id.
     """
-    from factgenie.models import ModelFactory
     from factgenie import llm_campaign
     from factgenie.campaign import CampaignStatus
+    from factgenie.models import ModelFactory
     from factgenie.workflows import load_campaign
 
     # mockup object
@@ -427,10 +322,11 @@ def save_generated_outputs(campaign_id: str, setup_id: str):
 
 def setup_logging(config):
     import logging
-    import coloredlogs
     import os
     import re
     from datetime import datetime
+
+    import coloredlogs
 
     from factgenie import ROOT_DIR
 
@@ -472,15 +368,24 @@ def setup_logging(config):
 
 
 def create_app(**kwargs):
-    import yaml
+    import logging
     import os
     import shutil
-    import logging
-    import factgenie.workflows as workflows
-    from apscheduler.schedulers.background import BackgroundScheduler
     from datetime import datetime
+
+    import yaml
+    from apscheduler.schedulers.background import BackgroundScheduler
+
+    import factgenie.workflows as workflows
+    from factgenie import (
+        CAMPAIGN_DIR,
+        INPUT_DIR,
+        MAIN_CONFIG_PATH,
+        MAIN_CONFIG_TEMPLATE_PATH,
+        OUTPUT_DIR,
+        ROOT_DIR,
+    )
     from factgenie.utils import check_login
-    from factgenie import ROOT_DIR, MAIN_CONFIG_PATH, MAIN_CONFIG_TEMPLATE_PATH, CAMPAIGN_DIR, INPUT_DIR, OUTPUT_DIR
 
     if not MAIN_CONFIG_PATH.exists():
         print("Activating the default configuration.")

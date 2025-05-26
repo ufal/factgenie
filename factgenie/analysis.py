@@ -1,18 +1,14 @@
 #!/usr/bin/env python3
 
-import os
-import pandas as pd
-import sys
 import logging
+import os
+import sys
 import traceback
-import zipfile
-import factgenie.workflows as workflows
-import pygamma_agreement as pa
-import numpy as np
 from collections import defaultdict
-from scipy.stats import pearsonr
-from tqdm import tqdm
-from pyannote.core import Segment
+
+import pandas as pd
+
+import factgenie.workflows as workflows
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -252,92 +248,6 @@ def compute_statistics(app, campaign):
     return statistics
 
 
-def compute_span_counts(example_index, combinations):
-    # create a list for span counts from each annotator (do this separately for each error category)
-    dataset_level_counts = []
-    example_level_counts = []
-
-    for dataset, split, setup_id in combinations:
-        example_index_subset = example_index[
-            (example_index["dataset"] == dataset)
-            & (example_index["split"] == split)
-            & (example_index["setup_id"] == setup_id)
-        ]
-
-        cat_columns = [x for x in example_index_subset.columns if x.startswith("cat_")]
-
-        for i, row in example_index_subset.iterrows():
-            for cat in cat_columns:
-                # if there are less than 2 annotators, skip this example and print warning
-                if len(row["annotator_group_id"]) < 2:
-                    logger.warning(
-                        f"Skipping example {dataset}/{split}/{setup_id}/{row['example_idx']} as it has less than 2 annotators."
-                    )
-                    continue
-                for cat_count, ann_group in zip(row[cat], row["annotator_group_id"]):
-                    example_level_counts.append(
-                        {
-                            "dataset": dataset,
-                            "split": split,
-                            "setup_id": setup_id,
-                            "example_idx": row["example_idx"],
-                            "annotator_group_id": ann_group,
-                            "annotation_type": cat.split("_")[1],
-                            "count": cat_count,
-                        }
-                    )
-
-    example_level_counts = pd.DataFrame(example_level_counts)
-
-    # average counts for each (dataset, split, setup_id)
-    dataset_level_counts = (
-        example_level_counts.groupby(["dataset", "split", "setup_id", "annotation_type", "annotator_group_id"])
-        .agg({"count": "mean"})
-        .reset_index()
-    )
-
-    return dataset_level_counts, example_level_counts
-
-
-def prepare_example_index(app, combinations, selected_campaigns, campaigns):
-    # gather a list of all examples with some annotations
-    example_index = pd.DataFrame()
-
-    # deduplicate
-    selected_campaigns = list(set(selected_campaigns))
-
-    for campaign_id in selected_campaigns:
-        campaign = campaigns[campaign_id]
-
-        ei = generate_example_index(app, campaign)
-        example_index = pd.concat([example_index, ei], ignore_index=True)
-
-    # a combination is a tuple (dataset, split, setup_id)
-    # leave only examples in example_index that are in the combinations selected by the user
-    example_index = example_index[
-        example_index.apply(lambda x: (x["dataset"], x["split"], x["setup_id"]) in combinations, axis=1)
-    ]
-
-    # add a column "annotator_group_id" to example_index, concatenating the campaign_id with str(annotator_group)
-    # apply it separately for each row
-    example_index["annotator_group_id"] = example_index.apply(
-        lambda x: format_group_id(x["campaign_id"], str(x["annotator_group"])), axis=1
-    )
-
-    # group examples by dataset, split, setup_id, example_idx
-    # aggregate annotations, annotator_ids, and counts for each category into a list
-    aggregations = {"annotations": list, "annotator_group_id": list}
-    cat_columns = [x for x in example_index.columns if x.startswith("cat_")]
-
-    for c in cat_columns:
-        aggregations[c] = list
-
-    example_index = (
-        example_index.groupby(["dataset", "split", "setup_id", "example_idx"]).agg(aggregations).reset_index()
-    )
-    return example_index
-
-
 def compute_span_index(app, selected_campaigns, campaigns, combinations=None):
     span_index = []
 
@@ -351,6 +261,8 @@ def compute_span_index(app, selected_campaigns, campaigns, combinations=None):
         if combinations:
             df = df[df.apply(lambda x: (x["dataset"], x["split"], x["setup_id"]) in combinations, axis=1)]
 
+        # Make sure that annotation_start is an integer
+        df["annotation_start"] = df["annotation_start"].astype(int)
         df["annotation_end"] = df["annotation_start"] + df["annotation_text"].str.len()
         df["annotator_group_id"] = df.apply(
             lambda x: format_group_id(x["campaign_id"], str(x["annotator_group"])), axis=1
@@ -376,59 +288,39 @@ def compute_span_index(app, selected_campaigns, campaigns, combinations=None):
     existing_columns = [col for col in columns_to_drop if col in span_index.columns]
     span_index = span_index.drop(columns=existing_columns)
 
+    span_index["annotator_group"] = span_index["annotator_group"].astype(int)
+
     return span_index
 
 
-def compute_iaa_dfs(app, selected_campaigns, combinations, campaigns):
-    example_index = prepare_example_index(
-        app, combinations=combinations, selected_campaigns=selected_campaigns, campaigns=campaigns
-    )
-    dataset_level_counts, example_level_counts = compute_span_counts(
-        example_index=example_index, combinations=combinations
-    )
+def assert_common_categories(campaign_ids, campaign_index):
+    """Verify that all campaigns share the same annotation categories."""
+    common_category_names = None
 
-    span_index = compute_span_index(app, selected_campaigns, campaigns, combinations=combinations)
+    for campaign_id in campaign_ids:
+        campaign = campaign_index[campaign_id]
+        categories = campaign.metadata["config"]["annotation_span_categories"]
+        category_names = [category["name"] for category in categories]
 
-    results = {
-        "dataset_level_counts": dataset_level_counts,
-        "example_level_counts": example_level_counts,
-        "span_index": span_index,
-    }
-    return results
+        if common_category_names is None:
+            common_category_names = category_names
+        elif common_category_names != category_names:
+            logger.error(
+                f"Annotation span categories do not match across campaigns: {common_category_names} vs {category_names}"
+            )
+            return False
 
-
-def generate_iaa_files(app, selected_campaigns, combinations, campaigns, temp_dir):
-    combinations = [(c["dataset"], c["split"], c["setup_id"]) for c in combinations]
-
-    results = compute_iaa_dfs(app, selected_campaigns, combinations, campaigns)
-
-    # Save each dataframe as CSV
-    for name, df in results.items():
-        csv_path = os.path.join(temp_dir, f"{name}.csv")
-
-        # set precision of the `count` column to 3 decimal places
-        if "count" in df.columns:
-            df["count"] = df["count"].round(3)
-
-        df.to_csv(csv_path, index=False)
-
-    # Create ZIP file
-    zip_path = os.path.join(temp_dir, "agreement_results.zip")
-    with zipfile.ZipFile(zip_path, "w") as zipf:
-        for name in results.keys():
-            csv_path = os.path.join(temp_dir, f"{name}.csv")
-            zipf.write(csv_path, os.path.basename(csv_path))
-
-    return zip_path
+    category_list = ", ".join([f"{i}: {category_name}" for i, category_name in enumerate(common_category_names)])
+    logger.info(f"Categories: {category_list}")
+    return True
 
 
 def format_group_id(campaign_id, group):
     """Format annotator group ID."""
+    if group is None:
+        return f"{campaign_id}-anngroup-all"
+
     return f"{campaign_id}-anngroup-{group}"
-
-
-# --------------------------------------------------------------
-# the following methods are used only in CLI for now
 
 
 def get_common_examples(first_campaign_data, second_campaign_data, first_group=None, second_group=None):
@@ -463,126 +355,114 @@ def get_common_examples(first_campaign_data, second_campaign_data, first_group=N
     return list(map(tuple, common.values))
 
 
-def compute_pearson_r(df, group1, group2):
-    """Compute Pearson correlation between two annotator groups."""
-    group1_data = df[df["annotator_group_id"] == group1]
-    group2_data = df[df["annotator_group_id"] == group2]
+def get_ref_hyp_spans(span_index, annotator_groups):
+    """Get reference and hypothesis spans for a set of spans."""
+    # Unpack annotator groups
+    ref_camp_id, ref_group = annotator_groups[0]
+    hyp_camp_id, hyp_group = annotator_groups[1]
 
-    group1_counts = list(group1_data["count"])
-    group2_counts = list(group2_data["count"])
+    # Get reference and hypothesis spans for this example
+    ref_spans = span_index[
+        (span_index["campaign_id"] == ref_camp_id)
+        & (span_index["annotator_group"] == ref_group if ref_group is not None else True)
+    ]
+    hyp_spans = span_index[
+        (span_index["campaign_id"] == hyp_camp_id)
+        & (span_index["annotator_group"] == hyp_group if hyp_group is not None else True)
+    ]
 
-    # Micro correlation - correlation of counts
-    micro_corr = pearsonr(group1_counts, group2_counts)[0]
-
-    # Macro correlation - average of per-type correlations
-    type_corrs = []
-    for ann_type in df["annotation_type"].unique():
-        g1_type = list(group1_data[group1_data["annotation_type"] == ann_type]["count"])
-        g2_type = list(group2_data[group2_data["annotation_type"] == ann_type]["count"])
-
-        type_corrs.append(pearsonr(g1_type, g2_type)[0])
-
-    return {"micro": micro_corr, "macro": np.mean(type_corrs), "category_correlations": type_corrs}
+    return ref_spans, hyp_spans
 
 
-# `alpha`: coefficient weighting the *positional* dissimilarity value, defaults to 1
-# `beta`: coefficient weighting the *categorical* dissimilarity value, defaults to 1
-# `delta_empty`: empty dissimilarity value, defaults to 1
-def compute_gamma_score(span_index, example_level_counts, alpha, beta, delta_empty, soft, save_plots):
-    dissim = pa.CombinedCategoricalDissimilarity(alpha=alpha, beta=beta, delta_empty=delta_empty)
+def get_example_list(
+    campaign_index, annotator_groups, include_dataset=None, include_split=None, include_example_id=None
+):
+    """
+    Get list of examples to consider for gamma score computation.
 
-    gamma_scores = []
-    s_empty_scores = []
-    running_avg = 0
+    Args:
+        campaign_index: Dictionary mapping campaign_id to campaign object
+        annotator_groups: List of tuples (campaign_id, ann_group)
+        include_dataset: List of dataset IDs to include (None means include all)
+        include_split: List of splits to include (None means include all)
+        include_example_id: List of example IDs to include (None means include all)
 
-    # Group by same fields as in example_level_counts
-    examples = example_level_counts.groupby(["dataset", "split", "setup_id", "example_idx"])
+    Returns:
+        DataFrame with columns dataset, split, setup_id, example_idx
+    """
+    all_examples = []
 
-    # Create progress bar
-    pbar = tqdm(total=len(examples), desc="Computing gamma score")
+    # Collect examples from each campaign and annotator group
+    for campaign_id, ann_group in annotator_groups:
+        campaign = campaign_index[campaign_id]
+        campaign_examples = campaign.db.copy()
 
-    if save_plots:
-        import matplotlib.pyplot as plt
+        # Filter by annotator group if specified
+        if ann_group is not None:
+            campaign_examples = campaign_examples[campaign_examples["annotator_group"] == ann_group]
 
-        ntb = pa.notebook.Notebook()
-        os.makedirs(save_plots, exist_ok=True)
+        # Filter examples with finished status
+        campaign_examples = campaign_examples[campaign_examples["status"] == "finished"]
 
-    for (dataset, split, setup_id, example_idx), example_group in examples:
-        # Get corresponding spans for this example
-        example_spans = span_index[
-            (span_index["dataset"] == dataset)
-            & (span_index["split"] == split)
-            & (span_index["setup_id"] == setup_id)
-            & (span_index["example_idx"] == example_idx)
-        ]
+        # Filter by datasets if specified
+        if include_dataset:
+            campaign_examples = campaign_examples[campaign_examples["dataset"].isin(include_dataset)]
 
-        # Remove empty segments
-        example_spans = example_spans[example_spans["annotation_start"] != example_spans["annotation_end"]]
+        # Filter by splits if specified
+        if include_split:
+            campaign_examples = campaign_examples[campaign_examples["split"].isin(include_split)]
 
-        # Check number of unique annotator groups
-        unique_annotators = example_spans["annotator_group_id"].unique()
+        # Filter by example_ids if specified
+        if include_example_id:
+            campaign_examples = campaign_examples[campaign_examples["example_idx"].isin(include_example_id)]
 
-        if len(unique_annotators) < 2:
-            # One or both annotators did not add any annotation
-            # Compute s_empty score as 1 / (1 + annotation_cnt)
-            ann_count = example_spans.shape[0]
-            s_empty_score = 1 / (1 + ann_count)
-            s_empty_scores.append(s_empty_score)
-            pbar.update(1)
-            continue
-        else:
-            # Add each annotation to continuum
-            continuum = pa.Continuum()
+        # Check for multiple groups annotating the same examples
+        if (
+            ann_group is None
+            and campaign_examples.duplicated(subset=["dataset", "split", "setup_id", "example_idx"], keep=False).any()
+        ):
+            logger.warning(
+                f"Warning: Campaign {campaign_id} has multiple groups annotating the same example(s) and no annotator groups are specified. This may mix outputs from different annotators, potentially affecting metrics."
+            )
 
-            for _, row in example_spans.iterrows():
-                continuum.add(
-                    str(row["annotator_group_id"]),
-                    Segment(row["annotation_start"], row["annotation_end"]),
-                    str(row["annotation_type"]),
-                )
+        # Keep only relevant columns
+        campaign_examples = campaign_examples[["annotator_group", "dataset", "split", "setup_id", "example_idx"]]
+        campaign_examples["campaign_id"] = campaign_id
 
-        # Compute gamma score
-        logging.getLogger().setLevel(logging.WARNING)
-        try:
-            np.random.seed(42)
+        # Add to the list of all examples
+        all_examples.append(campaign_examples)
 
-            gamma_results = continuum.compute_gamma(dissim, soft=soft)
-            gamma_scores.append(gamma_results.gamma)
+    # Combine all example sets
+    if not all_examples:
+        return pd.DataFrame(columns=["dataset", "split", "setup_id", "example_idx"])
 
-            if save_plots:
-                fig, ax = plt.subplots(figsize=(10, 2))
-                ntb.plot_alignment(gamma_results.best_alignment, ax)
-                plt.tight_layout()
+    combined_examples = pd.concat(all_examples, ignore_index=True)
 
-                # Save the plot
-                plt.savefig(
-                    os.path.join(save_plots, f"{dataset}_{split}_{setup_id}_{example_idx}.png"),
-                    dpi=300,
-                    bbox_inches="tight",
-                )
-                plt.close(fig)
+    # Filter examples: keep only those that are annotated by ALL given annotator groups.
+    # An annotator group is defined as a (campaign_id, annotator_group) tuple.
+    # If annotator_group is None, any example from that campaign is acceptable.
+    def is_annotated_by_all_groups(group):
+        for camp, req_group in annotator_groups:
+            if req_group is None:
+                if camp not in group["campaign_id"].values:
+                    return False
+            else:
+                if not (((group["campaign_id"] == camp) & (group["annotator_group"] == req_group)).any()):
+                    return False
+        return True
 
-        except Exception as e:
-            traceback.print_exc()
-            print(f"Error computing gamma for example {dataset}/{split}/{setup_id}/{example_idx}: {e}")
-            gamma_scores.append(0.0)
+    # Group by the identifying columns and filter accordingly
+    groups = combined_examples.groupby(["dataset", "split", "setup_id", "example_idx"])
+    valid_keys = [key for key, group in groups if is_annotated_by_all_groups(group)]
 
-            logging.getLogger().setLevel(logging.INFO)
+    # Create a DataFrame from the valid example keys
+    filtered_examples = pd.DataFrame(valid_keys, columns=["dataset", "split", "setup_id", "example_idx"])
 
-        running_avg = np.mean(gamma_scores)
-        pbar.set_postfix({"avg_gamma": f"{running_avg:.3f}"})
-        pbar.update(1)
+    # Report number of examples skipped
+    total_unique = groups.ngroups
+    skipped = total_unique - filtered_examples.shape[0]
 
-    pbar.close()
+    if skipped > 0:
+        logger.info(f"Skipped {skipped} examples not annotated by all required groups.")
 
-    gamma_score = float(np.mean(gamma_scores)) if gamma_scores else 0.0
-    s_empty_score = float(np.mean(s_empty_scores)) if s_empty_scores else 0.0
-
-    out = {
-        "gamma": gamma_score,
-        "s_empty": s_empty_score,
-    }
-    return out
-
-
-# --------------------------------------------------------------
+    return filtered_examples

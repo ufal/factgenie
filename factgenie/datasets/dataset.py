@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
-import logging
-import requests
-import json
-import os
-import zipfile
 import importlib
 import inspect
-
-
-from pathlib import Path
-from collections import defaultdict
-from slugify import slugify
+import json
+import logging
+import os
+import zipfile
 from abc import ABC, abstractmethod
+from collections import defaultdict
+from pathlib import Path
+
+import requests
+from slugify import slugify
 
 from factgenie import INPUT_DIR, OUTPUT_DIR
 
@@ -48,14 +47,10 @@ class Dataset(ABC):
         self.splits = kwargs.get("splits", ["train", "dev", "test"])
         self.description = kwargs.get("description", "")
 
-        # load data
-        self.examples = {}
-
-        for split in self.splits:
-            examples = self.load_examples(split=split, data_path=self.data_path)
-            examples = self.postprocess_data(examples=examples)
-
-            self.examples[split] = examples
+        # Initialize placeholder for examples, to be loaded lazily
+        # self.examples will store the actual loaded data for each split,
+        # initially None.
+        self.examples = {split: None for split in self.splits}
 
     # --------------------------------
     # TODO: implement in subclasses
@@ -138,14 +133,25 @@ class Dataset(ABC):
     # end TODO
     # --------------------------------
 
+    def _ensure_split_loaded(self, split):
+        """Ensures data for the given split is loaded."""
+        if split not in self.splits:
+            raise ValueError(f"Split '{split}' is not configured for this dataset. Available splits: {self.splits}")
+
+        if self.examples.get(split) is None:
+            examples_for_split = self.load_examples(split=split, data_path=self.data_path)
+            # Assumes postprocess_data takes a list of examples for one split
+            # and returns a list of postprocessed examples for that split.
+            self.examples[split] = self.postprocess_data(examples=examples_for_split)
+
     def postprocess_data(self, examples):
         """
         Postprocess the data after loading.
 
         Parameters
         ----------
-        examples : dict
-            Dictionary with a list of examples for each split, e.g. {"train": [ex1, ex2, ...], "test": [ex1, ex2, ...]}.
+        examples : list
+            List of examples for a single split.
         """
         return examples
 
@@ -153,18 +159,31 @@ class Dataset(ABC):
         """
         Get the example at the given index for the given split.
         """
-        example = self.examples[split][example_idx]
-
-        return example
+        self._ensure_split_loaded(split)
+        if self.examples[split] is None:
+            # This case implies load_examples or postprocess_data returned None
+            # for a valid split, which might indicate an issue or an intentionally empty split.
+            raise IndexError(f"Examples for split '{split}' are None, cannot retrieve index {example_idx}.")
+        return self.examples[split][example_idx]
 
     def get_example_count(self, split=None):
         """
         Get the number of examples in the dataset.
         """
         if split is None:
-            return sum([len(exs) for exs in self.examples.values()])
-
-        return len(self.examples[split])
+            total_count = 0
+            for s_key in self.splits:  # Iterate over configured splits
+                self._ensure_split_loaded(s_key)
+                if self.examples[s_key] is not None:
+                    total_count += len(self.examples[s_key])
+            return total_count
+        else:
+            if split not in self.splits:
+                raise ValueError(f"Split '{split}' is not configured for this dataset. Available splits: {self.splits}")
+            self._ensure_split_loaded(split)
+            if self.examples[split] is not None:
+                return len(self.examples[split])
+            return 0  # Count is 0 if examples for the split are None or empty after loading
 
     def get_splits(self):
         """

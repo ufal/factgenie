@@ -1,42 +1,40 @@
 #!/usr/bin/env python3
-import os
 import datetime
-import json
-import time
-import logging
-import pandas as pd
-import time
-import traceback
-import yaml
-import shutil
 import importlib
-import zipfile
-import traceback
+import json
+import logging
+import os
+import shutil
 import tempfile
-import factgenie.utils as utils
-
-from io import BytesIO
-from slugify import slugify
-from flask import make_response
+import time
+import traceback
+import zipfile
 from collections import defaultdict
+from io import BytesIO
 from pathlib import Path
-from factgenie.campaign import (
-    HumanCampaign,
-    LLMCampaignEval,
-    ExternalCampaign,
-    LLMCampaignGen,
-    CampaignMode,
-    CampaignStatus,
-    ExampleStatus,
-)
 
+import pandas as pd
+import yaml
+from flask import make_response
+from slugify import slugify
+
+import factgenie.utils as utils
 from factgenie import (
     CAMPAIGN_DIR,
-    OUTPUT_DIR,
+    CROWDSOURCING_CONFIG_DIR,
     INPUT_DIR,
     LLM_EVAL_CONFIG_DIR,
     LLM_GEN_CONFIG_DIR,
-    CROWDSOURCING_CONFIG_DIR,
+    OUTPUT_DIR,
+)
+from factgenie.campaign import (
+    CampaignMode,
+    CampaignStatus,
+    ExampleStatus,
+    ExternalCampaign,
+    HumanCampaign,
+    LLMCampaignEval,
+    LLMCampaignGen,
 )
 
 logger = logging.getLogger("factgenie")
@@ -157,7 +155,8 @@ def generate_campaign_index(app, force_reload=True):
         if not campaign_dir.is_dir():
             continue
         try:
-            metadata = json.load(open(campaign_dir / "metadata.json"))
+            with open(campaign_dir / "metadata.json") as f:
+                metadata = json.load(f)
             mode = metadata["mode"]
             campaign_id = slugify(metadata["id"])
             existing_campaign_ids.add(campaign_id)
@@ -200,47 +199,47 @@ def load_annotations_from_file(file_path, metadata):
     return annotations_campaign
 
 
-def create_annotation_example_record(j, jsonl_file, metadata):
+def create_annotation_example_record(jsonl_line, jsonl_file, metadata):
     # campaign metadata can be overwritten by annotation metadata
     ann_metadata = metadata["config"].copy()
     ann_metadata["campaign_id"] = metadata["id"]
-    if "metadata" in j:
-        ann_metadata.update(j["metadata"])
+    if "metadata" in jsonl_line:
+        ann_metadata.update(jsonl_line["metadata"])
 
     return {
         "annotation_span_categories": ann_metadata["annotation_span_categories"],
         "annotator_id": ann_metadata.get("annotator_id"),
-        "annotator_group": int(ann_metadata.get("annotator_group", 0)),
-        "annotation_granularity": ann_metadata.get("annotation_granularity", "words"),
-        "annotation_overlap_allowed": ann_metadata.get("annotation_overlap_allowed", False),
+        "annotator_group": ann_metadata.get("annotator_group"),
+        "annotation_granularity": ann_metadata.get("annotation_granularity"),
+        "annotation_overlap_allowed": ann_metadata.get("annotation_overlap_allowed"),
         "campaign_id": slugify(ann_metadata["campaign_id"]),
-        "dataset": slugify(j["dataset"]),
-        "example_idx": int(j["example_idx"]),
-        "setup_id": slugify(j["setup_id"]),
-        "split": slugify(j["split"]),
-        "flags": j.get("flags", []),
-        "options": j.get("options", []),
-        "sliders": j.get("sliders", []),
-        "text_fields": j.get("text_fields", []),
+        "dataset": slugify(jsonl_line["dataset"]),
+        "example_idx": int(jsonl_line["example_idx"]),
+        "setup_id": slugify(jsonl_line["setup_id"]),
+        "split": slugify(jsonl_line["split"]),
+        "flags": jsonl_line.get("flags", []),
+        "options": jsonl_line.get("options", []),
+        "sliders": jsonl_line.get("sliders", []),
+        "text_fields": jsonl_line.get("text_fields", []),
         "jsonl_file": jsonl_file,
     }
 
 
 def load_annotations_from_record(line, jsonl_file, metadata, split_spans=False):
-    j = json.loads(line)
+    jsonl_line = json.loads(line)
     annotation_records = []
 
-    record = create_annotation_example_record(j, jsonl_file, metadata)
+    record = create_annotation_example_record(jsonl_line, jsonl_file, metadata)
 
     if split_spans:
-        for annotation in j["annotations"]:
+        for annotation in jsonl_line["annotations"]:
             record["annotation_type"] = int(annotation["type"])
             record["annotation_start"] = annotation["start"]
             record["annotation_text"] = annotation["text"]
 
             annotation_records.append(record.copy())
     else:
-        record["annotations"] = j["annotations"]
+        record["annotations"] = jsonl_line["annotations"]
         annotation_records.append(record)
 
     return annotation_records

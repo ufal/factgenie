@@ -19,12 +19,13 @@ install_requires = [
     "requests>=2.32.3",
     "scipy>=1.14.1",
     "tinyhtml>=1.2.0",
-    "litellm>=1.59.8",
+    "litellm>=1.70.0",
     "pydantic>=2.10.6",
     "google-api-python-client>=2.16.0",
     "google-cloud-aiplatform>=1.38",
     "pygamma-agreement==0.5.9",
     "matplotlib>=3.10.0",
+    "tabulate>=0.9.0",
     "tenacity>=9.0.0",
 ]
 

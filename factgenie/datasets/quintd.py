@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-import logging
-import requests
 import json
+import logging
+import os
 import traceback
 import zipfile
-import os
+from pathlib import Path
+
+import requests
 from slugify import slugify
+
 from factgenie.datasets.dataset import Dataset
 from factgenie.utils import resumable_download
-from pathlib import Path
 
 logger = logging.getLogger("factgenie")
 

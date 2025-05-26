@@ -2,16 +2,17 @@
 
 import datetime
 import json
-import shutil
-import random
-import time
 import logging
-import pandas as pd
 import os
-import markdown
+import random
+import shutil
+import time
 
+import markdown
+import pandas as pd
 from flask import jsonify
 from jinja2 import Template
+
 import factgenie.utils as utils
 import factgenie.workflows as workflows
 from factgenie import CAMPAIGN_DIR, PREVIEW_STUDY_ID, TEMPLATES_DIR
