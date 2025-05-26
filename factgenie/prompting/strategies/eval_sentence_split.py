@@ -1,8 +1,8 @@
 import logging
 
 from factgenie.annotations import AnnotationModelFactory
-from factgenie.prompting.strategies import register_llm_eval, SequentialStrategy
 from factgenie.prompting import transforms as t
+from factgenie.prompting.strategies import SequentialStrategy, register_llm_eval
 
 logger = logging.getLogger("factgenie")
 
@@ -38,7 +38,6 @@ class SentenceSplitAnnotationStrategy(SequentialStrategy):
                 annotation_overlap_allowed,
                 output_validation_model,
             ),
-
             # Metadata.
             t.Metadata([PROMPT]),
         ]
