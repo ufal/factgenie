@@ -371,7 +371,7 @@ def get_annotator_batch(app, campaign, service_ids, batch_idx=None):
     return annotator_batch
 
 
-def save_annotations(app, campaign_id, annotation_set, annotator_id):
+def save_annotations(app, campaign_id, annotation_set, annotator_id, is_backup_import=False):
     now = int(time.time())
 
     save_dir = os.path.join(CAMPAIGN_DIR, campaign_id, "files")
@@ -386,13 +386,15 @@ def save_annotations(app, campaign_id, annotation_set, annotator_id):
         mask = db["batch_idx"] == batch_idx
 
         # if the batch is not assigned to this annotator, return an error
-        batch_annotator_id = db.loc[mask].iloc[0]["annotator_id"]
+        # Skip this check for backup imports (administrators can override)
+        if not is_backup_import:
+            batch_annotator_id = db.loc[mask].iloc[0]["annotator_id"]
 
-        if batch_annotator_id != annotator_id and annotator_id != PREVIEW_STUDY_ID:
-            logger.info(
-                f"Annotations rejected: batch {batch_idx} in {campaign_id} not assigned to annotator {annotator_id}"
-            )
-            return utils.error(f"Batch not assigned to annotator {annotator_id}")
+            if batch_annotator_id != annotator_id and annotator_id != PREVIEW_STUDY_ID:
+                logger.info(
+                    f"Annotations rejected: batch {batch_idx} in {campaign_id} not assigned to annotator {annotator_id}"
+                )
+                return utils.error(f"Batch not assigned to annotator {annotator_id}")
 
         # update the db
         db.loc[mask, "status"] = ExampleStatus.FINISHED
@@ -434,7 +436,9 @@ def save_annotations(app, campaign_id, annotation_set, annotator_id):
                 row=row,
                 result=res,
             )
-        logger.info(f"Annotations for {campaign_id} (batch {batch_idx}, annotator {annotator_id}) saved.")
+        logger.info(
+            f"Annotations for {campaign_id} (batch {batch_idx}, annotator {annotator_id}) saved{' from backup import' if is_backup_import else ''}."
+        )
 
     final_message_html = markdown.markdown(campaign.metadata["config"]["final_message"])
 

@@ -16,7 +16,6 @@ from flask import (
     redirect,
     render_template,
     request,
-    send_file,
     send_from_directory,
 )
 from slugify import slugify
@@ -834,3 +833,53 @@ def upload_model_outputs():
         return utils.error(f"Error while adding model outputs: {e}")
 
     return utils.success()
+
+
+@app.route("/import_annotations", methods=["POST"])
+@login_required
+def import_annotations():
+    """
+    Process uploaded backup file
+    """
+    try:
+        file = request.files["backup_file"]
+        # Validate file type
+        if not file.filename.endswith(".json"):
+            return utils.error("Invalid file type. Only JSON backup files are allowed.")
+
+        # Read and parse the backup file
+        try:
+            backup_data = json.loads(file.read().decode("utf-8"))
+        except json.JSONDecodeError as e:
+            return utils.error(f"Invalid JSON format: {str(e)}")
+
+        # Validate backup data structure
+        required_fields = ["campaign_id", "annotator_id", "annotation_set", "timestamp"]
+        missing_fields = [field for field in required_fields if field not in backup_data]
+        if missing_fields:
+            return utils.error(f'Invalid backup file format. Missing fields: {", ".join(missing_fields)}')
+
+        # Extract data from backup
+        campaign_id = backup_data["campaign_id"]
+        annotator_id = backup_data["annotator_id"]
+        annotation_set = backup_data["annotation_set"]
+        timestamp = backup_data["timestamp"]
+
+        # Log the import attempt
+        logger.info(f"Importing annotations for campaign {campaign_id} by {annotator_id} from backup dated {timestamp}")
+
+        # Attempt to save the annotations using the existing save function
+        result = crowdsourcing.save_annotations(app, campaign_id, annotation_set, annotator_id, is_backup_import=True)
+
+        if result.json.get("success"):
+            logger.info(f"Successfully imported backup annotations for {campaign_id}/{annotator_id}")
+        else:
+            error_msg = result.get("message")
+            logger.error(f"Failed to import backup annotations: {error_msg}")
+
+    except Exception as e:
+        logger.exception(f"Error importing annotations: {str(e)}")
+
+    return utils.success(
+        message=f"Backup annotations for campaign {campaign_id} by {annotator_id} imported successfully."
+    )

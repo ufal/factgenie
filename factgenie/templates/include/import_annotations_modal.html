@@ -1,0 +1,154 @@
+<div class="modal fade" id="import-annotations-modal" tabindex="-1" aria-labelledby="importAnnotationsModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importAnnotationsModalLabel">Import annotation backup</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Import annotation backup files from annotators who experienced submission
+                    failures.</p>
+
+                <!-- Upload Form -->
+                <form method="POST" enctype="multipart/form-data" id="upload-form"
+                    action="{{ host_prefix }}/import_annotations">
+                    <div class="mb-3">
+                        <label for="backup_file" class="form-label">
+                            <strong>Backup File</strong>
+                        </label>
+                        <input type="file" class="form-control" id="backup_file" name="backup_file" accept=".json"
+                            required>
+                        <div class="form-text">
+                            Select a JSON backup file downloaded by an annotator after a submission failure.
+                        </div>
+                    </div>
+                    <!-- File Preview (populated by JavaScript) -->
+                    <div id="file-preview" style="display: none;">
+                        <h6>File info</h6>
+                        <div class="card">
+                            <div class="card-body">
+                                <div id="preview-content"></div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="submit-btn" form="upload-form">
+                    <i class="fa fa-upload"></i> Import annotations
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modal = document.getElementById('import-annotations-modal');
+        const fileInput = document.getElementById('backup_file');
+        const filePreview = document.getElementById('file-preview');
+        const previewContent = document.getElementById('preview-content');
+        const submitBtn = document.getElementById('submit-btn');
+        const form = document.getElementById('upload-form');
+        const thisCampaignId = "{{ campaign_id }}";
+
+        // Reset form when modal is closed
+        modal.addEventListener('hidden.bs.modal', function () {
+            form.reset();
+            filePreview.style.display = 'none';
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa fa-upload"></i> Import annotations';
+
+            // Clear any alerts
+            const existingAlerts = modal.querySelectorAll('.alert');
+            existingAlerts.forEach(alert => alert.remove());
+        });
+
+        fileInput.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file && file.type === 'application/json') {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    try {
+                        const backupData = JSON.parse(e.target.result);
+
+                        // Validate required fields
+                        const requiredFields = ['campaign_id', 'annotator_id', 'annotation_set', 'timestamp'];
+                        const missingFields = requiredFields.filter(field => !backupData[field]);
+
+                        if (missingFields.length > 0) {
+                            previewContent.innerHTML = `
+                            <div class="alert alert-danger">
+                                <strong>Invalid backup file:</strong> Missing required fields: ${missingFields.join(', ')}
+                            </div>
+                        `;
+                            submitBtn.disabled = true;
+                        } else if (backupData.campaign_id !== thisCampaignId) {
+                            previewContent.innerHTML = `
+                            <div class="alert alert-danger">
+                                <strong>Invalid backup file:</strong> This backup belongs to a different campaign (ID: ${backupData.campaign_id}).
+                            </div>
+                        `;
+                            submitBtn.disabled = true;
+                        } else {
+                            // Show preview
+                            const metadata = backupData.metadata || {};
+                            previewContent.innerHTML = `
+                            <table class="table table-sm">
+                                <tr><th>Campaign ID:</th><td>${backupData.campaign_id}</td></tr>
+                                <tr><th>Annotator ID:</th><td>${backupData.annotator_id}</td></tr>
+                                <tr><th>Backup Date:</th><td>${new Date(backupData.timestamp).toLocaleString()}</td></tr>
+                                <tr><th>Total Examples:</th><td>${backupData.annotation_set.length}</td></tr>
+                                <tr><th>File Size:</th><td>${(file.size / 1024).toFixed(1)} KB</td></tr>
+                            </table>
+                        `;
+                            submitBtn.disabled = false;
+                        }
+
+                        filePreview.style.display = 'block';
+                    } catch (error) {
+                        previewContent.innerHTML = `
+                        <div class="alert alert-danger">
+                            <strong>Invalid JSON file:</strong> ${error.message}
+                        </div>
+                    `;
+                        submitBtn.disabled = true;
+                        filePreview.style.display = 'block';
+                    }
+                };
+                reader.readAsText(file);
+            } else {
+                filePreview.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault(); // Prevent default form submission
+
+            submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Importing...';
+            submitBtn.disabled = true;
+
+            // Create FormData for AJAX submission
+            const formData = new FormData(form);
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => {
+                    if (response.ok) {
+                        // Close the modal immediately on successful response
+                        const modalInstance = bootstrap.Modal.getInstance(modal);
+                        modalInstance.hide();
+                        // Refresh the page or update the UI to reflect the new annotations
+                        window.location.reload();
+                    } else {
+                        throw new Error(`Server error: ${response.status}`);
+                    }
+                })
+        });
+    });
+</script>

@@ -320,32 +320,126 @@ function saveCurrentAnnotations(example_idx) {
 }
 
 function submitAnnotations(campaign_id) {
+    // Save to local storage before attempting submission
+    saveAnnotationsToLocalStorage();
+
+    const submissionData = {
+        campaign_id: metadata.id,
+        annotator_id: annotator_id,
+        annotation_set: annotation_set
+    };
+
+    $("#submit-annotations-btn").prop("disabled", true).text("Submitting...");
+
     $.post({
         url: `${url_prefix}/submit_annotations`,
-        contentType: 'application/json', // Specify JSON content type
-        data: JSON.stringify({
-            campaign_id: metadata.id,
-            annotator_id: annotator_id,
-            annotation_set: annotation_set
-        }
-        ),
+        contentType: 'application/json',
+        data: JSON.stringify(submissionData),
+        timeout: 30000, // 30 second timeout
         success: function (response) {
             console.log(response);
             window.onbeforeunload = null;
 
+            // Clear local storage backup on successful submission
+            clearAnnotationsFromLocalStorage();
+
             if (response.success !== true) {
-                $("#error-message").html(response.error);
-                $("#overlay-fail").show();
+                handleSubmissionError(response.error, submissionData);
             } else {
                 $("#final-message").html(response.message);
                 $("#overlay-end").show();
             }
         },
-        error: function (response) {
-            console.log(response);
-            $("#overlay-fail").show();
+        error: function (xhr, textStatus, errorThrown) {
+            console.log('Submission error:', xhr, textStatus, errorThrown);
+
+            handleSubmissionError(submissionData);
         }
     });
+}
+
+function handleSubmissionError(submissionData) {
+    $("#submit-annotations-btn").prop("disabled", false).text("👉️ Submit Annotations");
+
+    $("#retry-section").show();
+    $("#backup-section").show();
+    $("#overlay-fail").show();
+}
+
+function retrySubmission() {
+    // Disable the retry button and show retrying status
+    $("#retry-btn").prop("disabled", true).text("Retrying...");
+
+    // Add a brief delay to show the "Retrying..." status and prevent flicker
+    setTimeout(() => {
+        $("#overlay-fail").hide();
+        submitAnnotations();
+        // Re-enable the button in case of another error
+        $("#retry-btn").prop("disabled", false).text("🔄 Retry Now");
+    }, 800); // 800ms delay
+}
+
+function saveAnnotationsToLocalStorage() {
+    try {
+        const backupData = {
+            timestamp: new Date().toISOString(),
+            campaign_id: metadata.id,
+            annotator_id: annotator_id,
+            annotation_set: annotation_set,
+            metadata: {
+                total_examples: total_examples
+            }
+        };
+
+        localStorage.setItem('factgenie_annotation_backup', JSON.stringify(backupData));
+        console.log('Annotations saved to local storage');
+    } catch (error) {
+        console.error('Failed to save annotations to local storage:', error);
+    }
+}
+
+function clearAnnotationsFromLocalStorage() {
+    try {
+        localStorage.removeItem('factgenie_annotation_backup');
+        console.log('Local storage backup cleared');
+    } catch (error) {
+        console.error('Failed to clear local storage:', error);
+    }
+}
+
+function downloadAnnotationBackup() {
+    try {
+        const backupData = {
+            timestamp: new Date().toISOString(),
+            campaign_id: metadata.id,
+            annotator_id: annotator_id,
+            annotation_set: annotation_set,
+            metadata: {
+                campaign_name: metadata.name || 'Unknown Campaign',
+                total_examples: total_examples,
+                user_agent: navigator.userAgent,
+                url: window.location.href
+            }
+        };
+
+        const blob = new Blob([JSON.stringify(backupData, null, 2)], {
+            type: 'application/json'
+        });
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `factgenie_backup_${metadata.id}_${annotator_id}_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        console.log('Annotation backup downloaded');
+    } catch (error) {
+        console.error('Failed to download backup:', error);
+        alert('Failed to download backup. Please try again.');
+    }
 }
 
 
@@ -393,6 +487,13 @@ $(document).ready(function () {
     loadAnnotations();
     $("#total-examples").html(total_examples - 1);
     enableTooltips();
+
+    // Auto-save to local storage every 30 seconds while annotating
+    setInterval(function () {
+        if (annotation_set && annotation_set.length > 0) {
+            saveAnnotationsToLocalStorage();
+        }
+    }, 30000);
 });
 
 window.onbeforeunload = function () {

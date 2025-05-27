@@ -54,7 +54,7 @@
         <div>
           <a href="{{ host_prefix }}/annotate/{{ metadata.id }}" class="btn btn-outline-secondary"
             data-bs-toggle="tooltip" title="Preview the crowdsourcing page">
-            <i class="fa fa-eye"></i> Preview annotation page
+            <i class="fa fa-eye"></i> Preview page
           </a>
           <a href="{{ host_prefix }}/export_campaign_outputs/{{ campaign_id }}" class="btn btn-outline-secondary"
             data-bs-toggle="tooltip" id="download-button-{{ metadata.id }}" title="Export annotations" {% if
@@ -69,6 +69,12 @@
             data-bs-target="#config-modal-{{ campaign_id }}"><i class="fa fa-cog"></i> Show configuration</a>
           <a href="{{ host_prefix }}/analyze/detail/{{ campaign_id }}" type="button"
             class="btn btn-outline-secondary"><i class="fa fa-area-chart"></i> View statistics</a>
+
+          <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
+            data-bs-target="#import-annotations-modal" title="Import annotation backup files from failed submissions">
+            <i class="fa fa-upload">
+            </i> Import annotations
+          </button>
           <a type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
             data-bs-target="#campaign-help-modal"><i class="fa fa-question-circle">
             </i> Help</a>
@@ -171,6 +177,7 @@
   </div>
   </div>
   {% include 'include/config_modal.html' %}
+  {% include 'include/import_annotations_modal.html' %}
 
   <div class="modal fade" id="campaign-help-modal" tabindex="-1">
     <div class="modal-dialog">
