@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Optional, Type
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field
 
 
 class SpanAnnotation(BaseModel):
@@ -10,7 +10,7 @@ class SpanAnnotation(BaseModel):
     text: str = Field(description="The text which is annotated.")
     # Do not name it type since it is a reserved keyword in JSON schema
     annotation_type: int = Field(
-        description="Index to the list of span annotation types defined for the annotation campaign.", alias="type"
+        description="Index to the list of span annotation types defined for the annotation campaign.", validation_alias=AliasChoices("annotation_type", "type")
     )
 
 
@@ -18,7 +18,7 @@ class SpanAnnotationNoReason(BaseModel):
     text: str = Field(description="The text which is annotated.")
     # Do not name it type since it is a reserved keyword in JSON schema
     annotation_type: int = Field(
-        description="Index to the list of span annotation types defined for the annotation campaign.", alias="type"
+        description="Index to the list of span annotation types defined for the annotation campaign.", validation_alias=AliasChoices("annotation_type", "type")
     )
 
 
