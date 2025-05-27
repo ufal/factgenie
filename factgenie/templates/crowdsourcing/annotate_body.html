@@ -133,8 +133,7 @@
     <div id="overlay-fail-content" class="overlay-content blue-link">
       <h1>Error</h1>
 
-      <p>Sorry, your annotations could not be saved. Error: <span id="error-message" class="font-monospace"></span>.
-      </p>
+      <p>Sorry, your annotations could not be saved.</p>
 
       <p>Possible reasons:
       <ul>
@@ -142,9 +141,28 @@
         <li>There was a problem on the server side.</li>
       </ul>
       </p>
-      <p>
-        For more information, please contact the administrators of this project.
-      </p>
+
+      <p>Please, wait a moment and then <b>retry submitting your annotations</b>. If the problem persists (and you can
+        contact
+        the app administrators directly), you can <b>download the backup file</b> and send it to the administrators. You
+        can also
+        return to the annotations page and continue working on your annotations:</p>
+
+      <div class="d-flex gap-2 justify-content-center mt-4">
+        <button id="retry-btn" class="btn btn-primary" onclick="retrySubmission()">
+          🔄 Retry submitting
+        </button>
+        <button id="download-backup-btn" class="btn btn-outline-secondary" onclick="downloadAnnotationBackup()">
+          📥 Download annotations
+        </button>
+        <button id="close-error-overlay-btn" class="btn btn-outline-secondary" onclick="$('#overlay-fail').hide()">
+          ⬅️ Go back to annotating
+        </button>
+      </div>
+
+      <div class="mt-3">
+        <small class="text-muted">For additional help, please contact the project administrators.</small>
+      </div>
     </div>
   </div>
 
