@@ -10,7 +10,8 @@ class SpanAnnotation(BaseModel):
     text: str = Field(description="The text which is annotated.")
     # Do not name it type since it is a reserved keyword in JSON schema
     annotation_type: int = Field(
-        description="Index to the list of span annotation types defined for the annotation campaign.", validation_alias=AliasChoices("annotation_type", "type")
+        description="Index to the list of span annotation types defined for the annotation campaign.",
+        validation_alias=AliasChoices("annotation_type", "type"),
     )
 
 
@@ -18,7 +19,8 @@ class SpanAnnotationNoReason(BaseModel):
     text: str = Field(description="The text which is annotated.")
     # Do not name it type since it is a reserved keyword in JSON schema
     annotation_type: int = Field(
-        description="Index to the list of span annotation types defined for the annotation campaign.", validation_alias=AliasChoices("annotation_type", "type")
+        description="Index to the list of span annotation types defined for the annotation campaign.",
+        validation_alias=AliasChoices("annotation_type", "type"),
     )
 
 
