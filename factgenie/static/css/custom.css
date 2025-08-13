@@ -1082,3 +1082,33 @@ a:hover {
 #annotations-select .btn {
     flex-shrink: 0;
 }
+
+/* Permalink button styling */
+.permalink-btn {
+    background: none !important;
+    border: none !important;
+    color: #6c757d !important;
+    text-decoration: none !important;
+    font-size: 0.875rem;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-width: auto !important;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.permalink-btn:hover {
+    color: #495057 !important;
+    background: none !important;
+    border: none !important;
+    text-decoration: none !important;
+}
+
+.permalink-btn:focus {
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.permalink-btn .fa-check {
+    color: #28a745 !important;
+}

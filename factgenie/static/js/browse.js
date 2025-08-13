@@ -49,9 +49,13 @@ function createOutputBox(content, exampleLevelFields, annId, setup_id) {
     var card = $('<div>', { class: `card output-box generated-output-box box-${setup_id} box-${annId} box-${setup_id}-${annId}` });
 
     var annotationBadge = (annId !== "original") ? `<span class="small"><i class="fa fa-pencil"></i> ${annId}</span>` : ""
+    var permalinkButton = `<button class="btn btn-link p-0 text-muted permalink-btn" data-setup-id="${setup_id}" data-ann-id="${annId}" title="Copy permalink to clipboard"><i class="fa fa-link"></i></button>`;
     var headerHTML = `<div class="d-flex justify-content-between">
     <span class="small">${setup_id}</span>
-    ${annotationBadge}
+    <div class="d-flex align-items-center gap-2">
+        ${annotationBadge}
+        ${permalinkButton}
+    </div>
     </div>
     `
     var cardHeader = $('<div>', { class: "card-header card-header-collapse small", "data-bs-toggle": "collapse", "data-bs-target": `#out-${setup_id}-${annId}` }).html(headerHTML);
@@ -69,6 +73,50 @@ function createOutputBox(content, exampleLevelFields, annId, setup_id) {
     }
 
     return card;
+}
+
+function generatePermalink(setup_id, ann_id) {
+    const dataset = $('#dataset-select').val();
+    const split = $('#split-select').val();
+    const example_idx = current_example_idx;
+
+    let permalink = `${window.location.origin}${url_prefix}/browse?dataset=${dataset}&split=${split}&example_idx=${example_idx}&setup_id=${setup_id}`;
+
+    if (ann_id !== "original") {
+        permalink += `&ann_campaign=${ann_id}`;
+    }
+
+    return permalink;
+}
+
+function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+
+    // Avoid scrolling to bottom
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            console.log('Fallback: Copying text command was successful');
+            return true;
+        } else {
+            console.log('Fallback: Copying text command was unsuccessful');
+            return false;
+        }
+    } catch (err) {
+        console.error('Fallback: Oops, unable to copy', err);
+        return false;
+    } finally {
+        document.body.removeChild(textArea);
+    }
 }
 
 function generateAnnotatorShortId(campaign_id, annotator_group) {
@@ -171,9 +219,30 @@ function highlightSetup() {
                 updateDisplayedAnnotations();
             }
         }
+
+        // Scroll to the specific highlighted box after a brief delay to ensure it's visible
+        setTimeout(function () {
+            if (specificBox.is(":visible")) {
+                specificBox[0].scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }
+        }, 100);
     } else {
         // If only setup_id is highlighted, highlight all boxes with that setup_id that are currently visible
-        $(`.output-box.box-${window.highlight_setup_id}:visible`).addClass('border border-primary border-2');
+        const visibleBoxes = $(`.output-box.box-${window.highlight_setup_id}:visible`);
+        visibleBoxes.addClass('border border-primary border-2');
+
+        // Scroll to the first visible highlighted box
+        if (visibleBoxes.length > 0) {
+            setTimeout(function () {
+                visibleBoxes[0].scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }, 100);
+        }
     }
 }
 
@@ -416,6 +485,72 @@ $('#page-input').keypress(function (event) {
 $("#dataset-select").on("change", changeDataset);
 $("#split-select").on("change", changeSplit);
 
+// Handle permalink button clicks
+$(document).on('click', '.permalink-btn', function (e) {
+    e.stopPropagation(); // Prevent collapsing the card
+    e.preventDefault(); // Prevent any default button behavior
+
+    const setup_id = $(this).data('setup-id');
+    const ann_id = $(this).data('ann-id');
+    const permalink = generatePermalink(setup_id, ann_id);
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(permalink).then(function () {
+        console.log('Permalink copied to clipboard');
+        // Show a brief success indicator
+        const btn = e.target.closest('.permalink-btn');
+        const originalIcon = btn.innerHTML;
+        btn.innerHTML = '<i class="fa fa-check"></i>';
+        setTimeout(function () {
+            btn.innerHTML = originalIcon;
+        }, 1000);
+    }).catch(function (err) {
+        console.error('Failed to copy permalink to clipboard: ', err);
+        // Fallback for older browsers
+        const success = fallbackCopyTextToClipboard(permalink);
+        if (success) {
+            // Show success indicator for fallback method too
+            const btn = e.target.closest('.permalink-btn');
+            const originalIcon = btn.innerHTML;
+            btn.innerHTML = '<i class="fa fa-check"></i>';
+            setTimeout(function () {
+                btn.innerHTML = originalIcon;
+            }, 1000);
+        }
+    });
+
+    // Update the browser URL
+    history.pushState(null, '', permalink);
+
+    // Update window variables for highlighting
+    window.highlight_setup_id = setup_id;
+    window.highlight_ann_campaign = ann_id !== "original" ? ann_id : null;
+
+    // Ensure the output box is expanded (not collapsed)
+    const targetId = `out-${setup_id}-${ann_id}`;
+    const targetElement = document.getElementById(targetId);
+    if (targetElement && !targetElement.classList.contains('show')) {
+        const bsCollapse = new bootstrap.Collapse(targetElement, {
+            toggle: false
+        });
+        bsCollapse.show();
+        // Remove from collapsed_boxes array if present
+        collapsed_boxes = collapsed_boxes.filter(id => id !== targetId);
+    }
+
+    // Re-highlight the output
+    highlightSetup();
+
+    // Scroll to the target output box
+    const targetBox = $(`.output-box.box-${setup_id}-${ann_id}`);
+    if (targetBox.length > 0) {
+        targetBox[0].scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+        });
+    }
+});
+
 $("#badgesSwitch").on("change", function () {
     createOutputBoxes(window.generated_outputs);
     showSelectedCampaigns();
@@ -441,7 +576,14 @@ window.addEventListener('popstate', function (event) {
         const dataset = params.get('dataset');
         const split = params.get('split');
         const example_idx = params.get('example_idx');
+        const setup_id = params.get('setup_id');
+        const ann_campaign = params.get('ann_campaign');
+
         if (dataset && split && example_idx) {
+            // Set highlight parameters before loading the example
+            window.highlight_setup_id = setup_id;
+            window.highlight_ann_campaign = ann_campaign;
+
             changeExample(dataset, split, example_idx);
         }
     }
@@ -449,6 +591,18 @@ window.addEventListener('popstate', function (event) {
 
 
 $(document).ready(function () {
+    // Check for URL parameters on initial load
+    const urlParams = new URLSearchParams(window.location.search);
+    const setup_id = urlParams.get('setup_id');
+    const ann_campaign = urlParams.get('ann_campaign');
+
+    if (setup_id) {
+        window.highlight_setup_id = setup_id;
+    }
+    if (ann_campaign) {
+        window.highlight_ann_campaign = ann_campaign;
+    }
+
     if (window.display_example != null) {
         const e = window.display_example;
         changeExample(e.dataset, e.split, e.example_idx);
