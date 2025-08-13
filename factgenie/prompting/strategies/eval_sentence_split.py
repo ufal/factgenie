@@ -18,6 +18,7 @@ class SentenceSplitAnnotationStrategy(SequentialStrategy):
 
         annotation_span_categories = self.config["annotation_span_categories"]
         annotation_overlap_allowed = self.config.get("annotation_overlap_allowed", False)
+        annotation_granularity = self.config.get("annotation_granularity", "words")
         with_reason = self.extra_args.get("with_reason", True)
         output_validation_model = AnnotationModelFactory.get_output_model(with_reason)
 
@@ -37,6 +38,7 @@ class SentenceSplitAnnotationStrategy(SequentialStrategy):
                 annotation_span_categories,
                 annotation_overlap_allowed,
                 output_validation_model,
+                annotation_granularity,
             ),
             # Metadata.
             t.Metadata([PROMPT]),

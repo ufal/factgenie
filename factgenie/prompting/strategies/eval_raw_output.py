@@ -1,8 +1,8 @@
 import logging
 
 from factgenie.annotations import AnnotationModelFactory
-from factgenie.prompting.strategies import register_llm_eval, SequentialStrategy
 from factgenie.prompting import transforms as t
+from factgenie.prompting.strategies import SequentialStrategy, register_llm_eval
 
 logger = logging.getLogger("factgenie")
 
@@ -22,6 +22,7 @@ class RawOutputAnnotationStrategy(SequentialStrategy):
 
         annotation_span_categories = self.config["annotation_span_categories"]
         annotation_overlap_allowed = self.config.get("annotation_overlap_allowed", False)
+        annotation_granularity = self.config.get("annotation_granularity", "words")
         with_reason = self.extra_args.get("with_reason", True)
         output_validation_model = AnnotationModelFactory.get_output_model(with_reason)
 
@@ -42,7 +43,12 @@ class RawOutputAnnotationStrategy(SequentialStrategy):
             ),
             t.ExtractJson(ANNOTATIONS_RAW, EXTRACTED),
             t.ParseAnnotations(
-                EXTRACTED, ANNOTATIONS, annotation_span_categories, annotation_overlap_allowed, output_validation_model
+                EXTRACTED,
+                ANNOTATIONS,
+                annotation_span_categories,
+                annotation_overlap_allowed,
+                output_validation_model,
+                annotation_granularity,
             ),
             # Metadata.
             t.Metadata(fields=[PROMPT]),
