@@ -234,6 +234,7 @@ function gatherConfig() {
 
         if (window.mode == "llm_eval") {
             config.annotationSpanCategories = getAnnotationSpanCategories();
+            config.annotationGranularity = $("#annotationGranularity").val();
             config.purpose = "metric"
         }
         if (window.mode == "llm_gen") {
@@ -659,7 +660,9 @@ function updateLLMMetricConfig() {
 
     if (mode == "llm_eval") {
         const annotationSpanCategories = cfg.annotation_span_categories;
+        const annotation_granularity = cfg.annotation_granularity || "words";
         $("#annotation-span-categories").empty();
+        $("#annotationGranularity").val(annotation_granularity);
 
         annotationSpanCategories.forEach((annotationSpanCategory) => {
             addAnnotationSpanCategory(annotationSpanCategory.name, annotationSpanCategory.description, annotationSpanCategory.color);

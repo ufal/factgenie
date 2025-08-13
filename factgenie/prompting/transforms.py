@@ -523,12 +523,14 @@ class ParseAnnotations(Transform):
         annotation_span_categories: list[dict],
         annotation_overlap_allowed: bool,
         output_validation_model: Type[BaseModel],
+        annotation_granularity: str = "words",
     ):
         self.input_field = input_field
         self.output_field = output_field
         self.annotation_span_categories = annotation_span_categories
         self.annotation_overlap_allowed = annotation_overlap_allowed
         self.output_validation_model = output_validation_model
+        self.annotation_granularity = annotation_granularity
 
     @property
     def requires_fields(self) -> list[str]:
@@ -580,7 +582,29 @@ class ParseAnnotations(Transform):
                 continue
 
             # find the `start` index of the error in the text
-            start_pos = text.lower().find(annotated_span)
+            if self.annotation_granularity == "words":
+                # Use word boundary matching to enforce word-level annotations
+                # Escape special regex characters in the annotated span
+                escaped_span = re.escape(annotated_span)
+
+                # For word boundaries, we need to be more careful with special characters
+                # If the span starts or ends with non-word characters, we should not enforce word boundaries there
+                start_needs_boundary = annotated_span and annotated_span[0].isalnum()
+                end_needs_boundary = annotated_span and annotated_span[-1].isalnum()
+
+                # Create pattern with conditional word boundaries
+                pattern = ""
+                if start_needs_boundary:
+                    pattern += r"\b"
+                pattern += escaped_span
+                if end_needs_boundary:
+                    pattern += r"\b"
+
+                match = re.search(pattern, text.lower(), re.IGNORECASE)
+                start_pos = match.start() if match else -1
+            else:
+                # Use character-level matching (original behavior)
+                start_pos = text.lower().find(annotated_span)
 
             if not self.annotation_overlap_allowed and start_pos != -1:
                 # check if the annotation overlaps with any other annotation
@@ -874,7 +898,7 @@ class TransformTests(unittest.TestCase):
         annotation_overlap_allowed = True
         output_validation_model = AnnotationModelFactory.get_output_model(with_reason=True)
         transform = ParseAnnotations(
-            "ann_raw", "ann", annotation_span_categories, annotation_overlap_allowed, output_validation_model
+            "ann_raw", "ann", annotation_span_categories, annotation_overlap_allowed, output_validation_model, "words"
         )
 
         expected = [

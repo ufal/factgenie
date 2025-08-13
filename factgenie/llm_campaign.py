@@ -271,6 +271,7 @@ def parse_llm_eval_config(config):
         "prompt_template": config.get("promptTemplate"),
         "system_msg": config.get("systemMessage"),
         "annotation_overlap_allowed": config.get("annotationOverlapAllowed", False),
+        "annotation_granularity": config.get("annotationGranularity", "words"),
         "api_url": config.get("apiUrl"),
         "model_args": config.get("modelArguments"),
         "extra_args": config.get("extraArguments"),
