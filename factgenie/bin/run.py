@@ -3,6 +3,9 @@
 # The run.py module is CLI entry point.
 # The local imports in individual functions make CLI way faster.
 # Use them as much as possible and minimize imports at the top of the file.
+import os
+import sys
+
 import click
 from flask.cli import FlaskGroup
 
@@ -10,6 +13,83 @@ from factgenie.app import app
 from factgenie.campaign import CampaignMode
 from factgenie.iaa.cli import iaa_cli
 from factgenie.stats.cli import stats_cli
+
+
+# Handler for --host-prefix argument
+def _handle_host_prefix_arg(arg, next_arg=None):
+    """
+    Handle --host-prefix argument extraction and environment variable setting.
+
+    Args:
+        arg: Current argument being processed
+        next_arg: Next argument in argv (if any)
+
+    Returns:
+        tuple: (should_skip_current, should_skip_next, args_to_add)
+            - should_skip_current: whether to skip the current arg
+            - should_skip_next: whether to skip the next arg
+            - args_to_add: list of args to add to new_argv instead
+    """
+    if arg == "--host-prefix":
+        # Consume the next value as the prefix if present
+        if next_arg is not None:
+            os.environ["FACTGENIE_HOST_PREFIX"] = next_arg
+            return True, True, []  # Skip both current and next
+        else:
+            # No value provided; let Click raise an error later by keeping it
+            return False, False, [arg]  # Keep the arg as-is
+    elif arg.startswith("--host-prefix="):
+        os.environ["FACTGENIE_HOST_PREFIX"] = arg.split("=", 1)[1]
+        return True, False, []  # Skip only current arg
+
+    return False, False, [arg]  # Keep the arg as-is
+
+
+# Pre-process custom CLI options before Click parses them so we can extend
+# the built-in `flask run` command without re-implementing it. We only act
+# when the subcommand is `run`.
+def _extract_and_process_custom_run_args():
+    """
+    General method for processing custom CLI arguments for the 'run' command.
+    Extracts custom arguments, processes them, and modifies sys.argv to only
+    contain arguments that Flask's run command understands.
+    """
+    try:
+        # Only intercept when running the server
+        if "run" not in sys.argv:
+            return
+
+        new_argv = []
+        i = 0
+        while i < len(sys.argv):
+            arg = sys.argv[i]
+            next_arg = sys.argv[i + 1] if i + 1 < len(sys.argv) else None
+
+            # Process --host-prefix argument
+            should_skip_current, should_skip_next, args_to_add = _handle_host_prefix_arg(arg, next_arg)
+
+            if should_skip_current:
+                # Add any replacement args
+                new_argv.extend(args_to_add)
+                # Skip current arg
+                i += 1
+                # Skip next arg if needed
+                if should_skip_next:
+                    i += 1
+            else:
+                # Keep the argument as-is
+                new_argv.extend(args_to_add)
+                i += 1
+
+        # Replace argv in place (so Click sees only supported options)
+        sys.argv[:] = new_argv
+    except Exception:
+        # Fail-safe: never block the CLI if anything goes wrong here
+        pass
+
+
+# Execute argv pre-processing at import time so it happens before Click parses args
+_extract_and_process_custom_run_args()
 
 
 def list_datasets(app):
