@@ -16,6 +16,7 @@ logging:
 host_prefix: ""
 # API keys: set the keys for the services you will be using
 api_keys:
+  OLLAMA_API_KEY: ''
   # https://docs.litellm.ai/docs/providers/anthropic
   ANTHROPIC_API_KEY: ''
   # https://docs.litellm.ai/docs/providers/gemini
