@@ -232,7 +232,12 @@ function gatherConfig() {
         config.modelArguments = getKeysAndValues($("#model-arguments"));
         config.extraArguments = getKeysAndValues($("#extra-arguments"));
 
+        // Add annotation field checkboxes to extra arguments for llm_eval mode
         if (window.mode == "llm_eval") {
+            // Add with_reason and with_occurence_index from checkboxes
+            config.extraArguments.with_reason = $("#annotation-field-reason").is(":checked");
+            config.extraArguments.with_occurence_index = $("#annotation-field-occurrence").is(":checked");
+
             config.annotationSpanCategories = getAnnotationSpanCategories();
             config.annotationGranularity = $("#annotationGranularity").val();
             config.purpose = "metric"
@@ -622,6 +627,12 @@ function updateLLMMetricConfig() {
         $("#annotation-span-categories").empty();
         $("#extra-arguments").empty();
         $("#annotationOverlapAllowed").prop("checked", false);
+
+        // Reset annotation field checkboxes to default values for llm_eval mode
+        if (mode == "llm_eval") {
+            $("#annotation-field-reason").prop("checked", true);  // Default: checked
+            $("#annotation-field-occurrence").prop("checked", false);  // Default: unchecked
+        }
         return;
     }
     const cfg = window.configs[llmConfigValue];
@@ -653,10 +664,36 @@ function updateLLMMetricConfig() {
         $("#model-arguments").append(newArg);
     });
 
+    // Track which annotation field checkboxes were explicitly set
+    let withReasonSet = false;
+    let withOccurrenceSet = false;
+
     $.each(extra_args, function (key, value) {
-        const newArg = createArgElem(key, value);
-        $("#extra-arguments").append(newArg);
+        // Handle special annotation field checkboxes for llm_eval mode
+        if (mode == "llm_eval" && (key === "with_reason" || key === "with_occurence_index")) {
+            if (key === "with_reason") {
+                $("#annotation-field-reason").prop("checked", value);
+                withReasonSet = true;
+            } else if (key === "with_occurence_index") {
+                $("#annotation-field-occurrence").prop("checked", value);
+                withOccurrenceSet = true;
+            }
+        } else {
+            // Add other extra arguments as usual
+            const newArg = createArgElem(key, value);
+            $("#extra-arguments").append(newArg);
+        }
     });
+
+    // Set default values for annotation field checkboxes if they weren't explicitly set
+    if (mode == "llm_eval") {
+        if (!withReasonSet) {
+            $("#annotation-field-reason").prop("checked", true);  // Default: checked
+        }
+        if (!withOccurrenceSet) {
+            $("#annotation-field-occurrence").prop("checked", false);  // Default: unchecked
+        }
+    }
 
     if (mode == "llm_eval") {
         const annotationSpanCategories = cfg.annotation_span_categories;

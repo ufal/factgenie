@@ -1,8 +1,8 @@
 import logging
 
 from factgenie.annotations import AnnotationModelFactory
-from factgenie.prompting.strategies import register_llm_eval, SequentialStrategy
 from factgenie.prompting import transforms as t
+from factgenie.prompting.strategies import SequentialStrategy, register_llm_eval
 
 logger = logging.getLogger("factgenie")
 
@@ -22,7 +22,8 @@ class StructuredAnnotationStrategy(SequentialStrategy):
         annotation_overlap_allowed = self.config.get("annotation_overlap_allowed", False)
         annotation_granularity = self.config.get("annotation_granularity", "words")
         with_reason = self.extra_args.get("with_reason", True)
-        output_validation_model = AnnotationModelFactory.get_output_model(with_reason)
+        with_occurence_index = self.extra_args.get("with_occurence_index", False)
+        output_validation_model = AnnotationModelFactory.get_output_model(with_reason, with_occurence_index)
 
         return [
             # 1. Ask prompt.
