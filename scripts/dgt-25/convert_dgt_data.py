@@ -393,6 +393,49 @@ def extract_annotations(target_revision_cell, error_code, categories):
     return annotations
 
 
+def extract_doc_level_annotations(segments, categories):
+    """Extract document-level annotations with character positions adjusted for concatenated text."""
+    all_annotations = []
+    current_position = 0
+
+    for segment in segments:
+        # Extract annotations for this segment
+        segment_annotations = extract_annotations(segment["target_revision"], segment["error_code"], categories)
+
+        # Adjust character positions for document-level
+        for annotation in segment_annotations:
+            annotation["start"] += current_position
+            all_annotations.append(annotation)
+
+        # Update position for next segment
+        segment_text = extract_original_target(segment["target_revision"])
+        current_position += len(segment_text) + 1  # +1 for newline separator
+
+    return all_annotations
+
+
+def extract_doc_level_annotations_for_chunk(segments, categories, start_segment_idx, end_segment_idx):
+    """Extract document-level annotations for a chunk of segments with character positions adjusted for concatenated text."""
+    all_annotations = []
+    current_position = 0
+
+    for i in range(start_segment_idx, end_segment_idx):
+        segment = segments[i]
+        # Extract annotations for this segment
+        segment_annotations = extract_annotations(segment["target_revision"], segment["error_code"], categories)
+
+        # Adjust character positions for document-level
+        for annotation in segment_annotations:
+            annotation["start"] += current_position
+            all_annotations.append(annotation)
+
+        # Update position for next segment
+        segment_text = extract_original_target(segment["target_revision"])
+        current_position += len(segment_text) + 1  # +1 for space separator
+
+    return all_annotations
+
+
 def parse_heading_filename(soup):
     """Parse dataset name and setup ID from the document numbers table."""
     # Find the table with "Assignment identification" header
@@ -426,6 +469,12 @@ def main():
     parser.add_argument("--split", default="sample", help="Dataset split name")
     parser.add_argument("--dataset-name", help="Override dataset name (default: extract from HTML heading)")
     parser.add_argument("--setup-id", help="Override setup ID (default: extract from HTML heading)")
+    parser.add_argument(
+        "--doc-level", action="store_true", help="Process as single document instead of individual segments"
+    )
+    parser.add_argument(
+        "--segment-size", type=int, help="Number of segments to concatenate into each sample (overrides --doc-level)"
+    )
 
     args = parser.parse_args()
 
@@ -471,79 +520,182 @@ def main():
     outputs_dir.mkdir(parents=True, exist_ok=True)
     campaigns_dir.mkdir(parents=True, exist_ok=True)
 
-    # Generate input.jsonl in factgenie inputs directory
-    input_file = inputs_dir / f"{args.split}.jsonl"
-    with open(input_file, "w", encoding="utf-8") as f:
-        for segment in segments:
-            input_data = {"segment_id": segment["segment_id"], "source_segment": segment["source_segment"]}
-            f.write(json.dumps(input_data, ensure_ascii=False) + "\n")
+    # Determine segment size
+    if args.segment_size is not None:
+        segment_size = args.segment_size
+    elif args.doc_level:
+        segment_size = len(segments)
+    else:
+        segment_size = 1
 
-    # Generate output.jsonl in factgenie outputs directory
-    output_file = outputs_dir / f"{args.split}-{setup_id}.jsonl"
-    with open(output_file, "w", encoding="utf-8") as f:
-        for i, segment in enumerate(segments):
-            original_target = extract_original_target(segment["target_revision"])
-            output_data = {
-                "dataset": dataset_name,
-                "split": args.split,
-                "setup_id": setup_id,
-                "example_idx": i,
-                "output": original_target,
-            }
-            f.write(json.dumps(output_data, ensure_ascii=False) + "\n")
+    if segment_size > 1:
+        # Multi-segment processing: create chunks of segments
+        num_chunks = (len(segments) + segment_size - 1) // segment_size  # Ceiling division
 
-    # Create campaign folder in factgenie campaigns directory
-    campaign_dir = campaigns_dir / args.campaign_id
-    campaign_dir.mkdir(exist_ok=True)
+        # Generate input.jsonl with chunked source text
+        input_file = inputs_dir / f"{args.split}.jsonl"
+        with open(input_file, "w", encoding="utf-8") as f:
+            for chunk_idx in range(num_chunks):
+                start_idx = chunk_idx * segment_size
+                end_idx = min(start_idx + segment_size, len(segments))
 
-    # Generate metadata.json
-    metadata = {
-        "id": args.campaign_id,
-        "mode": "crowdsourcing",
-        "config": {
-            "annotators_per_example": 1,
-            "annotation_granularity": "characters",
-            "annotation_overlap_allowed": False,
-            "service": "local",
-            "annotation_span_categories": categories,
-        },
-        "created": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    }
+                # Concatenate source segments for this chunk
+                source_text = "<br>".join(segments[i]["source_segment"] for i in range(start_idx, end_idx))
+                input_data = {"source_text": source_text}
+                f.write(json.dumps(input_data, ensure_ascii=False) + "\n")
 
-    with open(campaign_dir / "metadata.json", "w", encoding="utf-8") as f:
-        json.dump(metadata, f, indent=2, ensure_ascii=False)
+        # Generate output.jsonl with chunked target text
+        output_file = outputs_dir / f"{args.split}-{setup_id}.jsonl"
+        with open(output_file, "w", encoding="utf-8") as f:
+            for chunk_idx in range(num_chunks):
+                start_idx = chunk_idx * segment_size
+                end_idx = min(start_idx + segment_size, len(segments))
 
-    # Generate db.csv
-    with open(campaign_dir / "db.csv", "w", encoding="utf-8") as f:
-        f.write("dataset,split,example_idx,setup_id,batch_idx,annotator_group,annotator_id,status,start,end\n")
-        for i, segment in enumerate(segments):
-            f.write(f"{dataset_name},{args.split},{i},{setup_id},0,0,,finished,,\n")
+                # Concatenate target segments for this chunk
+                target_text = "\n".join(
+                    extract_original_target(segments[i]["target_revision"]) for i in range(start_idx, end_idx)
+                )
+                output_data = {
+                    "dataset": dataset_name,
+                    "split": args.split,
+                    "setup_id": setup_id,
+                    "example_idx": chunk_idx,
+                    "output": target_text,
+                }
+                f.write(json.dumps(output_data, ensure_ascii=False) + "\n")
 
-    # Create files subdirectory and generate annotations.jsonl
-    files_dir = campaign_dir / "files"
-    files_dir.mkdir(exist_ok=True)
+        # Create campaign folder in factgenie campaigns directory
+        campaign_dir = campaigns_dir / args.campaign_id
+        campaign_dir.mkdir(exist_ok=True)
 
-    with open(files_dir / "annotations.jsonl", "w", encoding="utf-8") as f:
-        for i, segment in enumerate(segments):
-            annotations = extract_annotations(segment["target_revision"], segment["error_code"], categories)
+        # Generate metadata.json
+        metadata = {
+            "id": args.campaign_id,
+            "mode": "crowdsourcing",
+            "config": {
+                "annotators_per_example": 1,
+                "annotation_granularity": "characters",
+                "annotation_overlap_allowed": False,
+                "service": "local",
+                "annotation_span_categories": categories,
+            },
+            "created": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
 
-            annotation_data = {
-                "dataset": dataset_name,
-                "split": args.split,
-                "setup_id": setup_id,
-                "example_idx": i,
-                "annotations": annotations,
-                "metadata": {"annotator_group": 0},
-            }
-            f.write(json.dumps(annotation_data, ensure_ascii=False) + "\n")
+        with open(campaign_dir / "metadata.json", "w", encoding="utf-8") as f:
+            json.dump(metadata, f, indent=2, ensure_ascii=False)
 
-    print(f"Conversion completed successfully!")
-    print(f"Generated files:")
-    print(f"  - {input_file}")
-    print(f"  - {output_file}")
-    print(f"  - {campaign_dir}/")
-    print(f"Dataset: {dataset_name}, Setup: {setup_id}, Split: {args.split}")
-    print(f"Processed {len(segments)} segments")
+        # Generate db.csv for chunks
+        with open(campaign_dir / "db.csv", "w", encoding="utf-8") as f:
+            f.write("dataset,split,example_idx,setup_id,batch_idx,annotator_group,annotator_id,status,start,end\n")
+            for chunk_idx in range(num_chunks):
+                f.write(f"{dataset_name},{args.split},{chunk_idx},{setup_id},0,0,,finished,,\n")
+
+        # Create files subdirectory and generate annotations.jsonl
+        files_dir = campaign_dir / "files"
+        files_dir.mkdir(exist_ok=True)
+
+        with open(files_dir / "annotations.jsonl", "w", encoding="utf-8") as f:
+            for chunk_idx in range(num_chunks):
+                start_idx = chunk_idx * segment_size
+                end_idx = min(start_idx + segment_size, len(segments))
+
+                # Extract chunk-level annotations
+                chunk_annotations = extract_doc_level_annotations_for_chunk(segments, categories, start_idx, end_idx)
+
+                annotation_data = {
+                    "dataset": dataset_name,
+                    "split": args.split,
+                    "setup_id": setup_id,
+                    "example_idx": chunk_idx,
+                    "annotations": chunk_annotations,
+                    "metadata": {"annotator_group": 0},
+                }
+                f.write(json.dumps(annotation_data, ensure_ascii=False) + "\n")
+
+        print(f"Multi-segment conversion completed successfully!")
+        print(f"Generated files:")
+        print(f"  - {input_file}")
+        print(f"  - {output_file}")
+        print(f"  - {campaign_dir}/")
+        print(f"Dataset: {dataset_name}, Setup: {setup_id}, Split: {args.split}")
+        print(f"Processed {len(segments)} segments in {num_chunks} chunks of size {segment_size}")
+
+    else:
+        # Segment-level processing (original behavior)
+        # Generate input.jsonl in factgenie inputs directory
+        input_file = inputs_dir / f"{args.split}.jsonl"
+        with open(input_file, "w", encoding="utf-8") as f:
+            for segment in segments:
+                input_data = {"segment_id": segment["segment_id"], "source_segment": segment["source_segment"]}
+                f.write(json.dumps(input_data, ensure_ascii=False) + "\n")
+
+        # Generate output.jsonl in factgenie outputs directory
+        output_file = outputs_dir / f"{args.split}-{setup_id}.jsonl"
+        with open(output_file, "w", encoding="utf-8") as f:
+            for i, segment in enumerate(segments):
+                original_target = extract_original_target(segment["target_revision"])
+                output_data = {
+                    "dataset": dataset_name,
+                    "split": args.split,
+                    "setup_id": setup_id,
+                    "example_idx": i,
+                    "output": original_target,
+                }
+                f.write(json.dumps(output_data, ensure_ascii=False) + "\n")
+
+        # Create campaign folder in factgenie campaigns directory
+        campaign_dir = campaigns_dir / args.campaign_id
+        campaign_dir.mkdir(exist_ok=True)
+
+        # Generate metadata.json
+        metadata = {
+            "id": args.campaign_id,
+            "mode": "crowdsourcing",
+            "config": {
+                "annotators_per_example": 1,
+                "annotation_granularity": "characters",
+                "annotation_overlap_allowed": False,
+                "service": "local",
+                "annotation_span_categories": categories,
+            },
+            "created": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+
+        with open(campaign_dir / "metadata.json", "w", encoding="utf-8") as f:
+            json.dump(metadata, f, indent=2, ensure_ascii=False)
+
+        # Generate db.csv
+        with open(campaign_dir / "db.csv", "w", encoding="utf-8") as f:
+            f.write("dataset,split,example_idx,setup_id,batch_idx,annotator_group,annotator_id,status,start,end\n")
+            for i, segment in enumerate(segments):
+                f.write(f"{dataset_name},{args.split},{i},{setup_id},0,0,,finished,,\n")
+
+        # Create files subdirectory and generate annotations.jsonl
+        files_dir = campaign_dir / "files"
+        files_dir.mkdir(exist_ok=True)
+
+        with open(files_dir / "annotations.jsonl", "w", encoding="utf-8") as f:
+            for i, segment in enumerate(segments):
+                annotations = extract_annotations(segment["target_revision"], segment["error_code"], categories)
+
+                annotation_data = {
+                    "dataset": dataset_name,
+                    "split": args.split,
+                    "setup_id": setup_id,
+                    "example_idx": i,
+                    "annotations": annotations,
+                    "metadata": {"annotator_group": 0},
+                }
+                f.write(json.dumps(annotation_data, ensure_ascii=False) + "\n")
+
+        print(f"Conversion completed successfully!")
+        print(f"Generated files:")
+        print(f"  - {input_file}")
+        print(f"  - {output_file}")
+        print(f"  - {campaign_dir}/")
+        print(f"Dataset: {dataset_name}, Setup: {setup_id}, Split: {args.split}")
+        print(f"Processed {len(segments)} segments")
 
 
 if __name__ == "__main__":
