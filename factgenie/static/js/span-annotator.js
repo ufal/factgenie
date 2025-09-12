@@ -14,12 +14,15 @@ class SpanAnnotator {
         this.eventListeners = new Map();
         this.history = new Map(); // Map of document ID -> array of history states
         this.currentHistoryIndex = new Map(); // Map of document ID -> current history index
+        this.annotateReason = false; // Whether to collect reasons for annotations
+        this.pendingAnnotation = null; // Store annotation data while waiting for reason input
     }
 
-    init(granularity, overlapAllowed, annotationTypes) {
+    init(granularity, overlapAllowed, annotationTypes, annotateReason = false) {
         this.granularity = granularity;
         this.overlapAllowed = overlapAllowed;
         this.annotationTypes = annotationTypes;
+        this.annotateReason = annotateReason;
         return this;
     }
 
@@ -398,9 +401,90 @@ class SpanAnnotator {
             id: id
         };
 
+        // If reason collection is enabled, show reason input dialog
+        if (this.annotateReason) {
+            this.pendingAnnotation = { objectId, annotation };
+            this._showReasonDialog(annotation);
+        } else {
+            // Add annotation directly without reason
+            doc.annotations.push(annotation);
+            this._renderAnnotations(objectId);
+            this.emit('annotationAdded', { objectId, annotation });
+        }
+    }
+
+    _showReasonDialog(annotation) {
+        // Create modal dialog for reason input
+        const modalHtml = `
+            <div class="modal fade" id="annotation-reason-modal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Annotation reason</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Please provide a reason for annotating "<strong>${annotation.text}</strong>":</p>
+                            <textarea class="form-control" id="annotation-reason-input" rows="3" placeholder="Enter your reason..."></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="spanAnnotator._handleReasonSubmit('')">Skip</button>
+                            <button type="button" class="btn btn-primary" onclick="spanAnnotator._handleReasonSubmit(document.getElementById('annotation-reason-input').value)">Submit</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remove existing modal if any
+        $('#annotation-reason-modal').remove();
+
+        // Add modal to body
+        $('body').append(modalHtml);
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('annotation-reason-modal'));
+        modal.show();
+
+        // Focus on text area
+        $('#annotation-reason-modal').on('shown.bs.modal', function () {
+            $('#annotation-reason-input').focus();
+        });
+
+        // Handle Enter key to submit
+        $('#annotation-reason-input').on('keydown', function (e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                e.preventDefault();
+                spanAnnotator._handleReasonSubmit($(this).val());
+            }
+        });
+    }
+
+    _handleReasonSubmit(reason) {
+        if (!this.pendingAnnotation) return;
+
+        const { objectId, annotation } = this.pendingAnnotation;
+        const doc = this.documents.get(objectId);
+
+        // Add reason to annotation if provided
+        if (reason && reason.trim()) {
+            annotation.reason = reason.trim();
+        }
+
+        // Add annotation to document
         doc.annotations.push(annotation);
         this._renderAnnotations(objectId);
         this.emit('annotationAdded', { objectId, annotation });
+
+        // Clean up
+        this.pendingAnnotation = null;
+
+        // Hide modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('annotation-reason-modal'));
+        if (modal) {
+            modal.hide();
+        }
+        $('#annotation-reason-modal').remove();
     }
 
     _removeAnnotation(objectId, $span) {
