@@ -113,16 +113,25 @@
 
       <div class="mt-3 p-3 rounded border">
         <h5>API Keys</h5>
-        
+
+        <div class="form-group mt-3">
+          <label>Ollama</label>
+          <div class="mb-2">
+            <small class="form-text text-muted">API key for Ollama models (e.g. via OpenWebUI)</small>
+          </div>
+          <input type="password" class="form-control" id="ollama_api_key" name="ollama_api_key"
+            value="{{ app_config.api_keys.OLLAMA_API_KEY }}">
+        </div>
+
         <div class="form-group mt-3">
           <label>OpenAI</label>
           <div class="mb-2">
             <small class="form-text text-muted">API key for OpenAI models</small>
           </div>
-          <input type="password" class="form-control" id="openai_api_key" name="openai_api_key" 
+          <input type="password" class="form-control" id="openai_api_key" name="openai_api_key"
             value="{{ app_config.api_keys.OPENAI_API_KEY }}">
         </div>
-      
+
         <div class="form-group mt-3">
           <label>Anthropic</label>
           <div class="mb-2">
@@ -131,7 +140,7 @@
           <input type="password" class="form-control" id="anthropic_api_key" name="anthropic_api_key"
             value="{{ app_config.api_keys.ANTHROPIC_API_KEY }}">
         </div>
-      
+
         <div class="form-group mt-3">
           <label>Gemini (Google AI Studio)</label>
           <div class="mb-2">
@@ -140,18 +149,18 @@
           <input type="password" class="form-control" id="gemini_api_key" name="gemini_api_key"
             value="{{ app_config.api_keys.GEMINI_API_KEY }}">
         </div>
-      
+
         <div class="form-group mt-3">
           <label>Google Vertex AI</label>
           <div class="mb-2">
             <small class="form-text text-muted">Settings for Vertex AI</small>
           </div>
-          <input type="text" class="form-control mb-2" id="vertexai_project" name="vertexai_project" placeholder="Project ID"
-            value="{{ app_config.api_keys.VERTEXAI_PROJECT }}">
-          <input type="text" class="form-control mb-2" id="vertexai_location" name="vertexai_location" placeholder="Location"
-            value="{{ app_config.api_keys.VERTEXAI_LOCATION }}">
-          <input type="text" class="form-control" id="vertexai_json_full_path" name="vertexai_json_full_path" placeholder="JSON Credentials Full Path"
-            value="{{ app_config.api_keys.VERTEXAI_JSON_FULL_PATH }}">
+          <input type="text" class="form-control mb-2" id="vertexai_project" name="vertexai_project"
+            placeholder="Project ID" value="{{ app_config.api_keys.VERTEXAI_PROJECT }}">
+          <input type="text" class="form-control mb-2" id="vertexai_location" name="vertexai_location"
+            placeholder="Location" value="{{ app_config.api_keys.VERTEXAI_LOCATION }}">
+          <input type="text" class="form-control" id="vertexai_json_full_path" name="vertexai_json_full_path"
+            placeholder="JSON Credentials Full Path" value="{{ app_config.api_keys.VERTEXAI_JSON_FULL_PATH }}">
         </div>
       </div>
 
