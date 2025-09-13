@@ -12,7 +12,7 @@ from lxml import etree
 from slugify import slugify
 
 # Set factgenie path
-FACTGENIE_PATH = Path("/lnet/work/people/kasner/projects/factgenie/factgenie")
+FACTGENIE_PATH = Path("/home/kasner/dgt-workshop/factgenie/factgenie")
 
 
 def extract_error_statistics(soup):
@@ -595,7 +595,7 @@ def main():
         files_dir = campaign_dir / "files"
         files_dir.mkdir(exist_ok=True)
 
-        with open(files_dir / "annotations.jsonl", "w", encoding="utf-8") as f:
+        with open(files_dir / f"{args.split}.jsonl", "w", encoding="utf-8") as f:
             for chunk_idx in range(num_chunks):
                 start_idx = chunk_idx * segment_size
                 end_idx = min(start_idx + segment_size, len(segments))
