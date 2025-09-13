@@ -1,3 +1,4 @@
+annotation_overlap_allowed: true
 api_provider: openai
 system_msg: You are an expert error annotation system. You undestand structured data
   and you can correcly operate with units and numerical values. You are designed to
@@ -14,7 +15,7 @@ prompt_template: |-
   ```
   {text}
   ```
-  Output the errors as a JSON list "annotations" in which each object contains fields  "reason", "text", and "annotation_type". The value of "text" is the text of the error. The value of "reason" is the reason for the error. The value of "annotation_type" is one of {0, 1, 2, 3, 4, 5} based on the following list:
+  Output the errors as a JSON list "annotations" in which each object contains fields  "reason", "text", "annotation_type", and "occurence_index". The value of "text" is the text of the error. The value of "reason" is the reason for the error. The value of "annotation_type" is one of {0, 1, 2, 3, 4, 5} based on the following list:
   - 0: Incorrect number: It does not matter whether the number is spelled out or is in digits.
   - 1: Incorrect named entity: This includes people, places, teams, and days of the week.
   - 2: Incorrect word: A word which is not one of the above and is incorrect.
@@ -22,7 +23,7 @@ prompt_template: |-
   - 4: Not checkable: A statement which can not be checked, either because the information is not available or because it is too time-consuming to check.
   - 5: Other: Any other type of mistake.
 
-  The list should be sorted by the position of the error in the text.
+  The value of "occurence_index" is a 0-based index of the span. It is useful in case there are multiple exact-string case-insensitive matches of "text" in the input. For example, if you want annotate the *second* occurence of the span with the value "the" out of three in total, set "occurence_index" to 1. If there are no ambiguities, leave it set to 0.
 
   *Example:*
   data:
@@ -110,4 +111,6 @@ annotation_span_categories:
 - color: rgb(127, 127, 127)
   description: 'Other: Any other type of mistake.'
   name: OTHER
-extra_args: {}
+extra_args:
+  with_reason: true
+  with_occurence_index: true

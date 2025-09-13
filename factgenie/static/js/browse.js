@@ -317,7 +317,9 @@ function getAnnotatedOutput(output, annId, annotations) {
 
         // always enable showing overlapping annotations
         const overlapAllowed = true;
-        spanAnnotator.init(annotations.annotation_granularity, overlapAllowed, annotation_span_categories);
+        // don't collect reasons when just browsing existing annotations
+        const annotateReason = false;
+        spanAnnotator.init(annotations.annotation_granularity, overlapAllowed, annotation_span_categories, annotateReason);
 
         const parId = `out-text-${annId}-par`;
 

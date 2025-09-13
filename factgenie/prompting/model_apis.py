@@ -140,6 +140,11 @@ class OllamaAPI(ModelAPI):
     def __init__(self, config, api_kwargs: dict = {}):
         super().__init__(config, api_kwargs)
 
+        # If OLLAMA_API_KEY is set in the environment, add it to api_kwargs
+        ollama_token = os.environ.get("OLLAMA_API_KEY")
+        if ollama_token:
+            self.api_kwargs["api_key"] = ollama_token
+
     def _service_prefix(self):
         # we want to call the `chat` endpoint: https://docs.litellm.ai/docs/providers/ollama#using-ollama-apichat
         return "ollama_chat/"

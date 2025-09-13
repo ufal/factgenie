@@ -94,10 +94,10 @@
                   <i class="fa fa-comments"></i>
                   <span style="margin-left: 5px; margin-right: 10px;">Prompting strategy</span>
                   <div class="mb-2">
-                    <small class="form-text text-muted"> A prompting strategy
-                      controls how the prompt will be used to obtain the output. Keep <code>default</code> for obtaining
-                      single-pass
-                      annotations with structured JSON output.
+                    <small class="form-text text-muted"> The prompting strategy
+                      controls how the prompt will be used to obtain the output. Use <code>parse_raw</code> when
+                      structured output cannot be enforced for the model. Use <code>sentence_split</code> to prompt the
+                      model separately for each sentence. Usually, you can keep the <code>default</code> strategy.
                     </small>
                   </div>
                 </div>
@@ -109,6 +109,66 @@
                   </select>
                 </div>
               </div>
+
+              {% if mode == 'llm_eval' %}
+              <div class="row g-3 mb-3 align-items-center">
+                <div class="col-auto">
+                  <i class="fa fa-code"></i>
+                  <span style="margin-left: 5px; margin-right: 10px;">Annotation JSON</span>
+                  <div class="mb-2">
+                    <small class="form-text text-muted">Configure which fields should be included in the JSON schema for
+                      annotations.
+                      <strong>Important:</strong> Your prompt template must clearly describe the purpose and format of
+                      each enabled field.
+                    </small>
+                  </div>
+                </div>
+                <div class="form-group mt-1 w-100">
+                  <div class="row">
+                    <div class="col-6">
+                      <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="annotation-field-text"
+                          name="annotation-field-text" disabled checked>
+                        <label class="form-check-label" for="annotation-field-text">
+                          <code>text</code>
+                          <i class="fa fa-question-circle opacity-25 ms-1" data-bs-toggle="tooltip"
+                            title="The content of the annotated text span (case-insensitive, mandatory)"></i>
+                        </label>
+                      </div>
+                      <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="annotation-field-type"
+                          name="annotation-field-type" disabled checked>
+                        <label class="form-check-label" for="annotation-field-type">
+                          <code>annotation_type</code>
+                          <i class="fa fa-question-circle opacity-25 ms-1" data-bs-toggle="tooltip"
+                            title="Annotation category index (0-indexed, mandatory)"></i>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="annotation-field-reason"
+                          name="annotation-field-reason" checked>
+                        <label class="form-check-label" for="annotation-field-reason">
+                          <code>reason</code>
+                          <i class="fa fa-question-circle opacity-25 ms-1" data-bs-toggle="tooltip"
+                            title="Explanation for the annotation. If included, your prompt needs to instruct the model to provide the explanation in this field."></i>
+                        </label>
+                      </div>
+                      <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="annotation-field-occurrence"
+                          name="annotation-field-occurrence">
+                        <label class="form-check-label" for="annotation-field-occurrence">
+                          <code>occurence_index</code>
+                          <i class="fa fa-question-circle opacity-25 ms-1" data-bs-toggle="tooltip"
+                            title="0-based index for disambiguating between multiple occurrences of the same text. Useful when the same text appears multiple times. If included, your prompt needs to explain field and the indexing system."></i>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
 
               <div class="row g-3 mb-3 align-items-center">
                 <div class="col-auto">

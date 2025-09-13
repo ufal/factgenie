@@ -581,6 +581,9 @@ class ParseAnnotations(Transform):
                 logger.warning(f"❌ Span EMPTY.")
                 continue
 
+            # Get occurrence index if available
+            occurence_index = getattr(annotation, "occurence_index", None)
+
             # find the `start` index of the error in the text
             if self.annotation_granularity == "words":
                 # Use word boundary matching to enforce word-level annotations
@@ -600,11 +603,49 @@ class ParseAnnotations(Transform):
                 if end_needs_boundary:
                     pattern += r"\b"
 
-                match = re.search(pattern, text.lower(), re.IGNORECASE)
-                start_pos = match.start() if match else -1
+                if occurence_index is not None:
+                    # Find all matches and select the one at the specified occurrence index
+                    matches = list(re.finditer(pattern, text.lower(), re.IGNORECASE))
+                    if 0 <= occurence_index < len(matches):
+                        start_pos = matches[occurence_index].start()
+                    elif matches:
+                        # Invalid occurrence index, fall back to first match
+                        logger.warning(
+                            f"Invalid occurrence index {occurence_index} for span '{annotated_span}'. Using first occurrence."
+                        )
+                        start_pos = matches[0].start()
+                    else:
+                        start_pos = -1
+                else:
+                    # Original behavior: find first match
+                    match = re.search(pattern, text.lower(), re.IGNORECASE)
+                    start_pos = match.start() if match else -1
             else:
                 # Use character-level matching (original behavior)
-                start_pos = text.lower().find(annotated_span)
+                if occurence_index is not None:
+                    # Find all occurrences and select the one at the specified occurrence index
+                    all_positions = []
+                    start_search = 0
+                    while True:
+                        pos = text.lower().find(annotated_span, start_search)
+                        if pos == -1:
+                            break
+                        all_positions.append(pos)
+                        start_search = pos + 1
+
+                    if 0 <= occurence_index < len(all_positions):
+                        start_pos = all_positions[occurence_index]
+                    elif all_positions:
+                        # Invalid occurrence index, fall back to first occurrence
+                        logger.warning(
+                            f"Invalid occurrence index {occurence_index} for span '{annotated_span}'. Using first occurrence."
+                        )
+                        start_pos = all_positions[0]
+                    else:
+                        start_pos = -1
+                else:
+                    # Original behavior: find first occurrence
+                    start_pos = text.lower().find(annotated_span)
 
             if not self.annotation_overlap_allowed and start_pos != -1:
                 # check if the annotation overlaps with any other annotation

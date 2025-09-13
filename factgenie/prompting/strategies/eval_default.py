@@ -22,7 +22,8 @@ class StructuredAnnotationStrategy(SequentialStrategy):
         annotation_overlap_allowed = self.config.get("annotation_overlap_allowed", False)
         annotation_granularity = self.config.get("annotation_granularity", "words")
         with_reason = self.extra_args.get("with_reason", True)
-        output_validation_model = AnnotationModelFactory.get_output_model(with_reason)
+        with_occurence_index = self.extra_args.get("with_occurence_index", False)
+        output_validation_model = AnnotationModelFactory.get_output_model(with_reason, with_occurence_index)
 
         return [
             # 1. Ask prompt.
