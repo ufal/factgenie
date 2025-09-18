@@ -440,6 +440,7 @@ class AskPrompt(Transform):
         system_msg: None | str = None,
         start_with: str | None = None,
         completion_kwargs: dict = {},
+        reasoning_field: str = "thinking_trace",
     ):
         """
         Assume we are trying to prompt-map the following data:
@@ -463,17 +464,27 @@ class AskPrompt(Transform):
                 "part": <first sentence>,
                 prompt_name: <the prompt>,
                 output_name: <the output of the LLM>,
+                reasoning_field: <the reasoning content from LLM> (if available),
             },
         ]
         ```
 
         The `prompt_template` may refer to any input field, such as "{part}" or "{data}" from the example above.
+
+        Args:
+            input_field: Field containing the prompt text.
+            output_field: Field to store the LLM response content.
+            system_msg: Optional system message for the prompt.
+            start_with: Optional text to start the assistant response with.
+            completion_kwargs: Additional kwargs for the completion API.
+            reasoning_field: Field name to store reasoning content (default: "thinking_trace").
         """
         self.input_field = input_field
         self.output_field = output_field
         self.system_msg = system_msg
         self.start_with = start_with
         self.completion_kwargs = completion_kwargs
+        self.reasoning_field = reasoning_field
 
     @property
     def requires_fields(self) -> list[str]:
@@ -481,7 +492,8 @@ class AskPrompt(Transform):
 
     @property
     def outputs_fields(self) -> list[str]:
-        return [self.output_field]
+        # Always include reasoning_field as a potential output since we always try to extract it
+        return [self.output_field, self.reasoning_field]
 
     def construct_message(self, prompt: str):
         messages = []
@@ -509,10 +521,26 @@ class AskPrompt(Transform):
         logger.debug(f"Response tokens: {response.usage.completion_tokens}")
 
         content = response.choices[0].message.content
-        return content
+
+        # Always try to extract reasoning content if available
+        reasoning_content = getattr(response.choices[0].message, "reasoning_content", None)
+        if reasoning_content:
+            logger.debug(f"Extracted reasoning content of length: {len(reasoning_content)}")
+
+        return content, reasoning_content
 
     def __call__(self, current: list[dict], api: ModelAPI) -> list[dict]:
-        return derive_field(current, api, self.get_model_response, self.output_field)
+        result = []
+        for c in current:
+            content, reasoning_content = self.get_model_response(c, api)
+            new_dict = {**c, self.output_field: content}
+
+            # Add reasoning content if it was extracted
+            if reasoning_content is not None:
+                new_dict[self.reasoning_field] = reasoning_content
+
+            result.append(new_dict)
+        return result
 
 
 class ParseAnnotations(Transform):
@@ -923,6 +951,19 @@ class TransformTests(unittest.TestCase):
         ]
         result = transform(current, self.api)
         self.assertListEqual(expected, result)
+
+    def test_ask_prompt_with_custom_reasoning_field(self):
+        current = [{"p": "hello"}]
+        transform = AskPrompt("p", "a", reasoning_field="custom_thinking")
+
+        result = transform(current, self.api)
+
+        # Should have the main output field
+        self.assertIn("a", result[0])
+        self.assertEqual(result[0]["a"], "MOCK: <user: hello>")
+
+        # Since MockingAPI doesn't provide reasoning_content, it shouldn't be added
+        self.assertNotIn("custom_thinking", result[0])
 
     def test_parse_annotations(self):
         current = [
