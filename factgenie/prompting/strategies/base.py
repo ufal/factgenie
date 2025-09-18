@@ -70,6 +70,7 @@ class SequentialStrategy(PromptingStrategy):
     TEXT = "text"
     OUTPUT = "output"
     ANNOTATIONS = "annotations"
+    THINKING_TRACE = "thinking_trace"
 
     def __init__(self, config, mode: str):
         super().__init__(config, mode)
@@ -86,7 +87,7 @@ class SequentialStrategy(PromptingStrategy):
             expected_outputs = {self.OUTPUT}
         elif self.mode == CampaignMode.LLM_EVAL:
             current_keys = {self.DATA, self.TEXT}
-            expected_outputs = {self.ANNOTATIONS}
+            expected_outputs = {self.ANNOTATIONS, self.THINKING_TRACE}
         else:
             raise NotImplementedError(f"{self.mode} is not implemented")
 
