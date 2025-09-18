@@ -8,7 +8,12 @@ import unittest
 from factgenie.campaign import CampaignMode
 from factgenie.prompting import transforms as t
 from factgenie.prompting.model_apis import MockingAPI, ModelAPI
-from factgenie.prompting.registry import track_subclasses, untracked, Registry, UnregisteredTracker
+from factgenie.prompting.registry import (
+    Registry,
+    UnregisteredTracker,
+    track_subclasses,
+    untracked,
+)
 
 logger = logging.getLogger("factgenie")
 
@@ -36,8 +41,9 @@ class PromptingStrategy(abc.ABC):
                 - 'output': (for LLM_GEN) a string containing the output text.
                 - 'annotations': (for LLM_EVAL) a list of annotations.
                 - 'metadata': A dictionary containing any information from the prompting you wish to have saved in the campaign output. Typically containing a single key 'prompt'.
-                - ...all other keys generated in the PromptingStrategy will be ignored.
-            A dictionary with the prompt and either 'output' or 'annotations'
+                - 'thinking_trace': (optional) The reasoning trace from the LLM if available.
+                - Other keys may be preserved depending on the strategy implementation.
+            A dictionary with the expected output fields and any additional preserved fields
         """
         # TODO: Add the description for what the list of annotations looks like (inside """... Returns: ...""").
         pass
@@ -64,6 +70,7 @@ class SequentialStrategy(PromptingStrategy):
     TEXT = "text"
     OUTPUT = "output"
     ANNOTATIONS = "annotations"
+    THINKING_TRACE = "thinking_trace"
 
     def __init__(self, config, mode: str):
         super().__init__(config, mode)
@@ -80,7 +87,7 @@ class SequentialStrategy(PromptingStrategy):
             expected_outputs = {self.OUTPUT}
         elif self.mode == CampaignMode.LLM_EVAL:
             current_keys = {self.DATA, self.TEXT}
-            expected_outputs = {self.ANNOTATIONS}
+            expected_outputs = {self.ANNOTATIONS, self.THINKING_TRACE}
         else:
             raise NotImplementedError(f"{self.mode} is not implemented")
 

@@ -1,5 +1,6 @@
 import logging
 
+from factgenie.colors import Ansi
 from factgenie.annotations import AnnotationModelFactory
 from factgenie.prompting import transforms as t
 from factgenie.prompting.strategies import SequentialStrategy, register_llm_eval
@@ -41,6 +42,7 @@ class RawOutputAnnotationStrategy(SequentialStrategy):
                 remove_from_input=True,
                 log_as="THINKING",
             ),
+            t.Log(text="Thinking trace: ", field=THINKING_TRACE, color=Ansi.DARK_GRAY, log_level="debug"),
             t.ExtractJson(ANNOTATIONS_RAW, EXTRACTED),
             t.ParseAnnotations(
                 EXTRACTED,
