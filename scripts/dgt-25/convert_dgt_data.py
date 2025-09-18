@@ -448,17 +448,18 @@ def parse_heading_filename(soup):
                 if len(cells) >= 2 and "Document numbers" in cells[0].get_text():
                     filename = cells[1].get_text(strip=True)
                     # Remove .sdlxliff extension if present
+                    original_filename = filename
                     filename = filename.replace(".sdlxliff", "")
 
                     parts = filename.split("-")
                     if len(parts) >= 8:
                         dataset_name = slugify("-".join(parts[:3])).lower()
                         setup_id = slugify("-".join(parts[6:8])).lower()
-                        return dataset_name, setup_id
+                        return dataset_name, setup_id, original_filename
                     break
             break
 
-    return "UNKNOWN", "UNKNOWN"
+    return "UNKNOWN", "UNKNOWN", "UNKNOWN"
 
 
 def main():
@@ -488,8 +489,10 @@ def main():
     if args.dataset_name and args.setup_id:
         dataset_name = args.dataset_name
         setup_id = args.setup_id
+        # Still need to extract filename for input data
+        _, _, filename = parse_heading_filename(soup)
     else:
-        dataset_name, setup_id = parse_heading_filename(soup)
+        dataset_name, setup_id, filename = parse_heading_filename(soup)
         if args.dataset_name:
             dataset_name = args.dataset_name
         if args.setup_id:
@@ -541,7 +544,13 @@ def main():
 
                 # Concatenate source segments for this chunk
                 source_text = "<br>".join(segments[i]["source_segment"] for i in range(start_idx, end_idx))
-                input_data = {"source_text": source_text}
+                # Create a segment_id representing the range of segments in this chunk
+                if start_idx == end_idx - 1:
+                    segment_id = segments[start_idx]["segment_id"]
+                else:
+                    segment_id = f"{segments[start_idx]['segment_id']}-{segments[end_idx-1]['segment_id']}"
+
+                input_data = {"segment_id": segment_id, "source_text": source_text, "filename": filename}
                 f.write(json.dumps(input_data, ensure_ascii=False) + "\n")
 
         # Generate output.jsonl with chunked target text
@@ -627,7 +636,11 @@ def main():
         input_file = inputs_dir / f"{args.split}.jsonl"
         with open(input_file, "w", encoding="utf-8") as f:
             for segment in segments:
-                input_data = {"segment_id": segment["segment_id"], "source_segment": segment["source_segment"]}
+                input_data = {
+                    "segment_id": segment["segment_id"],
+                    "source_text": segment["source_segment"],
+                    "filename": filename,
+                }
                 f.write(json.dumps(input_data, ensure_ascii=False) + "\n")
 
         # Generate output.jsonl in factgenie outputs directory
