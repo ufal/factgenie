@@ -535,9 +535,8 @@ class AskPrompt(Transform):
             content, reasoning_content = self.get_model_response(c, api)
             new_dict = {**c, self.output_field: content}
 
-            # Add reasoning content if it was extracted
-            if reasoning_content is not None:
-                new_dict[self.reasoning_field] = reasoning_content
+            # Always add reasoning field, even if None, since we declared it in outputs_fields
+            new_dict[self.reasoning_field] = reasoning_content
 
             result.append(new_dict)
         return result
@@ -946,8 +945,8 @@ class TransformTests(unittest.TestCase):
         transform = AskPrompt("p", "a", system_msg="I am system.", start_with="YAYA")
 
         expected = [
-            {"p": "hello", "a": "MOCK: <system: I am system.> <user: hello> <assistant: YAYA>"},
-            {"p": "bye", "a": "MOCK: <system: I am system.> <user: bye> <assistant: YAYA>"},
+            {"p": "hello", "a": "MOCK: <system: I am system.> <user: hello> <assistant: YAYA>", "thinking_trace": None},
+            {"p": "bye", "a": "MOCK: <system: I am system.> <user: bye> <assistant: YAYA>", "thinking_trace": None},
         ]
         result = transform(current, self.api)
         self.assertListEqual(expected, result)
@@ -962,8 +961,9 @@ class TransformTests(unittest.TestCase):
         self.assertIn("a", result[0])
         self.assertEqual(result[0]["a"], "MOCK: <user: hello>")
 
-        # Since MockingAPI doesn't provide reasoning_content, it shouldn't be added
-        self.assertNotIn("custom_thinking", result[0])
+        # Since MockingAPI doesn't provide reasoning_content, custom_thinking should be None
+        self.assertIn("custom_thinking", result[0])
+        self.assertIsNone(result[0]["custom_thinking"])
 
     def test_parse_annotations(self):
         current = [
