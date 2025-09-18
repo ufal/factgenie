@@ -604,7 +604,7 @@ def main():
         files_dir = campaign_dir / "files"
         files_dir.mkdir(exist_ok=True)
 
-        with open(files_dir / f"{args.split}.jsonl", "w", encoding="utf-8") as f:
+        with open(files_dir / f"{dataset_name}-{args.split}.jsonl", "w", encoding="utf-8") as f:
             for chunk_idx in range(num_chunks):
                 start_idx = chunk_idx * segment_size
                 end_idx = min(start_idx + segment_size, len(segments))
@@ -688,7 +688,7 @@ def main():
         files_dir = campaign_dir / "files"
         files_dir.mkdir(exist_ok=True)
 
-        with open(files_dir / "annotations.jsonl", "w", encoding="utf-8") as f:
+        with open(files_dir / f"{dataset_name}-{args.split}.jsonl", "w", encoding="utf-8") as f:
             for i, segment in enumerate(segments):
                 annotations = extract_annotations(segment["target_revision"], segment["error_code"], categories)
 
