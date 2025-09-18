@@ -79,6 +79,9 @@ def extract_error_statistics(soup):
                     {"name": f"{error_code.lower()}+", "color": base_color, "description": f"{error_type} (Major)"}
                 )
 
+    # Add "unknown" category for cases where error category is missing
+    categories.append({"name": "unknown", "color": "#808080", "description": "Unknown error category"})
+
     return categories
 
 
@@ -219,10 +222,27 @@ def extract_segments(soup):
                 source_segment = cells[1].get_text(strip=True)
                 target_revision = cells[2]
 
-                # Look for error code in the next row if it exists
-                error_code = ""
-                if i + 1 < len(rows):
-                    next_row = rows[i + 1]
+                # Initialize error codes and comments lists
+                error_codes = []
+                comments = []
+
+                # Check if there's an error code column in the current row (index 3)
+                if len(cells) >= 4:
+                    error_code_text = cells[3].get_text(strip=True)
+                    if error_code_text:
+                        error_codes.append(error_code_text)
+                        # If there's a comment column (index 4), extract it
+                        if len(cells) >= 5:
+                            comments.append(cells[4].get_text(strip=True))
+                        else:
+                            comments.append("")
+
+                # Look for additional error codes in subsequent rows
+                next_row_idx = i + 1
+                rows_to_skip = 0
+
+                while next_row_idx < len(rows):
+                    next_row = rows[next_row_idx]
                     next_cells = next_row.find_all("td")
 
                     # Check if next row has error code (first cell is not a number and not empty)
@@ -231,21 +251,58 @@ def extract_segments(soup):
                         and next_cells[0].get_text(strip=True)
                         and not next_cells[0].get_text(strip=True).isdigit()
                     ):
-                        error_code = next_cells[0].get_text(strip=True)
-                        i += 2  # Skip the error code row
+                        error_codes.append(next_cells[0].get_text(strip=True))
+                        # If there's a comment in the next row
+                        if len(next_cells) >= 2:
+                            comments.append(next_cells[1].get_text(strip=True))
+                        else:
+                            comments.append("")
+                        rows_to_skip += 1
+                        next_row_idx += 1
                     else:
-                        i += 1
-                else:
-                    i += 1
+                        # Hit a segment row or empty row, stop looking
+                        break
+
+                # Process error codes to handle major/minor format
+                processed_error_codes = []
+                for error_code in error_codes:
+                    if error_code:
+                        # Check for major error pattern (uppercase + '+')
+                        if error_code.endswith("+"):
+                            # Convert to lowercase + '+'
+                            processed_error_codes.append(error_code.lower())
+                        # Check for minor error pattern (lowercase + '-')
+                        elif error_code.endswith("-"):
+                            # Keep as is
+                            processed_error_codes.append(error_code)
+                        else:
+                            # If there's an error code but no severity indicator, use "unknown"
+                            processed_error_codes.append("unknown")
+                    else:
+                        processed_error_codes.append("unknown")
+
+                # If no error codes found but we have corrections, add "unknown"
+                if not processed_error_codes:
+                    target_str = str(target_revision)
+                    if any(
+                        marker in target_str
+                        for marker in ["<strike>", "background-color:yellow", 'color="red"', 'color="purple"']
+                    ):
+                        processed_error_codes.append("unknown")
+                        comments.append("")
 
                 segments.append(
                     {
                         "segment_id": segment_id,
                         "source_segment": source_segment,
                         "target_revision": target_revision,
-                        "error_code": error_code,
+                        "error_codes": processed_error_codes,  # Now a list
+                        "comments": comments,  # Now a list
                     }
                 )
+
+                # Skip the error code rows we processed
+                i += 1 + rows_to_skip
             else:
                 i += 1
         else:
@@ -273,7 +330,8 @@ def merge_segments(html_segments, sdlxliff_segments):
                     "segment_id": seg_id,
                     "source_segment": sdlxliff_seg["source_segment"],
                     "target_revision": sdlxliff_seg["target_text"],  # Keep as plain text
-                    "error_code": "",  # No error code for segments not in HTML
+                    "error_codes": [],  # No error codes for segments not in HTML
+                    "comments": [],  # No comments for segments not in HTML
                 }
             )
 
@@ -320,11 +378,11 @@ def extract_original_target(target_revision_cell):
     return cell_copy.get_text()
 
 
-def extract_annotations(target_revision_cell, error_code, categories):
-    """Extract annotations from the target revision cell."""
+def extract_annotations(target_revision_cell, error_codes, comments, categories):
+    """Extract annotations from the target revision cell with precise error-highlight matching."""
     annotations = []
 
-    if not error_code:
+    if not error_codes:
         return annotations
 
     # Handle case where target_revision_cell is a string (from SDLXLIFF)
@@ -340,12 +398,21 @@ def extract_annotations(target_revision_cell, error_code, categories):
     original_text = extract_original_target(target_revision_cell)
 
     # Create a copy to work with
-    cell_copy = BeautifulSoup(target_str, "html.parser")
+    cell_soup = BeautifulSoup(target_str, "html.parser")
 
-    # Find all deleted spans with their positions in the original text
-    deleted_spans = []
+    # Find all yellow highlights with their positions
+    yellow_highlights = []
+    for span in cell_soup.find_all("span", style=lambda x: x and "background-color:yellow" in x):
+        highlight_text = span.get_text()
+        highlight_pos = original_text.find(highlight_text)
+        if highlight_pos != -1:
+            yellow_highlights.append(
+                {"text": highlight_text, "pos": highlight_pos, "end_pos": highlight_pos + len(highlight_text)}
+            )
 
-    for font_elem in cell_copy.find_all("font", color="red"):
+    # Find all deletions with their positions
+    deletions = []
+    for font_elem in cell_soup.find_all("font", color="red"):
         strike_elem = font_elem.find("strike")
         if strike_elem:
             deleted_text = strike_elem.get_text()
@@ -370,10 +437,49 @@ def extract_annotations(target_revision_cell, error_code, categories):
                         if u_elem:
                             reason = f"Add: {u_elem.get_text()}"
 
-                deleted_spans.append((deleted_text, start_pos, reason))
+                deletions.append(
+                    {"text": deleted_text, "pos": start_pos, "end_pos": start_pos + len(deleted_text), "reason": reason}
+                )
 
-    # Create annotations for deleted spans
-    for deleted_text, start_pos, reason in deleted_spans:
+    # Match deletions with yellow highlights and assign error codes
+    for deletion in deletions:
+        # Find the closest yellow highlight to this deletion
+        closest_highlight_idx = None
+        min_distance = float("inf")
+
+        for i, highlight in enumerate(yellow_highlights):
+            # Calculate distance between deletion and highlight
+            # Use the minimum distance between their boundaries
+            deletion_center = deletion["pos"] + len(deletion["text"]) // 2
+            highlight_center = highlight["pos"] + len(highlight["text"]) // 2
+            distance = abs(deletion_center - highlight_center)
+
+            if distance < min_distance:
+                min_distance = distance
+                closest_highlight_idx = i
+
+        # Determine error code and comment
+        error_code = "unknown"
+        comment = ""
+
+        if closest_highlight_idx is not None and closest_highlight_idx < len(error_codes):
+            error_code = error_codes[closest_highlight_idx]
+            if closest_highlight_idx < len(comments):
+                comment = comments[closest_highlight_idx]
+        elif len(error_codes) > 0:
+            # Use first error code if no good match found
+            error_code = error_codes[0]
+            if len(comments) > 0:
+                comment = comments[0]
+
+        # Build reason with comment
+        reason = deletion["reason"]
+        if comment:
+            if reason:
+                reason = f"{reason} – {comment}"
+            else:
+                reason = f"{comment}"
+
         # Find error type index
         error_type_idx = 0
         for i, category in enumerate(categories):
@@ -384,9 +490,9 @@ def extract_annotations(target_revision_cell, error_code, categories):
         annotations.append(
             {
                 "reason": reason,
-                "text": deleted_text,
+                "text": deletion["text"],
                 "type": error_type_idx,
-                "start": start_pos,
+                "start": deletion["pos"],
             }
         )
 
@@ -400,7 +506,9 @@ def extract_doc_level_annotations(segments, categories):
 
     for segment in segments:
         # Extract annotations for this segment
-        segment_annotations = extract_annotations(segment["target_revision"], segment["error_code"], categories)
+        segment_annotations = extract_annotations(
+            segment["target_revision"], segment.get("error_codes", []), segment.get("comments", []), categories
+        )
 
         # Adjust character positions for document-level
         for annotation in segment_annotations:
@@ -422,7 +530,9 @@ def extract_doc_level_annotations_for_chunk(segments, categories, start_segment_
     for i in range(start_segment_idx, end_segment_idx):
         segment = segments[i]
         # Extract annotations for this segment
-        segment_annotations = extract_annotations(segment["target_revision"], segment["error_code"], categories)
+        segment_annotations = extract_annotations(
+            segment["target_revision"], segment.get("error_codes", []), segment.get("comments", []), categories
+        )
 
         # Adjust character positions for document-level
         for annotation in segment_annotations:
@@ -690,7 +800,9 @@ def main():
 
         with open(files_dir / f"{dataset_name}-{args.split}.jsonl", "w", encoding="utf-8") as f:
             for i, segment in enumerate(segments):
-                annotations = extract_annotations(segment["target_revision"], segment["error_code"], categories)
+                annotations = extract_annotations(
+                    segment["target_revision"], segment.get("error_codes", []), segment.get("comments", []), categories
+                )
 
                 annotation_data = {
                     "dataset": dataset_name,
