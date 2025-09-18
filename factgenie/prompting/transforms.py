@@ -535,8 +535,9 @@ class AskPrompt(Transform):
             content, reasoning_content = self.get_model_response(c, api)
             new_dict = {**c, self.output_field: content}
 
-            # Always add reasoning field, even if None, since we declared it in outputs_fields
-            new_dict[self.reasoning_field] = reasoning_content
+            # Add reasoning content if it was extracted
+            if reasoning_content is not None:
+                new_dict[self.reasoning_field] = reasoning_content
 
             result.append(new_dict)
         return result
@@ -791,7 +792,9 @@ class ExtractTag(Transform):
                 c_changes[self.input_field] = modified_input
 
             if self.output_field is not None:
-                c_changes[self.output_field] = tag_output
+                # Only overwrite the field if we found content, or if the field doesn't exist yet
+                if tag_blocks or self.output_field not in c:
+                    c_changes[self.output_field] = tag_output
 
             output.append(c | c_changes)
 
@@ -945,8 +948,8 @@ class TransformTests(unittest.TestCase):
         transform = AskPrompt("p", "a", system_msg="I am system.", start_with="YAYA")
 
         expected = [
-            {"p": "hello", "a": "MOCK: <system: I am system.> <user: hello> <assistant: YAYA>", "thinking_trace": None},
-            {"p": "bye", "a": "MOCK: <system: I am system.> <user: bye> <assistant: YAYA>", "thinking_trace": None},
+            {"p": "hello", "a": "MOCK: <system: I am system.> <user: hello> <assistant: YAYA>"},
+            {"p": "bye", "a": "MOCK: <system: I am system.> <user: bye> <assistant: YAYA>"},
         ]
         result = transform(current, self.api)
         self.assertListEqual(expected, result)
@@ -961,9 +964,8 @@ class TransformTests(unittest.TestCase):
         self.assertIn("a", result[0])
         self.assertEqual(result[0]["a"], "MOCK: <user: hello>")
 
-        # Since MockingAPI doesn't provide reasoning_content, custom_thinking should be None
-        self.assertIn("custom_thinking", result[0])
-        self.assertIsNone(result[0]["custom_thinking"])
+        # Since MockingAPI doesn't provide reasoning_content, it shouldn't be added
+        self.assertNotIn("custom_thinking", result[0])
 
     def test_parse_annotations(self):
         current = [
@@ -1015,6 +1017,28 @@ class TransformTests(unittest.TestCase):
         transform = ExtractTag("a", "code", "code", join_occurances=False, remove_from_input=False)
 
         expected = [{"a": "code: <code>ccc </code> and <code>ddd</code>", "code": ["ccc", "ddd"]}] * 2
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_extract_tag_preserves_existing_field(self):
+        # Test that ExtractTag doesn't overwrite existing field when no tags are found
+        current = [{"a": "no tags here", "thinking_trace": "existing reasoning content"}]
+        transform = ExtractTag("a", "thinking_trace", "think", join_occurances=True, remove_from_input=False)
+
+        # Should preserve the existing thinking_trace since no <think> tags were found
+        expected = [{"a": "no tags here", "thinking_trace": "existing reasoning content"}]
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_extract_tag_overwrites_when_content_found(self):
+        # Test that ExtractTag does overwrite existing field when tags are found
+        current = [{"a": "some <think>new thinking</think> here", "thinking_trace": "old reasoning"}]
+        transform = ExtractTag("a", "thinking_trace", "think", join_occurances=True, remove_from_input=False)
+
+        # Should overwrite with the new content found in tags
+        expected = [{"a": "some <think>new thinking</think> here", "thinking_trace": "new thinking"}]
         result = transform(current, self.api)
 
         self.assertListEqual(expected, result)
