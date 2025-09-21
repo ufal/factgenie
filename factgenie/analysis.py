@@ -444,6 +444,7 @@ def get_example_list(
 
     # Group by the identifying columns and filter accordingly
     groups = combined_examples.groupby(["dataset", "split", "setup_id", "example_idx"])
+
     valid_keys = [key for key, group in groups if is_annotated_by_all_groups(group)]
 
     # Create a DataFrame from the valid example keys

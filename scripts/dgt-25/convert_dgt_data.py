@@ -15,6 +15,60 @@ from slugify import slugify
 FACTGENIE_PATH = Path("/home/kasner/dgt-workshop/factgenie/factgenie")
 
 
+def generate_db_csv_from_jsonl_files(campaign_dir):
+    """Generate db.csv based on existing JSONL files in the campaign files directory."""
+    files_dir = campaign_dir / "files"
+
+    if not files_dir.exists():
+        print(f"Warning: No files directory found at {files_dir}")
+        return
+
+    # Find all JSONL files in the files directory
+    jsonl_files = list(files_dir.glob("*.jsonl"))
+
+    if not jsonl_files:
+        print(f"Warning: No JSONL files found in {files_dir}")
+        return
+
+    # Collect all entries from JSONL files
+    db_entries = []
+
+    for jsonl_file in jsonl_files:
+        try:
+            with open(jsonl_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        data = json.loads(line)
+                        db_entries.append(
+                            {
+                                "dataset": data.get("dataset", ""),
+                                "split": data.get("split", ""),
+                                "example_idx": data.get("example_idx", 0),
+                                "setup_id": data.get("setup_id", ""),
+                            }
+                        )
+        except Exception as e:
+            print(f"Warning: Could not process {jsonl_file}: {e}")
+            continue
+
+    if not db_entries:
+        print("Warning: No valid entries found in JSONL files")
+        return
+
+    # Sort entries by dataset, split, setup_id, and example_idx for consistent ordering
+    db_entries.sort(key=lambda x: (x["dataset"], x["split"], x["setup_id"], x["example_idx"]))
+
+    # Write db.csv
+    csv_file = campaign_dir / "db.csv"
+    with open(csv_file, "w", encoding="utf-8") as f:
+        f.write("dataset,split,example_idx,setup_id,batch_idx,annotator_group,annotator_id,status,start,end\n")
+        for entry in db_entries:
+            f.write(f"{entry['dataset']},{entry['split']},{entry['example_idx']},{entry['setup_id']},0,0,,finished,,\n")
+
+    print(f"Generated {csv_file} with {len(db_entries)} entries from {len(jsonl_files)} JSONL files")
+
+
 def extract_error_statistics(soup):
     """Extract error statistics from the HTML table to create annotation categories."""
     categories = []
@@ -24,7 +78,7 @@ def extract_error_statistics(soup):
     color_palette = [
         "#d62626",  # Red
         "#2563eb",  # Blue
-        "#dc2626",  # Orange-Red
+        "#E6AB02",  # Yellow
         "#059669",  # Green
         "#7c3aed",  # Purple
         "#ea580c",  # Orange
@@ -704,12 +758,6 @@ def main():
         with open(campaign_dir / "metadata.json", "w", encoding="utf-8") as f:
             json.dump(metadata, f, indent=2, ensure_ascii=False)
 
-        # Generate db.csv for chunks
-        with open(campaign_dir / "db.csv", "w", encoding="utf-8") as f:
-            f.write("dataset,split,example_idx,setup_id,batch_idx,annotator_group,annotator_id,status,start,end\n")
-            for chunk_idx in range(num_chunks):
-                f.write(f"{dataset_name},{args.split},{chunk_idx},{setup_id},0,0,,finished,,\n")
-
         # Create files subdirectory and generate annotations.jsonl
         files_dir = campaign_dir / "files"
         files_dir.mkdir(exist_ok=True)
@@ -731,6 +779,9 @@ def main():
                     "metadata": {"annotator_group": 0},
                 }
                 f.write(json.dumps(annotation_data, ensure_ascii=False) + "\n")
+
+        # Generate db.csv based on existing JSONL files
+        generate_db_csv_from_jsonl_files(campaign_dir)
 
         print(f"Multi-segment conversion completed successfully!")
         print(f"Generated files:")
@@ -788,12 +839,6 @@ def main():
         with open(campaign_dir / "metadata.json", "w", encoding="utf-8") as f:
             json.dump(metadata, f, indent=2, ensure_ascii=False)
 
-        # Generate db.csv
-        with open(campaign_dir / "db.csv", "w", encoding="utf-8") as f:
-            f.write("dataset,split,example_idx,setup_id,batch_idx,annotator_group,annotator_id,status,start,end\n")
-            for i, segment in enumerate(segments):
-                f.write(f"{dataset_name},{args.split},{i},{setup_id},0,0,,finished,,\n")
-
         # Create files subdirectory and generate annotations.jsonl
         files_dir = campaign_dir / "files"
         files_dir.mkdir(exist_ok=True)
@@ -813,6 +858,9 @@ def main():
                     "metadata": {"annotator_group": 0},
                 }
                 f.write(json.dumps(annotation_data, ensure_ascii=False) + "\n")
+
+        # Generate db.csv based on existing JSONL files
+        generate_db_csv_from_jsonl_files(campaign_dir)
 
         print(f"Conversion completed successfully!")
         print(f"Generated files:")
