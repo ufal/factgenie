@@ -44,6 +44,7 @@ def create_crowdsourcing_campaign(app, campaign_id, config, campaign_data):
                 },
                 f,
                 indent=4,
+                ensure_ascii=False,
             )
 
         # prepare the crowdsourcing HTML page

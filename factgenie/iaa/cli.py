@@ -137,7 +137,7 @@ def gamma_command(
     # Save to JSON if output file specified
     if output:
         with open(output, "w") as f:
-            json.dump(gamma_results, f, indent=2)
+            json.dump(gamma_results, f, indent=2, ensure_ascii=False)
         logger.info(f"Gamma results saved to {output}")
 
 
@@ -263,7 +263,7 @@ def f1_command(
     # Save to JSON if output file specified
     if output:
         with open(output, "w") as f:
-            json.dump(f1_results, f, indent=2)
+            json.dump(f1_results, f, indent=2, ensure_ascii=False)
         logger.info(f"F1 results saved to {output}")
 
 
@@ -375,5 +375,5 @@ def pearson_command(
     # Save to JSON if output file specified
     if output:
         with open(output, "w") as f:
-            json.dump(pearson_results, f, indent=2)
+            json.dump(pearson_results, f, indent=2, ensure_ascii=False)
         logger.info(f"Pearson correlation results saved to {output}")

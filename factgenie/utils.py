@@ -221,7 +221,7 @@ def resumable_download(
 
 
 def announce(announcer, payload):
-    msg = format_sse(data=json.dumps(payload))
+    msg = format_sse(data=json.dumps(payload, ensure_ascii=False))
     if announcer is not None:
         announcer.announce(msg=msg)
 
