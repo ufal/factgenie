@@ -26,3 +26,5 @@ factgenie/config/crowdsourcing
 
 # ignore changes in the notebook by default (to avoid adding the notebook after each run)
 factgenie/notebooks/inter_annotator_agreement.ipynb
+
+scripts/dgt-25/sample-data/
