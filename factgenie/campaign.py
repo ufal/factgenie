@@ -92,7 +92,7 @@ class Campaign:
 
     def update_metadata(self):
         with open(self.metadata_path, "w") as f:
-            json.dump(self.metadata, f, indent=4)
+            json.dump(self.metadata, f, indent=4, ensure_ascii=False)
 
     def load_metadata(self):
         with open(self.metadata_path) as f:
