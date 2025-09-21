@@ -86,7 +86,7 @@ def annotate_url(current_url):
 
 @app.template_filter("prettify_json")
 def prettify_json(value):
-    return json.dumps(value, sort_keys=True, indent=4, separators=(",", ": "))
+    return json.dumps(value, sort_keys=True, indent=4, separators=(",", ": "), ensure_ascii=False)
 
 
 # -----------------

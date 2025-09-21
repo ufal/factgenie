@@ -56,6 +56,7 @@ def create_llm_campaign(app, mode, campaign_id, config, campaign_data, datasets,
                 },
                 f,
                 indent=4,
+                ensure_ascii=False,
             )
     except Exception as e:
         # cleanup
@@ -97,7 +98,7 @@ def duplicate_llm_campaign(app, mode, campaign_id, new_campaign_id):
     metadata["status"] = CampaignStatus.IDLE
 
     with open(metadata_path, "w") as f:
-        json.dump(metadata, f, indent=4)
+        json.dump(metadata, f, indent=4, ensure_ascii=False)
 
     return utils.success()
 
@@ -325,6 +326,6 @@ def save_generation_outputs(app, campaign_id, setup_id):
 
     with open(path / f"{campaign_id}.jsonl", "w") as f:
         for example in outputs:
-            f.write(json.dumps(example) + "\n")
+            f.write(json.dumps(example, ensure_ascii=False) + "\n")
 
     return utils.success()

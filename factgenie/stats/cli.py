@@ -94,7 +94,7 @@ def counts_command(
     if output:
         try:
             with open(output, "w") as f:
-                json.dump(stats, f, indent=2)
+                json.dump(stats, f, indent=2, ensure_ascii=False)
             logger.info(f"Statistics saved to {output}")
             print(f"\nStatistics saved to {output}")
         except Exception as e:

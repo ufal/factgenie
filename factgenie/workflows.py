@@ -729,7 +729,7 @@ def export_outputs(app, dataset_id, split, setup_id):
     with open(tmp_file_path, "w") as f:
         for _, row in outputs.iterrows():
             j = row.to_dict()
-            f.write(json.dumps(j) + "\n")
+            f.write(json.dumps(j, ensure_ascii=False) + "\n")
 
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         zip_file.write(
@@ -856,7 +856,7 @@ def upload_model_outputs(dataset, split, setup_id, model_outputs):
                 "example_idx": i,
                 "output": out,
             }
-            f.write(json.dumps(j) + "\n")
+            f.write(json.dumps(j, ensure_ascii=False) + "\n")
 
     with open(f"{path.parent}/metadata.json", "w") as f:
         json.dump(
@@ -866,6 +866,7 @@ def upload_model_outputs(dataset, split, setup_id, model_outputs):
             },
             f,
             indent=4,
+            ensure_ascii=False,
         )
 
 
@@ -990,6 +991,6 @@ def save_record(mode, campaign, row, result):
 
     # append the record to the file from the current run
     with open(os.path.join(save_dir, filename), "a") as f:
-        f.write(json.dumps(record, allow_nan=True) + "\n")
+        f.write(json.dumps(record, allow_nan=True, ensure_ascii=False) + "\n")
 
     return record
