@@ -1,49 +1,91 @@
-annotation_granularity: words
-annotation_overlap_allowed: false
+annotation_granularity: chars
+annotation_overlap_allowed: true
 annotation_span_categories:
-- color: rgb(214, 39, 40)
-  description: The fact in the text contradicts the data.
-  name: Incorrect
-- color: rgb(148, 103, 189)
-  description: The fact in the text cannot be checked given the data.
-  name: Not checkable
+- color: rgb(230, 124, 124)
+  description: Accuracy (Minor) - Minor factual errors or inaccuracies in the translation.
+  name: accy-
+- color: rgb(214, 38, 38)
+  description: Accuracy (Major) - Major factual errors or inaccuracies that significantly affect meaning.
+  name: accy+
+- color: rgb(124, 161, 243)
+  description: Terminology (Minor) - Minor terminology issues or inconsistent term usage.
+  name: term-
+- color: rgb(37, 99, 235)
+  description: Terminology (Major) - Major terminology errors or completely wrong term usage.
+  name: term+
+- color: rgb(240, 204, 103)
+  description: Linguistic norm (Minor) - Minor grammatical or linguistic issues.
+  name: lnorm-
 - color: rgb(230, 171, 2)
-  description: The fact in the text is misleading in the given context.
-  name: Misleading
-- color: rgb(102, 102, 102)
-  description: The text is problematic for another reason, e.g. grammatically or stylistically
-    incorrect, irrelevant, or repetitive.
-  name: Other
+  description: Linguistic norm (Major) - Major grammatical errors or linguistic violations.
+  name: lnorm+
+- color: rgb(105, 192, 165)
+  description: Job-specific style (Minor) - Minor deviations from job-specific style requirements.
+  name: stjob-
+- color: rgb(5, 150, 105)
+  description: Job-specific style (Major) - Major violations of job-specific style guidelines.
+  name: stjob+
+- color: rgb(176, 136, 244)
+  description: General style (Minor) - Minor general stylistic issues.
+  name: stgen-
+- color: rgb(124, 58, 237)
+  description: General style (Major) - Major general stylistic problems.
+  name: stgen+
+- color: rgb(242, 154, 109)
+  description: Design (Minor) - Minor formatting or design issues.
+  name: dsgn-
+- color: rgb(234, 88, 12)
+  description: Design (Major) - Major formatting or design problems.
+  name: dsgn+
+- color: rgb(128, 128, 128)
+  description: Unknown error category - Errors that don't fit into other categories.
+  name: unknown
 annotator_instructions: |-
-  In this task, you will annotate outputs of an automatic text generation system. For each example, you will see **data** on the left side and the corresponding generated **text** on the right side. Your task is to **annotate errors** in the text with respect to the data.
+  In this task, you will annotate translation errors in machine-generated translations. For each example, you will see the **source text** on the left side and the corresponding **translation** on the right side. Your task is to **identify and classify errors** in the translation.
 
-  There are four types of errors that you can mark in the generated text:
+  There are 13 types of errors that you can mark in the translation:
 
-  - <span style="color: rgb(214, 39, 40); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>Incorrect</b></span>: The fact in the text contradicts the data.
-  - <span style="color: rgb(148, 103, 189); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>Not checkable</b></span>: The fact in the text cannot be checked given the data.
-  - <span style="color: rgb(230, 171, 2); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>Misleading</b></span>: The fact in the text is misleading in the given context.
-  - <span style="color: rgb(102, 102, 102); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>Other</b></span>: The text is problematic for another reason, e.g. grammatically or stylistically incorrect, irrelevant, or repetitive.
+  **Accuracy Errors:**
+  - <span style="color: rgb(230, 124, 124); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>Accuracy (Minor)</b></span>: Minor factual errors or inaccuracies in the translation.
+  - <span style="color: rgb(214, 38, 38); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>Accuracy (Major)</b></span>: Major factual errors or inaccuracies that significantly affect meaning.
 
-  You can annotate the errors by selecting the appropriate error category and dragging your mouse over the text, highlighting the error span.
+  **Terminology Errors:**
+  - <span style="color: rgb(124, 161, 243); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>Terminology (Minor)</b></span>: Minor terminology issues or inconsistent term usage.
+  - <span style="color: rgb(37, 99, 235); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>Terminology (Major)</b></span>: Major terminology errors or completely wrong term usage.
 
-  Once you think you have marked all the errors present in the text, click the **✅ Mark example as complete** button (you can still update the annotation later).
+  **Linguistic Norm Errors:**
+  - <span style="color: rgb(240, 204, 103); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>Linguistic norm (Minor)</b></span>: Minor grammatical or linguistic issues.
+  - <span style="color: rgb(230, 171, 2); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>Linguistic norm (Major)</b></span>: Major grammatical errors or linguistic violations.
 
-  You will be able to submit the annotations once they are all are marked as complete.
+  **Style Errors:**
+  - <span style="color: rgb(105, 192, 165); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>Job-specific style (Minor)</b></span>: Minor deviations from job-specific style requirements.
+  - <span style="color: rgb(5, 150, 105); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>Job-specific style (Major)</b></span>: Major violations of job-specific style guidelines.
+  - <span style="color: rgb(176, 136, 244); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>General style (Minor)</b></span>: Minor general stylistic issues.
+  - <span style="color: rgb(124, 58, 237); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>General style (Major)</b></span>: Major general stylistic problems.
+
+  **Design Errors:**
+  - <span style="color: rgb(242, 154, 109); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>Design (Minor)</b></span>: Minor formatting or design issues.
+  - <span style="color: rgb(234, 88, 12); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>Design (Major)</b></span>: Major formatting or design problems.
+
+  **Other:**
+  - <span style="color: rgb(128, 128, 128); text-decoration: underline; text-decoration-thickness: 4px; text-decoration-skip-ink: none"><b>Unknown</b></span>: Errors that don't fit into other categories.
+
+  You can annotate errors by selecting the appropriate error category and dragging your mouse over the text to highlight the error span. Error spans can include parts of words, whole words, or multi-word phrases.
+
+  Once you think you have marked all the errors present in the translation, click the **✅ Mark example as complete** button (you can still update the annotation later).
+
+  You will be able to submit the annotations once they are all marked as complete.
 annotators_per_example: 1
 examples_per_batch: 10
 final_message: |-
   Your annotations have been submitted.
-
-  Your Prolific completion code is **CK388WFU**.
-
-  **[Return to Prolific](https://app.prolific.co/submissions/complete?cc=CK388WFU)**
 flags:
-- The text 100% accurate and does not contain any errors.
-- The text is missing or incomplete.
-- The text is severely off-topic (seems completely unrelated to the data).
+- The translation is 100% accurate and does not contain any errors.
+- The translation is missing or incomplete.
+- The translation is severely off-topic (seems completely unrelated to the source).
 idle_time: 120
 options: []
 sliders: []
-service: prolific
+service: local
 sort_order: sort-example-ids-shuffle-setups
 text_fields: []
