@@ -18,6 +18,7 @@ from flask import (
     request,
     send_from_directory,
 )
+from math import isnan
 from slugify import slugify
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -442,6 +443,17 @@ def duplicate_eval():
     return ret
 
 
+def sanitize_json(json_val):
+    if isinstance(json_val, dict):
+        return {k: sanitize_json(v) for k, v in json_val.items()}
+    elif isinstance(json_val, list):
+        return [sanitize_json(v) for v in json_val]
+    elif isinstance(json_val, float) and isnan(json_val):
+        return None
+    else:
+        return json_val
+
+
 @app.route("/example", methods=["GET", "POST"])
 def render_example():
     dataset_id = request.args.get("dataset")
@@ -451,9 +463,10 @@ def render_example():
 
     try:
         example_data = workflows.get_example_data(app, dataset_id, split, example_idx, setup_id)
-
+        example_data = sanitize_json(example_data)
         return jsonify(example_data)
     except Exception as e:
+        print("EXCEPT")
         traceback.print_exc()
         logger.error(f"Error while getting example data: {e}")
         logger.error(f"{dataset_id=}, {split=}, {example_idx=}")

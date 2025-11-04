@@ -86,7 +86,7 @@ def extract_data(data: dict, keys: list[str]):
     tail = keys[1:]
 
     if key not in data:
-        raise KeyError()
+        raise KeyError(f"key {key} not in data (data's keys are: {', '.join(data.keys())})")
 
     value = data[key]
 
@@ -182,6 +182,32 @@ def join_outer_lists(texts: list[str], json_header: str | None = None, min_lengt
         joint = "[\n\t" + ",\n\t".join(sections) + "\n]"
 
     return joint
+
+
+# no tests yet
+def make_example_prompt(sections: list[str]):
+    return "\nyour prompt...\n".join(map(lambda s: f"--- {s} ---", sections)) + "\nyour prompt..."
+
+
+# no tests yet
+def get_template_sections(template: str, sections: list[str]):
+    # Exptects text like this:
+
+    # --- part 1 ---
+    # Some text here (mandatory).
+    # ...
+    # --- part 2 ---
+    # Some more text here.
+
+    # Where 'part 1' and 'part 2' depends on `sections`,
+    # and re.match(...).group(1) corresponds to the text under 'part 1' and so on.
+    regex = "(.*?)".join(map(lambda s: f"---\\s*{s}\\s*---\n", sections)) + "(.*)"
+    match = re.match(regex, template, re.DOTALL)
+    assert match is not None, "Prompt template is not matching specification. Example prompt:\n" + make_example_prompt(
+        sections
+    )
+
+    return {section: text.strip() for section, text in zip(sections, match.groups())}
 
 
 # ――――――――――――――――――――――――――――――――――― TESTS ―――――――――――――――――――――――――――――――――――

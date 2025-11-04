@@ -47,5 +47,6 @@ class StructuredAnnotationStrategy(SequentialStrategy):
                 annotation_granularity,
             ),
             # Metadata.
-            t.Metadata(fields=[PROMPT]),
+            t.StringifyConversation(t.AskPrompt.CONVERSATION_FIELD, t.AskPrompt.CONVERSATION_FIELD),
+            t.Metadata(fields=[t.AskPrompt.CONVERSATION_FIELD]),
         ]

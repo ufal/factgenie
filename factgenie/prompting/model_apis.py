@@ -58,6 +58,7 @@ class ModelAPI:
             **prompt_strat_kwargs,  # E.g. structured output format.
             **self.api_kwargs,  # E.g. credentials.
             **self.config.get("model_args", {}),  # E.g. temperature, max_tokens, etc.
+            tools=[],
         )
         return response
 
@@ -227,8 +228,9 @@ class VertexAIAPI(ModelAPI):
 
 @untracked
 class MockingAPI(GeminiAPI):
-    def __init__(self):
+    def __init__(self, include_thought: str | None = None):
         super().__init__(config={"model": "mocking"}, api_kwargs={"mock_response": "A mock response."})
+        self.include_thought = include_thought
 
     def validate_environment(self):
         pass
@@ -240,4 +242,6 @@ class MockingAPI(GeminiAPI):
         import litellm
 
         response = litellm.completion(model="gemini-2.0-flash", mock_response=self.mocking_reponse(messages))
+        if self.include_thought is not None:
+            response["choices"][0]["message"].reasoning_content = self.include_thought
         return response

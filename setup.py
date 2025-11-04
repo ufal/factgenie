@@ -28,6 +28,8 @@ install_requires = [
     "matplotlib>=3.10.0",
     "tabulate>=0.9.0",
     "tenacity>=9.0.0",
+    "llm-sandbox>=0.3.12",
+    "fast-edit-distance>=1.2.2",
 ]
 
 setup(
