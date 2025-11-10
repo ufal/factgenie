@@ -70,12 +70,16 @@ class SequentialStrategy(PromptingStrategy):
     TEXT = "text"
     OUTPUT = "output"
     ANNOTATIONS = "annotations"
+    OPTIONS = "options"
     THINKING_TRACE = "thinking_trace"
 
     def __init__(self, config, mode: str):
         super().__init__(config, mode)
         self.transform_sequence = self.get_transform_sequence()
         self.verify_sequence()  # must be called after 'self.transform_sequence' is set and after 'super().__init__(...)' is called.
+
+    def is_question_answering(self) -> bool:
+        return False
 
     @abc.abstractmethod
     def get_transform_sequence(self) -> list[t.Transform]:
@@ -87,7 +91,11 @@ class SequentialStrategy(PromptingStrategy):
             expected_outputs = {self.OUTPUT}
         elif self.mode == CampaignMode.LLM_EVAL:
             current_keys = {self.DATA, self.TEXT}
-            expected_outputs = {self.ANNOTATIONS, self.THINKING_TRACE}
+
+            if self.is_question_answering():
+                expected_outputs = {self.OPTIONS}
+            else:
+                expected_outputs = {self.ANNOTATIONS}
         else:
             raise NotImplementedError(f"{self.mode} is not implemented")
 
@@ -95,8 +103,22 @@ class SequentialStrategy(PromptingStrategy):
             # Throw if there is an unfulfilled requirement.
             unfulfilled = set(step.requires_fields) - current_keys
             if len(unfulfilled) > 0:
-                error = f"Sequence for '{type(self)}' is not valid. At index {i}, '{type(step)}' is missing required fields: [{', '.join(list(unfulfilled))}]. Currently accessible fields are: [{', '.join(list(current_keys))}]."
+                error = f"Sequence for '{type(self).__name__}' is not valid. At index {i}, '{type(step).__name__}' is missing required fields: [{', '.join(list(unfulfilled))}]. Currently accessible fields are: [{', '.join(list(current_keys))}]. See the log for a better visualization and explanastion of the error."
                 logger.error(error)
+
+                error_drawing = "SEQUENCE VISUALIZATION:\n"
+                unfulfilled_str = ", ".join(list(map(lambda x: f"'{x}'", unfulfilled)))
+                for e_i, e_step in enumerate(self.transform_sequence):
+                    suffix = f" <-- HERE missing: {unfulfilled_str}" if e_i == i else ""
+                    error_drawing += f" - {type(e_step).__name__}{suffix}\n"
+                logger.error(error_drawing.strip())
+                logger.error(
+                    "This error means that we can't prove that the 'missing' inputs will be available to this transform. This is because none of the preceding transforms outputs the missing inputs. The error is likely either due to an incorrect setup of transforms or a forgotten element in one of the transform's `outputs_fields` property."
+                )
+                logger.error(
+                    "Note that some transforms have dynamic requirements. E.g. `ApplyTemplate` requires all used {stubs} to be available as inputs."
+                )
+
                 raise MissingRequirementException(error)
 
             if step.clears_other_fields:

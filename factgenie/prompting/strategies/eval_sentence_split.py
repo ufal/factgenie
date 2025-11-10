@@ -31,7 +31,7 @@ class SentenceSplitAnnotationStrategy(SequentialStrategy):
             t.Log(text="Prompt: ", field=PROMPT, log_level="debug"),
             t.AskPrompt(PROMPT, ANNOTATION_RESPONSE),
             # 3. Parse annotations.
-            t.Unify([ANNOTATION_RESPONSE], join_strings_by=t.join_string_long),
+            t.Unify(annotation_fields=[ANNOTATION_RESPONSE], join_strings_by=t.join_string_long),
             t.ParseAnnotations(
                 ANNOTATION_RESPONSE,
                 ANNOTATIONS,

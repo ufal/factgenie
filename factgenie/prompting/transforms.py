@@ -2,18 +2,22 @@
 
 import abc
 import copy
-import functools
 import json
 import logging
+import numpy as np
+import pkg_resources
 import re
 import time
 import unittest
-from typing import Any, Literal, Type
 
+from fast_edit_distance import edit_distance
+from itertools import cycle
 from pydantic import BaseModel, ValidationError
+from typing import Any, Literal, Type
 
 from factgenie.annotations import AnnotationModelFactory
 from factgenie.colors import Ansi
+from factgenie.prompting import text_processing
 from factgenie.prompting.model_apis import MockingAPI, ModelAPI
 from factgenie.prompting.text_processing import (
     find_all_template_keys,
@@ -27,6 +31,7 @@ logger = logging.getLogger("factgenie")
 
 # A few useful string constants.
 join_string_short = " │ "
+join_string_medium = "\n" + "┅" * 50 + "\n"
 join_string_long = "\n\n" + "―" * 80 + "\n\n"
 
 
@@ -56,9 +61,24 @@ class Transform:
     def removes_fields(self) -> list[str]:
         return []
 
+    # def close(self):
+    #     pass
+
 
 def derive_field(current: list[dict], api: ModelAPI, function, output_field: str):
+    """
+    This utility function adds a field to each `dict` in the `list[dict]`. The field's name is set by the argument `output_field` and its value is obtained by calling `function(c, api)`, where `c` is a single `dict`.
+    """
     return [{**c, output_field: function(c, api)} for c in current]
+
+
+def derive_and_upsert_fields(current: list[dict], api: ModelAPI, function):
+    """
+    A more complex version of `derive_field`.
+
+    `derive_and_upsert_fields` allows to derive multiple fields at once. To enable this functionality, the `function(c, api)` returns a `dict`.
+    """
+    return [{**c, **function(c, api)} for c in current]
 
 
 class DeriveField(Transform):
@@ -119,6 +139,96 @@ class Duplicate(Transform):
 
     def __call__(self, current: list[dict], api: ModelAPI) -> list[dict]:
         return derive_field(current, api, self.duplicate, self.output_field)
+
+
+class RemoveIfEmpty(Transform):
+    def __init__(self, input_field: str):
+        """
+        Args:
+            copy_type: "reference" (default) should be enough, unless you expect in-place modifications to either field. In those cases, use "shallow" or "deep".
+        """
+        self.input_field = input_field
+
+    @property
+    def requires_fields(self) -> list[str]:
+        return [self.input_field]
+
+    @property
+    def outputs_fields(self) -> list[str]:
+        return []
+
+    def remove_if_empty(self, c: dict) -> dict:
+        if self.input_field not in c or c[self.input_field].strip() != "":
+            return c
+        else:
+            c = c.copy()
+            c.pop(self.input_field)
+            return c
+
+    def __call__(self, current: list[dict], api: ModelAPI) -> list[dict]:
+        return [self.remove_if_empty(c) for c in current]
+
+
+class StringifyConversation(Transform):
+    def __init__(self, input_field: str, output_field: str):
+        """
+        Limits the number of entries (to make debugging easier).
+        """
+        self.input_field = input_field
+        self.output_field = output_field
+
+    @property
+    def requires_fields(self) -> list[str]:
+        return [self.input_field]
+
+    @property
+    def outputs_fields(self) -> list[str]:
+        return [self.output_field]
+
+    def stringify(self, c: dict, api: ModelAPI):
+        ROLE = ConverseLLM.ROLE
+        CONTENT = ConverseLLM.CONTENT
+        THINKING = ConverseLLM.REASONING_CONTENT
+
+        def thinking_if_exists(conv_item: dict):
+            thinking: str = conv_item.get(THINKING, "").strip()
+            if thinking is None:
+                return ""
+            if len(thinking) > 1:
+                return "<💭>" + thinking + "</💭>\n"  # 🤔💭
+            else:
+                return ""
+
+        conversation = c[self.input_field]
+        return "\n\n".join(
+            f"[{conv_item[ROLE]}]\n{thinking_if_exists(conv_item)}{conv_item[CONTENT]}" for conv_item in conversation
+        )
+
+    def __call__(self, current: list[dict], api: ModelAPI):
+        return derive_field(current, api, self.stringify, self.output_field)
+
+
+class Put(Transform):
+    def __init__(self, value: str, output_field: str):
+        """
+        Puts a literal value to the specified field.
+        """
+        self.output_field = output_field
+        self.value = value
+
+    @property
+    def requires_fields(self) -> list[str]:
+        return []
+
+    @property
+    def outputs_fields(self) -> list[str]:
+        return [self.output_field]
+
+    def get_value(self, c: dict, api: ModelAPI):
+        return self.value
+
+    def __call__(self, current: list[dict], api: ModelAPI) -> list[dict]:
+        return derive_field(current, api, self.get_value, self.output_field)
 
 
 class Filter(Transform):
@@ -242,6 +352,28 @@ class LogAllThrow(Transform):
             logger.info(text)
 
         raise LogAllThrowException("A planned logging exception.")
+
+
+class LimitEntries(Transform):
+    def __init__(self, max_entries: int, warn: bool = True):
+        """
+        Limits the number of entries to make debugging easier.
+        """
+        self.max_entries = max_entries
+        self.warn = warn
+
+    @property
+    def requires_fields(self) -> list[str]:
+        return []
+
+    @property
+    def outputs_fields(self) -> list[str]:
+        return []
+
+    def __call__(self, current: list[dict], api: ModelAPI) -> list[dict]:
+        if not self.warn:
+            logger.warning(f"LimitEntries: Limiting entries to {self.max_entries}. DON'T FORGET TO REMOVE THIS!")
+        return current[: self.max_entries]
 
 
 class Metadata(Transform):
@@ -432,117 +564,6 @@ class ApplyTemplate(Transform):
         return derive_field(current, api, self.apply_template, self.output_field)
 
 
-class AskPrompt(Transform):
-    def __init__(
-        self,
-        input_field: str,
-        output_field: str,
-        system_msg: None | str = None,
-        start_with: str | None = None,
-        completion_kwargs: dict = {},
-        reasoning_field: str = "thinking_trace",
-    ):
-        """
-        Assume we are trying to prompt-map the following data:
-        ```
-        [
-            {
-                "text": <the whole annotation>,
-                "data": <corresponding data>,
-                "part": <first sentence>,
-                prompt_name: <the prompt>,
-            },
-        ]
-        ```
-
-        The output will look like this:
-        ```
-        [
-            {
-                "text": <the whole annotation>,
-                "data": <corresponding data>,
-                "part": <first sentence>,
-                prompt_name: <the prompt>,
-                output_name: <the output of the LLM>,
-                reasoning_field: <the reasoning content from LLM> (if available),
-            },
-        ]
-        ```
-
-        The `prompt_template` may refer to any input field, such as "{part}" or "{data}" from the example above.
-
-        Args:
-            input_field: Field containing the prompt text.
-            output_field: Field to store the LLM response content.
-            system_msg: Optional system message for the prompt.
-            start_with: Optional text to start the assistant response with.
-            completion_kwargs: Additional kwargs for the completion API.
-            reasoning_field: Field name to store reasoning content (default: "thinking_trace").
-        """
-        self.input_field = input_field
-        self.output_field = output_field
-        self.system_msg = system_msg
-        self.start_with = start_with
-        self.completion_kwargs = completion_kwargs
-        self.reasoning_field = reasoning_field
-
-    @property
-    def requires_fields(self) -> list[str]:
-        return [self.input_field]
-
-    @property
-    def outputs_fields(self) -> list[str]:
-        # Always include reasoning_field as a potential output since we always try to extract it
-        return [self.output_field, self.reasoning_field]
-
-    def construct_message(self, prompt: str):
-        messages = []
-
-        if self.system_msg is not None:
-            messages.append({"role": "system", "content": self.system_msg})
-
-        messages.append({"role": "user", "content": prompt})
-
-        if self.start_with is not None:
-            messages.append({"role": "assistant", "content": self.start_with})
-
-        return messages
-
-    def get_model_response(self, c: dict, api: ModelAPI):
-        """Get model response with timing and logging."""
-        prompt = c[self.input_field]
-        messages = self.construct_message(prompt)
-
-        start = time.time()
-        response = api.get_model_response_with_retries(messages, prompt_strat_kwargs=self.completion_kwargs)
-        logger.info(f"Received response in {time.time() - start:.2f} seconds.")
-
-        logger.debug(f"Prompt tokens: {response.usage.prompt_tokens}")
-        logger.debug(f"Response tokens: {response.usage.completion_tokens}")
-
-        content = response.choices[0].message.content
-
-        # Always try to extract reasoning content if available
-        reasoning_content = getattr(response.choices[0].message, "reasoning_content", None)
-        if reasoning_content:
-            logger.debug(f"Extracted reasoning content of length: {len(reasoning_content)}")
-
-        return content, reasoning_content
-
-    def __call__(self, current: list[dict], api: ModelAPI) -> list[dict]:
-        result = []
-        for c in current:
-            content, reasoning_content = self.get_model_response(c, api)
-            new_dict = {**c, self.output_field: content}
-
-            # Add reasoning content if it was extracted
-            if reasoning_content is not None:
-                new_dict[self.reasoning_field] = reasoning_content
-
-            result.append(new_dict)
-        return result
-
-
 class ParseAnnotations(Transform):
     def __init__(
         self,
@@ -722,32 +743,176 @@ class ParseAnnotations(Transform):
         return derive_field(current, api, self.parse_annotations, self.output_field)
 
 
-class ExtractTag(Transform):
+class ParseOptions(Transform):
+    def __init__(
+        self,
+        input_field: str,
+        output_field: str,
+        label: str,
+        choices: list[str] | None = None,
+        choices_path: list[str] | None = None,
+    ):
+        """
+        Parse option selected by `input_field` by taking the choice with minimal edit distance to that option. Before considering the edit distance, the choice will be shortened to match thelength of `input_field`.
+
+        Args:
+            input_field: The field containing the answer to match.
+            output_field: The answer will be parsed and formatted into a factgenie-compatible stringified json.
+            choices: A constant list of possible answers.
+            choices_data_subfield: A list of answers varying per question, stored in c["data"][choices_data_subfield].
+        """
+
+        assert (choices is not None) ^ (
+            choices_path is not None
+        ), "You must select excatly one of [choices, choices_data_subfield] in the ParseOptions constructor"
+
+        if choices_path is not None:
+            assert len(choices_path) >= 1
+
+        self.input_field = input_field
+        self.output_field = output_field
+        self.label = label
+        self.choices = choices
+        self.choices_path = choices_path
+
+    @property
+    def requires_fields(self) -> list[str]:
+        return [self.input_field] + ([self.choices_path[0]] if self.choices_path is not None else [])
+
+    @property
+    def outputs_fields(self) -> list[str]:
+        return [self.output_field]
+
+    def get_choices(self, c: dict) -> list[str]:
+        if self.choices is not None:
+            return self.choices
+        else:
+            assert self.choices_path is not None
+            return text_processing.extract_data(c, self.choices_path)
+
+    def parse_options(self, c: dict, api: ModelAPI):
+        """
+        Parse selected option. It will match the option with minimal edit distance to the text. (Only the same-length substring will be matched.)
+        """
+
+        answer_str = c[self.input_field]
+
+        def mb_letter_edit_distance(answer_str, choice_str):
+            # We will try to match our answer with two substrings.
+            # Imagine answer_str = "Increase" and choice_str = "A) Increase"
+            #  1) "Increase" with "A) Incre"
+            #  2) "Increase" with    "Increase"
+            ed1 = edit_distance(answer_str, choice_str[: len(answer_str)])
+            # Unless the answer is short (e.g. just "B" or "B)", in which case we don't want to do the case (2).
+            if len(answer_str) <= 2:
+                return ed1
+            ed2 = edit_distance(answer_str, choice_str[3 : 3 + len(answer_str)])
+            return min(ed1, ed2)
+
+        # Only measure distance between a same-length prefix of the choice in order to not bias answer-matching unfairly. (Imagine it answers just 'B)', then the shortest edit distance is to the shortest answer.)
+        choices = self.get_choices(c)
+        edit_distances = [mb_letter_edit_distance(answer_str, choice) for choice in choices]
+        # max_ed=5
+
+        index = int(np.argmin(np.array(edit_distances)))
+
+        # EXAMPLE: METADATA:
+        # "options": [{"label": "answer", "values": ["a", "b", "c", "d"]}]
+        # EXAMPLE: ROOT:
+        # "options": [{"label": "answer", "index": "3", "value": "d", "optionList": ["Select an option...", "a", "b", "c", "d"]}]
+        options_output = [
+            {
+                "label": self.label,
+                "index": index,
+                "value": choices[index],
+                "optionList": ["Select an option..."] + choices,
+            }
+        ]
+
+        return options_output
+
+    def __call__(self, current: list[dict], api: ModelAPI) -> list[dict]:
+        return derive_field(current, api, self.parse_options, self.output_field)
+
+
+class SetOptions(Transform):
+    def __init__(
+        self,
+        input_field: str,
+        output_field: str,
+        label: str,
+        choices: list[str],
+    ):
+        self.input_field = input_field
+        self.output_field = output_field
+        self.label = label
+        self.choices = choices
+
+    @property
+    def requires_fields(self) -> list[str]:
+        return [self.input_field]
+
+    @property
+    def outputs_fields(self) -> list[str]:
+        return [self.output_field]
+
+    def set_options(self, c: dict, api: ModelAPI):
+        selected = c[self.input_field]
+
+        if selected not in self.choices:
+            logger.error(f"Not one of the options (selected '{selected}', possible options are {self.choices})")
+            return ""
+
+        # return f"""
+        # [
+        #     {{
+        #         "label": "{self.label}",
+        #         "value": "{selected}",
+        #         "index": "{self.choices.index(selected)}",
+        #         "optionList": {self.choices},
+        #     }}
+        # ]
+        # """
+
+        return [
+            {
+                "label": self.label,
+                "value": selected,
+                "index": str(self.choices.index(selected)),  # Should be int but currently isn't in human annotations.
+                "optionList": self.choices,
+            }
+        ]
+
+    def __call__(self, current: list[dict], api: ModelAPI) -> list[dict]:
+        return derive_field(current, api, self.set_options, self.output_field)
+
+
+class ExtractRegex(Transform):
     # I thought about replacing `remove_from_input: bool` with `save_modified_input: str` to allow non-destructive modifications. I decided against it because it doesn't feel as intuitive. The same functionality can still be achieved with Duplicate.
     def __init__(
         self,
         input_field: str,
         output_field: str | None,
-        tag: str,
-        join_occurances=True,
-        remove_from_input=True,
+        join_occurances: bool = True,
+        remove_from_input: bool = True,
         log_as: str | None = None,
+        prevent_empty_overwrite: bool = False,
     ):
         """
         Args:
-            tag: The inside of the tag, i.e. "think" for "<think>...</think>" blocks.
             join_occurances: If true, all occurances will be joined by "\n". Otherwise, `output[output_field]` will be a list of strings.
             remove_from_input: If true, all "<{tag}>...</{tag}>" blocks will be removed from the input field.
             log_as: `log_as="THINKING"` will log occurances as gray "[THINKING]" blocks.
+            prevent_empty_overwrite: If nothing is found and the field exists, do not overwrite it.
 
         Each block as well as the modified (if `remove_from_input=True`) is stripped of the padding spaces.
         """
         self.input_field = input_field
         self.output_field = output_field
-        self.tag = tag
         self.join_occurances = join_occurances
         self.remove_from_input = remove_from_input
         self.log_as = log_as
+        self.prevent_empty_overwrite = prevent_empty_overwrite
 
     @property
     def requires_fields(self) -> list[str]:
@@ -765,8 +930,17 @@ class ExtractTag(Transform):
 
         return output_fields
 
+    @abc.abstractmethod
+    def make_regex(self) -> str:
+        """
+        Constructs a regex. This regex will contain a single match group for the text that will be extracted. Everything matched by the regex (including outside of the first match group) will be removed from the input if `self.remove_from_input == True`.
+
+        If the input field contains multiple matches and `self.join_matches == True`, they will be joined by "\n".
+        """
+        pass
+
     def __call__(self, current: list[dict], api: ModelAPI) -> list[dict]:
-        regex = f"\\s*<{self.tag}>(.*?)</{self.tag}>\\s*"
+        regex = self.make_regex()
         output = []
         for c in current:
             # Log and extract "<{tag}>...</{tag}>" sections, stripped.
@@ -792,13 +966,51 @@ class ExtractTag(Transform):
                 c_changes[self.input_field] = modified_input
 
             if self.output_field is not None:
-                # Only overwrite the field if we found content, or if the field doesn't exist yet
-                if tag_blocks or self.output_field not in c:
+                # If `self.prevent_overwrite`, then don't overwrite existing field with nothing.
+                if self.prevent_empty_overwrite and self.output_field in c and len(tag_blocks) == 0:
+                    pass  # Prevent overwrite.
+                else:
                     c_changes[self.output_field] = tag_output
 
             output.append(c | c_changes)
 
         return output
+
+
+class ExtractTag(ExtractRegex):
+    def __init__(
+        self,
+        input_field: str,
+        output_field: str | None,
+        tag: str,
+        join_occurances: bool = True,
+        remove_from_input: bool = True,
+        log_as: str | None = None,
+        prevent_empty_overwrite: bool = False,
+    ):
+        super().__init__(input_field, output_field, join_occurances, remove_from_input, log_as, prevent_empty_overwrite)
+        self.tag = tag
+
+    def make_regex(self) -> str:
+        return f"\\s*<{self.tag}>(?:\n?)(.*?)(?:\n?)</{self.tag}>\\s*"
+
+
+class ExtractCodeBlock(ExtractRegex):
+    def __init__(
+        self,
+        input_field: str,
+        output_field: str | None,
+        language: str,
+        join_occurances=True,
+        remove_from_input=True,
+        log_as: str | None = None,
+        prevent_empty_overwrite: bool = False,
+    ):
+        super().__init__(input_field, output_field, join_occurances, remove_from_input, log_as, prevent_empty_overwrite)
+        self.language = language
+
+    def make_regex(self) -> str:
+        return f"\\s*```{self.language}\n(.*?)\n```\\s*"
 
 
 class ExtractJson(Transform):
@@ -856,19 +1068,405 @@ class ExtractJson(Transform):
         return derive_field(current, api, self.extract_json, self.output_field)
 
 
+class ConverseLLM(Transform):
+    ROLE = "role"
+    CONTENT = "content"
+    USER = "user"
+    ASSISTANT = "assistant"
+    REASONING_CONTENT = "reasoning_content"
+
+    # The reason for putting them here is to create a consistent interface and to preserve the proper history.
+    DEFAULT_EXTRACTORS: list[Transform] = [
+        ExtractTag(
+            CONTENT,
+            REASONING_CONTENT,
+            tag="think",
+            join_occurances=True,
+            remove_from_input=True,
+            prevent_empty_overwrite=True,
+        ),
+        Log(text="THINKING: ", field=REASONING_CONTENT, color=Ansi.LIGHT_GRAY),
+        RemoveIfEmpty(REASONING_CONTENT),
+    ]
+
+    def __init__(
+        self,
+        prompt_field: str,
+        conversation_field: str,
+        restart_conversation: bool = False,
+        system_msg: None | str = None,
+        start_with: str | None = None,
+        start_with_field: str | None = None,
+        completion_kwargs: dict = {},
+        extractors: list[Transform] = DEFAULT_EXTRACTORS,
+    ):
+        """
+        A conversation is a list of dictionaries. Each of those dictionaries has keys "role", "content", and optionally more (such as "thinking_content").
+
+        Args:
+            input_field: The field storing the prompt text to ask.
+            conversation_field: The input/output field storing the current conversation.
+                - Example: `["hi", "Hello, how can I help you?", "what's the weather", "Today it's sunny."]`.
+                - If the field doesn't exist, it will be initialized to `[]`.
+            restart_conversation: If true, conversation_field will be reset to an empty converstaion (`[]`) before starting.
+            system_msg: The system message of the model.
+            starts_with XOR starts_with_field: The text (or field) containing the start of the model's reply.
+            completion_kwargs: Extra arguments for `litellm.completion(...)`.
+            extractors: A special list of transforms that will be ran on the current response `[{"role": "assistant", "content": "..."}]`. Look at `ConverseLLM.DEFAULT_EXTRACTORS` for more information.
+        """
+        assert start_with is None or start_with_field is None, "You may only use one of [start_with, start_with_field]"
+
+        self.prompt_field = prompt_field
+        self.conversation_field = conversation_field
+        self.restart_conversation = restart_conversation
+        self.system_msg = system_msg
+        self.start_with = start_with
+        self.start_with_field = start_with_field
+        self.completion_kwargs = completion_kwargs
+        self.extractors = extractors
+
+    @property
+    def requires_fields(self) -> list[str]:
+        return [self.prompt_field] + [self.start_with_field] if self.start_with_field is not None else []
+
+    @property
+    def outputs_fields(self) -> list[str]:
+        return [self.conversation_field]
+
+    @classmethod
+    def construct_message(cls, prompt: str, system_msg: str | None, start_with: str | None, history: list[dict] | None):
+        messages = []
+
+        # ───── system message ─────
+        if system_msg is not None:
+            messages.append({"role": "system", "content": system_msg})
+
+        # ───── history (user-assistant loop) ─────
+        if history is not None:
+            # for role, content in zip(cycle(["user", "assistant"]), history):
+            for history_item in history:
+                role = history_item[ConverseLLM.ROLE]
+                content = history_item[ConverseLLM.CONTENT]
+                messages.append({"role": role, "content": content})
+
+        # ───── user message ─────
+        messages.append({"role": "user", "content": prompt})
+
+        # ───── current assistant message ─────
+        if start_with is not None and start_with.strip() != "":
+            messages.append({"role": "assistant", "content": start_with})
+
+        return messages
+
+    def continue_conversation(self, c: dict, api: ModelAPI):
+        """Get model response with timing and logging."""
+        prompt = c[self.prompt_field]
+
+        start_with = None
+        if self.start_with is not None:
+            start_with = self.start_with
+        elif self.start_with_field is not None:
+            start_with = c[self.start_with_field]
+
+        if self.restart_conversation or self.conversation_field not in c.keys() or c[self.conversation_field] is None:
+            history = []
+        else:
+            history = c[self.conversation_field]
+
+        messages = self.construct_message(prompt, system_msg=self.system_msg, start_with=start_with, history=history)
+
+        start = time.time()
+        response = api.get_model_response_with_retries(messages, prompt_strat_kwargs=self.completion_kwargs)
+        logger.info(f"Received response in {time.time() - start:.2f} seconds.")
+
+        logger.debug(f"Prompt tokens: {response.usage.prompt_tokens}")
+        logger.debug(f"Response tokens: {response.usage.completion_tokens}")
+
+        assert isinstance(response.choices[0].message.content, str)
+
+        # Get the reply...
+        # We always keep `start_with` in the history.
+        response_text: str = (start_with if start_with is not None else "") + response.choices[0].message.content
+        reasoning_content = getattr(response.choices[0].message, self.REASONING_CONTENT, "")
+
+        # Create user history entry...
+        user = {self.ROLE: self.USER, self.CONTENT: prompt}
+
+        # Create assistant history entry...
+        assistant = {self.ROLE: self.ASSISTANT, self.CONTENT: response_text}
+
+        # Do a quick version check
+        try:
+            litellm_version_str = pkg_resources.get_distribution("litellm").version
+            litellm_version = pkg_resources.parse_version(litellm_version_str)
+            if litellm_version.major <= 1 and litellm_version.minor <= 70 and reasoning_content == "":
+                logger.warning(
+                    f"Currently installed litellm (version {litellm_version_str}) is likely too outdated to properly show reasoning content. Please update your litellm (`pip install -U litellm`)."
+                )
+        except:
+            pass
+
+        if reasoning_content != "":
+            assistant |= {self.REASONING_CONTENT: reasoning_content}
+
+        for extractor in self.extractors:
+            assistant = extractor([assistant], api)[0]
+
+        return history + [user] + [assistant]
+
+    def __call__(self, current: list[dict], api: ModelAPI) -> list[dict]:
+        return derive_field(current, api, self.continue_conversation, self.conversation_field)
+
+
+class ConversationExtractResponse(Transform):
+    def __init__(
+        self,
+        input_field: str,
+        output_field: str,
+        conversation_key: str = ConverseLLM.CONTENT,
+        index: int = -1,
+    ):
+        """
+        Extracts a specific item (string) from a conversation (a list of strings).
+        Args:
+            input_field: The name of the field holding the conversation.
+            output_field: Which field to save the result to.
+            index: Which item from the conversation to extract. Default (-1) is the last item.
+        """
+        self.input_field = input_field
+        self.output_field = output_field
+        self.conversation_key = conversation_key
+        self.index = index
+
+    @property
+    def requires_fields(self) -> list[str]:
+        return [self.input_field]
+
+    @property
+    def outputs_fields(self) -> list[str]:
+        return [self.output_field]
+
+    def extract_response(self, c: dict, api: ModelAPI):
+        history = c[self.input_field]
+        selected_history_item = history[self.index]
+        return selected_history_item[self.conversation_key]
+
+    def __call__(self, current: list[dict], api: ModelAPI) -> list[dict]:
+        return derive_field(current, api, self.extract_response, self.output_field)
+
+
+class ConversationUpdateResponse(Transform):
+    def __init__(
+        self,
+        input_field: str,
+        updated_response_field: str,
+        conversation_key: str = ConverseLLM.CONTENT,
+        index: int = -1,
+    ):
+        """
+        Updates a specific item (string) of a conversation (a list of strings).
+        Args:
+            input_field: The name of the field holding the conversation.
+            updated_response_field: The name of the field holding the updated part converstaion part.
+            index: Which item from the conversation to extract. Default (-1) is the last item.
+        """
+        self.input_field = input_field
+        self.updated_response_field = updated_response_field
+        self.conversation_key = conversation_key
+        self.index = index
+
+    @property
+    def requires_fields(self) -> list[str]:
+        return [self.input_field, self.updated_response_field]
+
+    @property
+    def outputs_fields(self) -> list[str]:
+        return []
+
+    def update_response(self, c: dict, api: ModelAPI):
+        conv = c[self.input_field]
+        conv[self.index] = conv[self.index] | {self.conversation_key: c[self.updated_response_field]}
+        return conv
+
+    def __call__(self, current: list[dict], api: ModelAPI) -> list[dict]:
+        return derive_field(current, api, self.update_response, self.input_field)
+
+
+class ConversationAppendResponse(Transform):
+    ROLE_USER = "user"
+    ROLE_ASSISTANT = "assistant"
+
+    def __init__(
+        self,
+        conversation_field: str,
+        response_field: str,
+        role: str,
+    ):
+        """
+        Updates a specific item (string) of a conversation (a list of strings).
+        Args:
+            conversation_field: The name of the field holding the conversation.
+            response_field: The name of the field holding the updated part converstaion part.
+            role: A role shold be either 'user' or 'assistant'.
+        """
+        self.conversation_field = conversation_field
+        self.response_field = response_field
+        self.role = role
+
+    @property
+    def requires_fields(self) -> list[str]:
+        return [self.response_field]
+
+    @property
+    def outputs_fields(self) -> list[str]:
+        return []
+
+    def update_response(self, c: dict, api: ModelAPI):
+        conv = c[self.conversation_field] if self.conversation_field in c else []
+        return conv + [{ConverseLLM.ROLE: self.role, ConverseLLM.CONTENT: c[self.response_field]}]
+
+    def __call__(self, current: list[dict], api: ModelAPI) -> list[dict]:
+        return derive_field(current, api, self.update_response, self.conversation_field)
+
+
+class AskPrompt(Transform):
+    def __init__(
+        self,
+        input_field: str,
+        output_field: str,
+        system_msg: None | str = None,
+        start_with: str | None = None,
+        start_with_field: str | None = None,
+        keep_start_with: bool = False,
+        completion_kwargs: dict = {},
+        reasoning_field: str | None = None,
+    ):
+        """
+        Assume we are trying to prompt-map the following data:
+        ```
+        [
+            {
+                "text": <the whole annotation>,
+                "data": <corresponding data>,
+                "part": <first sentence>,
+                prompt_name: <the prompt>,
+            },
+        ]
+        ```
+
+        The output will look like this:
+        ```
+        [
+            {
+                "text": <the whole annotation>,
+                "data": <corresponding data>,
+                "part": <first sentence>,
+                prompt_name: <the prompt>,
+                output_name: <the output of the LLM>,
+                reasoning_field: <the reasoning content from LLM> (if available),
+            },
+        ]
+        ```
+
+        The `prompt_template` may refer to any input field, such as "{part}" or "{data}" from the example above.
+
+        Args:
+            input_field: Field containing the prompt text.
+            output_field: Field to store the LLM response content.
+            system_msg: Optional system message for the prompt.
+            start_with: Optional text to start the assistant response with.
+            completion_kwargs: Additional kwargs for the completion API.
+            reasoning_field: Field name to store reasoning content (default: "thinking_trace").
+        """
+        assert start_with is None or start_with_field is None, "You may only use one of [start_with, start_with_field]"
+
+        self.input_field = input_field
+        self.output_field = output_field
+        self.keep_start_with = keep_start_with
+
+        # We reuse ConverseLLM for maximal feature-parity.
+        self.converse_llm = ConverseLLM(
+            input_field,
+            output_field,
+            restart_conversation=True,
+            system_msg=system_msg,
+            start_with=start_with,
+            start_with_field=start_with_field,
+            completion_kwargs=completion_kwargs,
+        )
+
+        self.reasoning_field = reasoning_field
+
+    @property
+    def requires_fields(self) -> list[str]:
+        return self.converse_llm.requires_fields
+
+    @property
+    def outputs_fields(self) -> list[str]:
+        return [self.output_field] + ([self.reasoning_field] if self.reasoning_field is not None else [])
+
+    def get_model_response(self, c: dict, api: ModelAPI):
+        """Get model response with timing and logging."""
+
+        conv = self.converse_llm
+
+        # Get the singular reply.
+        response_dict = conv.continue_conversation(c, api)[-1]
+        response = response_dict[ConverseLLM.CONTENT]
+
+        # Crop out the `start_with[_field]` unless requested otherwise.
+        if not self.keep_start_with:
+            start_len = 0
+            if conv.start_with is not None:
+                start_len = len(conv.start_with)
+            elif conv.start_with_field is not None:
+                start_len = len(c[conv.start_with_field])
+
+            response = response[start_len:]
+
+        REASONING_CONTENT = ConverseLLM.REASONING_CONTENT
+        if REASONING_CONTENT in response_dict:
+            reasoning_content = response_dict[REASONING_CONTENT]
+            logger.debug(f"Extracted reasoning content of length: {len(reasoning_content)}")
+        else:
+            # Default to a string because the followup transforms might depend on the field having a value.
+            reasoning_content = ""
+
+        output = {self.output_field: response}
+        if self.reasoning_field is not None:
+            output |= {self.reasoning_field: reasoning_content}
+
+        return output
+
+    def __call__(self, current: list[dict], api: ModelAPI) -> list[dict]:
+        return derive_and_upsert_fields(current, api, self.get_model_response)
+
+
 # ――――――――――――――――――――――――――――――――――― TESTS ―――――――――――――――――――――――――――――――――――
 
 
 class TransformTests(unittest.TestCase):
+    THOUGHT = "thinking"
+
     def __init__(self, *vargs, **kwargs):
         super().__init__(*vargs, **kwargs)
         self.api = MockingAPI()
+        self.reasoning_api = MockingAPI(include_thought=self.THOUGHT)
 
     def test_duplicate(self):
         current = [{"a": "a"}, {"a": "a"}]
         transform = Duplicate("a", "b")
 
         expected = [{"a": "a", "b": "a"}, {"a": "a", "b": "a"}]
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_put(self):
+        current = [{"a": "a"}, {"a": "a"}]
+        transform = Put("b", "b")
+
+        expected = [{"a": "a", "b": "b"}, {"a": "a", "b": "b"}]
         result = transform(current, self.api)
 
         self.assertListEqual(expected, result)
@@ -954,7 +1552,216 @@ class TransformTests(unittest.TestCase):
         result = transform(current, self.api)
         self.assertListEqual(expected, result)
 
+    def test_converse_llm_start(self):
+        self.maxDiff = 2000
+        current = [{"p": "hello"}] * 2
+        transform = ConverseLLM("p", "c", system_msg="I am system.", start_with="YAYA")
+
+        expected = [
+            {
+                "p": "hello",
+                "c": [
+                    {"role": "user", "content": "hello"},
+                    {
+                        "role": "assistant",
+                        "content": "YAYAMOCK: <system: I am system.> <user: hello> <assistant: YAYA>",
+                    },
+                ],
+            },
+        ] * 2
+        result = transform(current, self.api)
+        self.assertListEqual(expected, result)
+
+    def test_ask_prompt_start_with_field(self):
+        current = [{"f": "ALOHA", "prompt": "hello"}] * 2
+
+        transform = AskPrompt("prompt", "a", system_msg="I am system.", start_with_field="f")
+
+        expected = [
+            {"f": "ALOHA", "prompt": "hello", "a": "MOCK: <system: I am system.> <user: hello> <assistant: ALOHA>"}
+        ] * 2
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_ask_prompt_with_history(self):
+        ROLE = ConverseLLM.ROLE
+        CONTENT = ConverseLLM.CONTENT
+
+        current = 2 * [
+            {
+                "c": [
+                    {ROLE: "user", CONTENT: "hi"},
+                    {ROLE: "assistant", CONTENT: "Hello!"},
+                    {ROLE: "user", CONTENT: "how is the weather"},
+                    {ROLE: "assistant", CONTENT: "It is sunny."},
+                ],
+                "p": "what about tomorrow?",
+            }
+        ]
+
+        # The other params of ConverseLLM are indirectly tested through AskPrompt's tests.
+        transform = ConverseLLM("p", "c")
+
+        expected = 2 * [
+            {
+                "c": [
+                    {ROLE: "user", CONTENT: "hi"},
+                    {ROLE: "assistant", CONTENT: "Hello!"},
+                    {ROLE: "user", CONTENT: "how is the weather"},
+                    {ROLE: "assistant", CONTENT: "It is sunny."},
+                    {ROLE: "user", CONTENT: "what about tomorrow?"},
+                    {
+                        ROLE: "assistant",
+                        CONTENT: "MOCK: <user: hi> <assistant: Hello!> <user: how is the weather> <assistant: It is sunny.> <user: what about tomorrow?>",
+                    },
+                ],
+                "p": "what about tomorrow?",
+            }
+        ]
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_conversation_extract(self):
+        ROLE = ConverseLLM.ROLE
+        CONTENT = ConverseLLM.CONTENT
+        current = 2 * [
+            {
+                "c": [
+                    {ROLE: "user", CONTENT: "C1"},
+                    {ROLE: "user", CONTENT: "C2"},
+                    {ROLE: "user", CONTENT: "C3"},
+                    {ROLE: "user", CONTENT: "C4"},
+                    {ROLE: "assistant", CONTENT: "C5"},
+                    {ROLE: "user", CONTENT: "C6"},
+                ],
+                "b": "some random field",
+            }
+        ]
+
+        # The other params of ConverseLLM are indirectly tested through AskPrompt's tests.
+        transform = ConversationExtractResponse("c", "extracted", index=-2)
+
+        expected = 2 * [
+            {
+                "c": [
+                    {ROLE: "user", CONTENT: "C1"},
+                    {ROLE: "user", CONTENT: "C2"},
+                    {ROLE: "user", CONTENT: "C3"},
+                    {ROLE: "user", CONTENT: "C4"},
+                    {ROLE: "assistant", CONTENT: "C5"},
+                    {ROLE: "user", CONTENT: "C6"},
+                ],
+                "b": "some random field",
+                "extracted": "C5",
+            }
+        ]
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_conversation_update(self):
+        ROLE = ConverseLLM.ROLE
+        CONTENT = ConverseLLM.CONTENT
+
+        current = 2 * [
+            {
+                "c": [
+                    {ROLE: "user", CONTENT: "C1"},
+                    {ROLE: "user", CONTENT: "C2"},
+                    {ROLE: "user", CONTENT: "C3"},
+                    {ROLE: "user", CONTENT: "C4"},
+                    {ROLE: "assistant", CONTENT: "C5"},
+                    {ROLE: "user", CONTENT: "C6"},
+                ],
+                "u": "U5",
+            }
+        ]
+
+        # The other params of ConverseLLM are indirectly tested through AskPrompt's tests.
+        transform = ConversationUpdateResponse("c", "u", index=-2)
+
+        expected = 2 * [
+            {
+                "c": [
+                    {ROLE: "user", CONTENT: "C1"},
+                    {ROLE: "user", CONTENT: "C2"},
+                    {ROLE: "user", CONTENT: "C3"},
+                    {ROLE: "user", CONTENT: "C4"},
+                    {ROLE: "assistant", CONTENT: "U5"},
+                    {ROLE: "user", CONTENT: "C6"},
+                ],
+                "u": "U5",
+            }
+        ]
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_conversation_append(self):
+        ROLE = ConverseLLM.ROLE
+        CONTENT = ConverseLLM.CONTENT
+
+        current = 2 * [
+            {
+                "c": [
+                    {ROLE: "user", CONTENT: "C1"},
+                    {ROLE: "user", CONTENT: "C2"},
+                    {ROLE: "user", CONTENT: "C3"},
+                    {ROLE: "user", CONTENT: "C4"},
+                    {ROLE: "assistant", CONTENT: "C5"},
+                    {ROLE: "user", CONTENT: "C6"},
+                ],
+                "a": "C7",
+            }
+        ]
+
+        # The other params of ConverseLLM are indirectly tested through AskPrompt's tests.
+        transform = ConversationAppendResponse("c", "a", role="NEW")
+
+        expected = 2 * [
+            {
+                "c": [
+                    {ROLE: "user", CONTENT: "C1"},
+                    {ROLE: "user", CONTENT: "C2"},
+                    {ROLE: "user", CONTENT: "C3"},
+                    {ROLE: "user", CONTENT: "C4"},
+                    {ROLE: "assistant", CONTENT: "C5"},
+                    {ROLE: "user", CONTENT: "C6"},
+                    {ROLE: "NEW", CONTENT: "C7"},
+                ],
+                "a": "C7",
+            }
+        ]
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
     def test_ask_prompt_with_custom_reasoning_field(self):
+        current = [{"p": "hello"}]
+        transform = AskPrompt("p", "a", reasoning_field="custom_thinking")
+
+        result = transform(current, self.reasoning_api)
+
+        # Should have the main output field
+        self.assertIn("a", result[0])
+        self.assertEqual(result[0]["a"], "MOCK: <user: hello>")
+        self.assertEqual(result[0]["custom_thinking"], self.THOUGHT)
+
+    def test_ask_prompt_with_custom_reasoning_field_2(self):
+        THOUGHT = "HEY"
+        current = [{"p": f"hello<think>{THOUGHT}</think> you"}]
+        transform = AskPrompt("p", "a", reasoning_field="custom_thinking")
+
+        result = transform(current, self.api)
+
+        # Should have the main output field
+        self.assertIn("a", result[0])
+        self.assertEqual(result[0]["a"], "MOCK: <user: hello you>")
+        self.assertEqual(result[0]["custom_thinking"], THOUGHT)
+
+    def test_ask_prompt_with_no_thought(self):
         current = [{"p": "hello"}]
         transform = AskPrompt("p", "a", reasoning_field="custom_thinking")
 
@@ -963,9 +1770,7 @@ class TransformTests(unittest.TestCase):
         # Should have the main output field
         self.assertIn("a", result[0])
         self.assertEqual(result[0]["a"], "MOCK: <user: hello>")
-
-        # Since MockingAPI doesn't provide reasoning_content, it shouldn't be added
-        self.assertNotIn("custom_thinking", result[0])
+        self.assertEqual(result[0]["custom_thinking"], "")
 
     def test_parse_annotations(self):
         current = [
@@ -1021,13 +1826,62 @@ class TransformTests(unittest.TestCase):
 
         self.assertListEqual(expected, result)
 
-    def test_extract_tag_preserves_existing_field(self):
-        # Test that ExtractTag doesn't overwrite existing field when no tags are found
-        current = [{"a": "no tags here", "thinking_trace": "existing reasoning content"}]
-        transform = ExtractTag("a", "thinking_trace", "think", join_occurances=True, remove_from_input=False)
+    def test_extract_code_block(self):
+        self.maxDiff = None
+        current = [{"a": "code:\n```python\nprint('hello world')\nprint('I am the guy')\n```"}] * 2
+        transform = ExtractCodeBlock("a", "code", "python", join_occurances=True, remove_from_input=True)
 
-        # Should preserve the existing thinking_trace since no <think> tags were found
+        expected = [{"a": "code:", "code": "print('hello world')\nprint('I am the guy')"}] * 2
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_extract_tag_preserves_existing_field(self):
+        # Test that ExtractTag doesn't overwrite existing field when no tags are found.
+        current = [{"a": "no tags here", "thinking_trace": "existing reasoning content"}]
+        transform = ExtractTag(
+            "a", "thinking_trace", "think", join_occurances=True, remove_from_input=False, prevent_empty_overwrite=True
+        )
+
+        # Should preserve the existing thinking_trace since no <think> tags were found.
         expected = [{"a": "no tags here", "thinking_trace": "existing reasoning content"}]
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_extract_tag_preserve_overrides_when_needed(self):
+        # Test that ExtractTag doesn't overwrite existing field if it found a tag.
+        current = [{"a": f"tags here <think>{self.THOUGHT}</think>", "thinking_trace": "existing reasoning content"}]
+        transform = ExtractTag(
+            "a", "thinking_trace", "think", join_occurances=True, remove_from_input=False, prevent_empty_overwrite=True
+        )
+
+        # Should override the thinking_trace with the new tag content.
+        expected = [{"a": f"tags here <think>{self.THOUGHT}</think>", "thinking_trace": self.THOUGHT}]
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_extract_tag_preserve_always_outputs_field(self):
+        # Test that ExtractTag with prevent_empty_override will output the required field if it doesn't exist.
+        current = [{"a": "no tags here"}]
+        transform = ExtractTag(
+            "a", "thinking_trace", "think", join_occurances=True, remove_from_input=False, prevent_empty_overwrite=True
+        )
+
+        # Should be empty now.
+        expected = [{"a": "no tags here", "thinking_trace": ""}]
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_extract_tag_new_line(self):
+        # join_occurances=False
+        # remove_from_input=False
+        current = [{"a": "code: <code>\nccc \n</code> and <code>ddd</code>"}] * 2
+        transform = ExtractTag("a", "code", "code", join_occurances=False, remove_from_input=False)
+
+        expected = [{"a": "code: <code>\nccc \n</code> and <code>ddd</code>", "code": ["ccc", "ddd"]}] * 2
         result = transform(current, self.api)
 
         self.assertListEqual(expected, result)
@@ -1053,6 +1907,157 @@ class TransformTests(unittest.TestCase):
                 "json": '{"annotations": [{"text": "test", "type": 3}]}',
             }
         ] * 2
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_parse_option_easy(self):
+        LABEL = "answer"
+        CHOICES = ["A) Increasing", "B) Decreasing"]
+        OUT_CHOIES = ["Select an option..."] + CHOICES
+        current = [{"a": "A) Increasing"}] * 2
+        transform = ParseOptions("a", "options", LABEL, choices=CHOICES)
+
+        expected = [
+            {
+                "a": "A) Increasing",
+                "options": [
+                    {
+                        "index": 0,
+                        "label": LABEL,
+                        "optionList": OUT_CHOIES,
+                        "value": "A) Increasing",
+                    }
+                ],
+            }
+        ] * 2
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_parse_option_path(self):
+        LABEL = "answer"
+        CHOICES = ["A) Increasing", "B) Decreasing"]
+        OUT_CHOIES = ["Select an option..."] + CHOICES
+        current = [{"a": "A) Increasing", "b": {"c": CHOICES}}] * 2
+        transform = ParseOptions("a", "options", LABEL, choices_path=["b", "c"])
+
+        expected = [
+            {
+                "a": "A) Increasing",
+                "b": {"c": CHOICES},
+                "options": [
+                    {
+                        "index": 0,
+                        "label": LABEL,
+                        "optionList": OUT_CHOIES,
+                        "value": "A) Increasing",
+                    }
+                ],
+            }
+        ] * 2
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_parse_option_short(self):
+        LABEL = "answer"
+        CHOICES = ["A) Increasing", "B) Decreasing"]
+        OUT_CHOIES = ["Select an option..."] + CHOICES
+        current = [{"a": "A"}] * 2
+        transform = ParseOptions("a", "options", LABEL, choices=CHOICES)
+
+        expected = [
+            {
+                "a": "A",
+                "options": [
+                    {
+                        "index": 0,
+                        "label": LABEL,
+                        "optionList": OUT_CHOIES,
+                        "value": "A) Increasing",
+                    }
+                ],
+            }
+        ] * 2
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_parse_option_bad_start_1(self):
+        LABEL = "answer"
+        CHOICES = ["A) Increasing", "B) Decreasing"]
+        OUT_CHOIES = ["Select an option..."] + CHOICES
+        current = [{"a": "Increasing"}] * 2
+        transform = ParseOptions("a", "options", LABEL, choices=CHOICES)
+
+        expected = [
+            {
+                "a": "Increasing",
+                "options": [
+                    {
+                        "index": 0,
+                        "label": LABEL,
+                        "optionList": OUT_CHOIES,
+                        "value": "A) Increasing",
+                    }
+                ],
+            }
+        ] * 2
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_parse_option_bad_start_2(self):
+        LABEL = "answer"
+        CHOICES = ["A) Decreasing", "B) Increasing"]
+        OUT_CHOIES = ["Select an option..."] + CHOICES
+        current = [{"a": "Increasing"}] * 2
+        transform = ParseOptions("a", "options", LABEL, choices=CHOICES)
+        expected = [
+            {
+                "a": "Increasing",
+                "options": [
+                    {
+                        "index": 1,
+                        "label": LABEL,
+                        "optionList": OUT_CHOIES,
+                        "value": "B) Increasing",
+                    }
+                ],
+            }
+        ] * 2
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_stringify_conversation(self):
+        ROLE = ConverseLLM.ROLE
+        USER = ConverseLLM.USER
+        ASSISTANT = ConverseLLM.ASSISTANT
+        REASONING_CONTENT = ConverseLLM.REASONING_CONTENT
+        CONTENT = ConverseLLM.CONTENT
+        current = [
+            {"c": [{ROLE: USER, CONTENT: "hi"}, {ROLE: ASSISTANT, CONTENT: "hey you", REASONING_CONTENT: "hmmm"}]}
+        ]
+
+        transform = StringifyConversation("c", "cc")
+
+        expected = [
+            {
+                "c": [{ROLE: USER, CONTENT: "hi"}, {ROLE: ASSISTANT, CONTENT: "hey you", REASONING_CONTENT: "hmmm"}],
+                "cc": "[user]\nhi\n\n[assistant]\n<💭>hmmm</💭>\nhey you",
+            }
+        ]
+        result = transform(current, self.api)
+
+        self.assertListEqual(expected, result)
+
+    def test_limit_entries(self):
+        current = [{"a": "a"}] * 5
+        transform = LimitEntries(3, warn=False)
+
+        expected = [{"a": "a"}] * 3
         result = transform(current, self.api)
 
         self.assertListEqual(expected, result)

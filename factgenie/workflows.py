@@ -955,7 +955,7 @@ def save_record(mode, campaign, row, result):
     if mode == CampaignMode.LLM_EVAL or mode == CampaignMode.CROWDSOURCING:
         setup_id = str(row["setup_id"])
         record["setup_id"] = setup_id
-        record["annotations"] = result["annotations"]
+        record["annotations"] = result.get("annotations", [])
         record["flags"] = result.get("flags", [])
         record["options"] = result.get("options", [])
         record["sliders"] = result.get("sliders", [])
