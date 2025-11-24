@@ -616,6 +616,10 @@ def llm_campaign_new():
     model_apis = list(ModelFactory.get_model_apis().keys())
     prompt_strats = list(ModelFactory.get_prompt_strategies()[mode].keys())
 
+    if "default" in prompt_strats:
+        prompt_strats.remove("default")
+        prompt_strats = ["default"] + prompt_strats
+
     default_campaign_id = workflows.generate_default_id(app, mode=mode, prefix=mode.replace("_", "-"))
     default_prompts = utils.load_default_prompts()
 
