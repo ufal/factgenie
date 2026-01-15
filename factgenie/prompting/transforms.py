@@ -4,16 +4,16 @@ import abc
 import copy
 import json
 import logging
-import numpy as np
-import pkg_resources
 import re
 import time
 import unittest
-
-from fast_edit_distance import edit_distance
+from importlib.metadata import version
 from itertools import cycle
-from pydantic import BaseModel, ValidationError
 from typing import Any, Literal, Type
+
+import numpy as np
+from fast_edit_distance import edit_distance
+from pydantic import BaseModel, ValidationError
 
 from factgenie.annotations import AnnotationModelFactory
 from factgenie.colors import Ansi
@@ -1197,9 +1197,9 @@ class ConverseLLM(Transform):
 
         # Do a quick version check
         try:
-            litellm_version_str = pkg_resources.get_distribution("litellm").version
-            litellm_version = pkg_resources.parse_version(litellm_version_str)
-            if litellm_version.major <= 1 and litellm_version.minor <= 70 and reasoning_content == "":
+            litellm_version_str = version("litellm")
+            major, minor = map(int, litellm_version_str.split(".")[:2])
+            if major <= 1 and minor <= 70 and reasoning_content == "":
                 logger.warning(
                     f"Currently installed litellm (version {litellm_version_str}) is likely too outdated to properly show reasoning content. Please update your litellm (`pip install -U litellm`)."
                 )
