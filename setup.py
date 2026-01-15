@@ -50,7 +50,7 @@ setup(
             "config/default_prompts.yml",
             "config/resources.yml",
             "config/config_TEMPLATE.yml",
-            "config/**/example-*.yaml",
+            "config/*/*example*.yaml",
             "data/datasets_TEMPLATE.yml",
             "static/**/*",
             "templates/**/*",
