@@ -11,6 +11,7 @@ class GenerationStrategy(SequentialStrategy):
     def get_transform_sequence(self) -> list[t.Transform]:
         PROMPT = "prompt"
         OUTPUT = SequentialStrategy.OUTPUT
+        THINKING_TRACE = "thinking_trace"
 
         system_msg = self.config.get("system_msg", None)
         starts_with = self.config.get("start_with", None)
@@ -21,9 +22,9 @@ class GenerationStrategy(SequentialStrategy):
         return [
             # 1. Generation.
             t.ApplyTemplate(self.config["prompt_template"], PROMPT),
-            t.AskPrompt(PROMPT, OUTPUT, system_msg, starts_with),
+            t.AskPrompt(PROMPT, OUTPUT, system_msg, starts_with, reasoning_field=THINKING_TRACE),
             t.PostprocessOutput(OUTPUT, OUTPUT, stopping_sequence, remove_suffix),
             # Logging and metadata.
             t.Log(text="Output: ", field=OUTPUT),
-            t.Metadata(fields=[PROMPT]),
+            t.Metadata(fields=[PROMPT, THINKING_TRACE]),
         ]

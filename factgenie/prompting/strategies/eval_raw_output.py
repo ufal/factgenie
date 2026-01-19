@@ -32,17 +32,12 @@ class RawOutputAnnotationStrategy(SequentialStrategy):
             t.ApplyTemplate(self.config["prompt_template"], PROMPT),
             t.Log(text="Prompt: ", field=PROMPT, log_level="debug"),
             t.Log(text="Annotated text: ", field=TEXT),
-            t.AskPrompt(PROMPT, ANNOTATIONS_RAW, system_msg, starts_with),
-            # 2. Extract think trace and annotations.
-            t.ExtractTag(
-                ANNOTATIONS_RAW,
-                THINKING_TRACE,
-                tag="think",
-                join_occurances=True,
-                remove_from_input=True,
-                log_as="THINKING",
+            t.AskPrompt(PROMPT,
+                        ANNOTATIONS_RAW,
+                        system_msg,
+                        starts_with,
+                        reasoning_field=THINKING_TRACE,
             ),
-            t.Log(text="Thinking trace: ", field=THINKING_TRACE, color=Ansi.DARK_GRAY, log_level="debug"),
             t.ExtractJson(ANNOTATIONS_RAW, EXTRACTED),
             t.ParseAnnotations(
                 EXTRACTED,
@@ -53,5 +48,5 @@ class RawOutputAnnotationStrategy(SequentialStrategy):
                 annotation_granularity,
             ),
             # Metadata.
-            t.Metadata(fields=[PROMPT]),
+            t.Metadata(fields=[PROMPT, THINKING_TRACE]),
         ]
