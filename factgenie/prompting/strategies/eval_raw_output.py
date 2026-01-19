@@ -32,11 +32,12 @@ class RawOutputAnnotationStrategy(SequentialStrategy):
             t.ApplyTemplate(self.config["prompt_template"], PROMPT),
             t.Log(text="Prompt: ", field=PROMPT, log_level="debug"),
             t.Log(text="Annotated text: ", field=TEXT),
-            t.AskPrompt(PROMPT,
-                        ANNOTATIONS_RAW,
-                        system_msg,
-                        starts_with,
-                        reasoning_field=THINKING_TRACE,
+            t.AskPrompt(
+                PROMPT,
+                ANNOTATIONS_RAW,
+                system_msg,
+                starts_with,
+                reasoning_field=THINKING_TRACE,
             ),
             t.ExtractJson(ANNOTATIONS_RAW, EXTRACTED),
             t.ParseAnnotations(

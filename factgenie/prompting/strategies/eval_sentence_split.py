@@ -17,7 +17,6 @@ class SentenceSplitAnnotationStrategy(SequentialStrategy):
         ANNOTATIONS = SequentialStrategy.ANNOTATIONS
         THINKING_TRACE = "thinking_trace"
 
-
         annotation_span_categories = self.config["annotation_span_categories"]
         annotation_overlap_allowed = self.config.get("annotation_overlap_allowed", False)
         annotation_granularity = self.config.get("annotation_granularity", "words")
