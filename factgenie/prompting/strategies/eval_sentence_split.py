@@ -15,6 +15,7 @@ class SentenceSplitAnnotationStrategy(SequentialStrategy):
         PROMPT = "annotation_prompt"
         ANNOTATION_RESPONSE = "annotation_response"
         ANNOTATIONS = SequentialStrategy.ANNOTATIONS
+        THINKING_TRACE = "thinking_trace"
 
         annotation_span_categories = self.config["annotation_span_categories"]
         annotation_overlap_allowed = self.config.get("annotation_overlap_allowed", False)
@@ -29,7 +30,7 @@ class SentenceSplitAnnotationStrategy(SequentialStrategy):
             # 2. Ask prompt.
             t.ApplyTemplate(self.config["prompt_template"], PROMPT),
             t.Log(text="Prompt: ", field=PROMPT, log_level="debug"),
-            t.AskPrompt(PROMPT, ANNOTATION_RESPONSE),
+            t.AskPrompt(PROMPT, ANNOTATION_RESPONSE, reasoning_field=THINKING_TRACE),
             # 3. Parse annotations.
             t.Unify(annotation_fields=[ANNOTATION_RESPONSE], join_strings_by=t.join_string_long),
             t.ParseAnnotations(
@@ -41,5 +42,5 @@ class SentenceSplitAnnotationStrategy(SequentialStrategy):
                 annotation_granularity,
             ),
             # Metadata.
-            t.Metadata([PROMPT]),
+            t.Metadata([PROMPT, THINKING_TRACE]),
         ]

@@ -14,6 +14,7 @@ class StructuredAnnotationStrategy(SequentialStrategy):
         PROMPT = "prompt"
         ANNOTATIONS_RAW = "annotations_raw"
         ANNOTATIONS = SequentialStrategy.ANNOTATIONS
+        THINKING_TRACE = "thinking_trace"
 
         system_msg = self.config.get("system_msg", None)
         starts_with = self.config.get("start_with", None)
@@ -36,6 +37,7 @@ class StructuredAnnotationStrategy(SequentialStrategy):
                 system_msg,
                 starts_with,
                 completion_kwargs={"response_format": output_validation_model},
+                reasoning_field=THINKING_TRACE,
             ),
             # 2. Parse annotations.
             t.ParseAnnotations(
@@ -47,6 +49,5 @@ class StructuredAnnotationStrategy(SequentialStrategy):
                 annotation_granularity,
             ),
             # Metadata.
-            t.StringifyConversation(t.AskPrompt.CONVERSATION_FIELD, t.AskPrompt.CONVERSATION_FIELD),
-            t.Metadata(fields=[t.AskPrompt.CONVERSATION_FIELD]),
+            t.Metadata(fields=[PROMPT, THINKING_TRACE]),
         ]
