@@ -12,6 +12,20 @@
     <img src="{{ host_prefix }}/static/img/config.png" height="30px">
 </a>
 
+{% if request.cookies.get("auth") %}
+    <a href="{{ host_prefix }}/logout"
+        class="btn btn-sm btn-outline-secondary"
+        style="position: absolute; top: 0; right: 0; margin-right: 145px; margin-top: 16px;">
+        Logout
+    </a>
+{% else %}
+    <a href="{{ host_prefix }}/login"
+        class="btn btn-sm btn-outline-secondary"
+        style="position: absolute; top: 0; right: 0; margin-right: 145px; margin-top: 16px;">
+        Login
+    </a>
+{% endif %}
+
 
 <a href="https://github.com/ufal/factgenie/" target="_blank"
     style="position: absolute; top: 0; right: 0; margin-right: 57px; margin-top:15px;">

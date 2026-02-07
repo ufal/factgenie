@@ -513,11 +513,18 @@ def login():
         if utils.check_login(app, username, password):
             # redirect to the home page ("/")
             resp = make_response(redirect(app.config["host_prefix"] + "/"))
-            resp.set_cookie("auth", f"{username}:{password}")
+            resp.set_cookie("auth", f"{username}:{password}", path="/")
             return resp
         else:
             return "Login failed", 401
     return render_template("pages/login.html", host_prefix=app.config["host_prefix"])
+
+
+@app.route("/logout", methods=["GET"])
+def logout():
+    resp = make_response(redirect(app.config["host_prefix"] + "/"))
+    resp.set_cookie("auth", "", expires=0, path="/")
+    return resp
 
 
 @app.route("/llm_eval", methods=["GET", "POST"])
