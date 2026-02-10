@@ -473,6 +473,17 @@ function updateDisplayedAnnotations() {
         $(`.box-${campaign_id}`).show();
     }
 
+    // If a setup has no matching selected annotation, keep its original output visible.
+    if (selected_campaigns.length > 0) {
+        $(".output-group").each(function () {
+            const group = $(this);
+            const hasVisibleSelected = group.find(".output-box:visible").not(".box-original").length > 0;
+            if (!hasVisibleSelected) {
+                group.find(".box-original").show();
+            }
+        });
+    }
+
     restoreCollapsedStates();
     enableTooltips();
 }
