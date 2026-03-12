@@ -319,10 +319,10 @@ def get_annotations(app, dataset_id, split, example_idx, setup_id):
         return []
 
     annotations = annotation_index[
-        (annotation_index["dataset"] == dataset_id)
-        & (annotation_index["split"] == split)
+        (annotation_index["dataset"] == slugify(dataset_id))
+        & (annotation_index["split"] == slugify(split))
         & (annotation_index["example_idx"] == example_idx)
-        & (annotation_index["setup_id"] == setup_id)
+        & (annotation_index["setup_id"] == slugify(setup_id))
     ]
 
     if annotations.empty:
@@ -688,9 +688,9 @@ def delete_model_outputs(dataset, split=None, setup_id=None):
 
                 # None means all
                 if (
-                    (j["dataset"] == dataset)
-                    and (split is None or j["split"] == split)
-                    and (setup_id is None or j["setup_id"] == setup_id)
+                    (j["dataset"] == slugify(dataset))
+                    and (split is None or j["split"] == slugify(split))
+                    and (setup_id is None or j["setup_id"] == slugify(setup_id))
                 ):
                     # delete the line
                     continue
@@ -719,9 +719,9 @@ def export_outputs(app, dataset_id, split, setup_id):
         raise ValueError("No outputs found")
 
     outputs = output_index[
-        (output_index["dataset"] == dataset_id)
-        & (output_index["split"] == split)
-        & (output_index["setup_id"] == setup_id)
+        (output_index["dataset"] == slugify(dataset_id))
+        & (output_index["split"] == slugify(split))
+        & (output_index["setup_id"] == slugify(setup_id))
     ]
     # write the outputs to a temporary JSONL file
     tmp_file_path = tempfile.mktemp()
@@ -795,9 +795,9 @@ def get_output_for_setup(dataset, split, example_idx, setup_id, app=None, force_
         return None
 
     output = output_index[
-        (output_index["dataset"] == dataset)
-        & (output_index["split"] == split)
-        & (output_index["setup_id"] == setup_id)
+        (output_index["dataset"] == slugify(dataset))
+        & (output_index["split"] == slugify(split))
+        & (output_index["setup_id"] == slugify(setup_id))
         & (output_index["example_idx"] == example_idx)
     ]
 
@@ -814,7 +814,9 @@ def get_outputs(dataset_id, split, example_idx, app=None, force_reload=True):
         return []
 
     outputs = outputs[
-        (outputs["dataset"] == dataset_id) & (outputs["split"] == split) & (outputs["example_idx"] == example_idx)
+        (outputs["dataset"] == slugify(dataset_id))
+        & (outputs["split"] == slugify(split))
+        & (outputs["example_idx"] == example_idx)
     ]
 
     outputs = outputs.to_dict(orient="records")
@@ -829,7 +831,9 @@ def get_output_ids(app, dataset, split, setup_id):
         return []
 
     output_ids = output_index[
-        (output_index["dataset"] == dataset) & (output_index["split"] == split) & (output_index["setup_id"] == setup_id)
+        (output_index["dataset"] == slugify(dataset))
+        & (output_index["split"] == slugify(split))
+        & (output_index["setup_id"] == slugify(setup_id))
     ]["example_idx"].tolist()
 
     return output_ids
