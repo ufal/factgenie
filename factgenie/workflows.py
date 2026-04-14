@@ -451,13 +451,15 @@ def get_local_dataset_overview(app):
         splits = dataset_config.get("splits", [])
 
         if is_enabled:
-            dataset = app.db["datasets_obj"].get(dataset_id)
+            datasets_obj = app.db.get("datasets_obj", {})
+            dataset = datasets_obj.get(dataset_id)
 
             if dataset is None:
                 logger.warning(f"Dataset {dataset_id} is enabled but not loaded, loading...")
                 try:
                     dataset = instantiate_dataset(dataset_id, dataset_config)
-                    app.db["datasets_obj"][dataset_id] = dataset
+                    if "datasets_obj" in app.db:
+                        app.db["datasets_obj"][dataset_id] = dataset
                 except Exception as e:
                     logger.error(f"Error while loading dataset {dataset_id}")
                     traceback.print_exc()
@@ -534,7 +536,9 @@ def download_dataset(app, dataset_id):
     }
 
     dataset = instantiate_dataset(dataset_id, config[dataset_id])
-    app.db["datasets_obj"][dataset_id] = dataset
+
+    if "datasets_obj" in app.db:
+        app.db["datasets_obj"][dataset_id] = dataset
 
     utils.save_dataset_config(config)
 
