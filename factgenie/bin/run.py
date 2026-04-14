@@ -281,6 +281,8 @@ def create_llm_campaign(
         raise ValueError(f"Campaign {campaign_id} already exists. Use --overwrite to overwrite.")
 
     campaign_id = slugify(campaign_id)
+    if not app.db.get("datasets_obj"):
+        app.db["datasets_obj"] = workflows.instantiate_datasets()
     datasets = app.db["datasets_obj"]
     dataset_ids = dataset_ids.split(",")
     splits = splits.split(",")
@@ -347,7 +349,7 @@ def run_llm_campaign(campaign_id: str):
     """
     Run a LLM campaign by id.
     """
-    from factgenie import llm_campaign
+    from factgenie import llm_campaign, workflows
     from factgenie.campaign import CampaignStatus
     from factgenie.models import ModelFactory
     from factgenie.workflows import load_campaign
@@ -355,6 +357,8 @@ def run_llm_campaign(campaign_id: str):
     # mockup object
     announcer = None
 
+    if not app.db.get("datasets_obj"):
+        app.db["datasets_obj"] = workflows.instantiate_datasets()
     datasets = app.db["datasets_obj"]
     campaign = load_campaign(app, campaign_id)
 
