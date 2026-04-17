@@ -189,6 +189,15 @@ def run_llm_campaign(app, mode, campaign_id, announcer, campaign, datasets, mode
                 generated_output = workflows.get_output_for_setup(
                     dataset_id, split, example_idx, setup_id, app=app, force_reload=False
                 )
+                if generated_output is None:
+                    expected_path = OUTPUT_DIR / setup_id / f"{dataset_id}-{split}.jsonl"
+                    raise FileNotFoundError(
+                        f"No output found for dataset={dataset_id!r}, split={split!r}, "
+                        f"example_idx={example_idx}, setup_id={setup_id!r}.\n"
+                        f"Expected output file: {expected_path}\n"
+                        f"Generate outputs first (e.g. run the iron pipeline for this setup_id) "
+                        f"or check that the campaign db.csv references the correct setup_id."
+                    )
                 res = model.generate_output(data=example, text=generated_output["output"])
                 # keep the annotated text in the object
                 res["output"] = generated_output["output"]
