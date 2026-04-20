@@ -7,7 +7,6 @@ import logging
 import re
 import time
 import unittest
-from importlib.metadata import version
 from itertools import cycle
 from typing import Any, Literal, Type
 
@@ -1194,17 +1193,6 @@ class ConverseLLM(Transform):
 
         # Create assistant history entry...
         assistant = {self.ROLE: self.ASSISTANT, self.CONTENT: response_text}
-
-        # Do a quick version check
-        try:
-            litellm_version_str = version("litellm")
-            major, minor = map(int, litellm_version_str.split(".")[:2])
-            if major <= 1 and minor <= 70 and reasoning_content == "":
-                logger.warning(
-                    f"Currently installed litellm (version {litellm_version_str}) is likely too outdated to properly show reasoning content. Please update your litellm (`pip install -U litellm`)."
-                )
-        except:
-            pass
 
         if reasoning_content != "":
             assistant |= {self.REASONING_CONTENT: reasoning_content}
