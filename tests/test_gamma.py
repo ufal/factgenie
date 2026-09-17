@@ -515,7 +515,6 @@ class TestComputeGammaScores:  # Tests the main compute_gamma_scores orchestrato
         with (
             patch("pygamma_agreement.continuum", MagicMock()),
             patch("pyannote.core.Segment", MagicMock()),
-            patch("pygamma_agreement.notebook.Notebook", MagicMock()),
             patch("factgenie.iaa.gamma.tqdm", MagicMock(return_value=mock_tqdm_instance)),
         ):
             results = compute_gamma_scores(span_idx, [], example_list, 1, 1, 1, True, None)

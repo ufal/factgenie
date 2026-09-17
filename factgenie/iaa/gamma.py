@@ -195,12 +195,13 @@ def compute_gamma_scores(
     if save_plots_dir:
         try:
             import matplotlib.pyplot as plt
+            from pygamma_agreement.notebook import Notebook
 
-            ntb = pa.notebook.Notebook()
+            ntb = Notebook()
             os.makedirs(save_plots_dir, exist_ok=True)
             save_plots_config = (plt, ntb, save_plots_dir)
         except ImportError:
-            logger.warning("Matplotlib not installed. Cannot save plots.")
+            logger.warning("Matplotlib or pygamma notebook support is not installed. Cannot save plots.")
             save_plots_dir = None  # Disable plotting
 
     logger.info(f"Computing gamma scores over {len(example_list)} examples.")
