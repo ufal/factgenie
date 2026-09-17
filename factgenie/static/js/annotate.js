@@ -1,6 +1,8 @@
-const sizes = [50, 50];
 const annotator_id = window.annotator_id;
 const metadata = window.metadata;
+const sizes = metadata?.config?.data_view_width
+    ? [metadata.config.data_view_width, 100 - metadata.config.data_view_width]
+    : [50, 50];
 
 var current_example_idx = 0;
 var annotation_set = window.annotation_set;
